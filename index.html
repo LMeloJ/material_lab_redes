@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laboratório de Redes de Computadores • Portal do Curso & Cronograma</title>
+  <meta name="description" content="Portal oficial de Laboratório de Redes de Computadores com roteiros interativos, simulações Cisco Packet Tracer, Sockets em Python e integração com Canvas LMS.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/iframe-canvas.css">
+</head>
+<body>
+
+  <!-- Top Banner se aberto em iframe -->
+  <div id="iframe-top-banner" class="iframe-top-banner" style="display: none;">
+    <span>⚡ Visualizando dentro do Canvas LMS</span>
+    <a id="iframe-external-link" href="#" target="_blank" rel="noopener">↗️ Abrir Portal em Nova Aba</a>
+  </div>
+
+  <!-- Barra de Navegação -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-brand">
+        <div class="brand-logo">LR</div>
+        <div>
+          <span>Lab de Redes</span>
+          <span style="font-size: 0.7rem; color: var(--text-muted); display: block; font-weight: 500;">Práticas & Roteiros Interativos</span>
+        </div>
+      </a>
+      <div class="nav-actions">
+        <button id="open-canvas-modal-btn" class="btn btn-canvas" title="Gerar código para Canvas LMS">
+          <span>📦</span> Incorporar no Canvas
+        </button>
+        <button id="theme-toggle" class="btn-icon" title="Alternar tema claro/escuro">
+          <span id="theme-icon">☀️</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Hero Header -->
+    <section class="hero">
+      <div class="hero-badge">⚡ Semestre Letivo 2026.2 • Curso Prático</div>
+      <h1 class="hero-title">Laboratório de Redes de Computadores</h1>
+      <p class="hero-subtitle">
+        Ambiente didático e interativo para experimentação prática com <strong>Cisco Packet Tracer</strong>, 
+        programação de <strong>Sockets TCP/UDP em Python</strong>, roteamento L2/L3, serviços de rede e projeto integrador corporativo.
+      </p>
+      <div class="hero-stats">
+        <div class="stat-chip">📅 <strong>20 Semanas</strong> de Cronograma</div>
+        <div class="stat-chip">🖥️ <strong>Cisco IOS</strong> & Packet Tracer</div>
+        <div class="stat-chip">🐍 <strong>Python</strong> Sockets</div>
+        <div class="stat-chip">📤 <strong>100% Integrado</strong> com Canvas LMS</div>
+      </div>
+    </section>
+
+    <!-- Canvas Instruction Banner -->
+    <section class="canvas-banner">
+      <div class="banner-icon">💡</div>
+      <div class="banner-content">
+        <h4>Orientações para Estudantes & Submissão no Canvas</h4>
+        <p>
+          Os roteiros deste portal contam com <strong>checklists interativos</strong> salvos automaticamente no seu navegador, blocos com <strong>cópia de comandos em 1 clique</strong> e <strong>quizzes de fixação</strong>. 
+          Ao finalizar cada prática, atente-se às instruções de entrega no fim do roteiro e <strong>submeta os arquivos (.pkt, .py ou relatório em PDF) na respectiva tarefa no Canvas da disciplina</strong>.
+        </p>
+      </div>
+    </section>
+
+    <!-- Controls Bar -->
+    <section class="controls-bar">
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" id="schedule-search" placeholder="Filtrar aula por tema, data ou protocolo (ex: VLAN, Sockets, STP, CLI)...">
+      </div>
+      <div class="filter-tags">
+        <button class="filter-tag active" data-category="all">Todos</button>
+        <button class="filter-tag" data-category="packet-tracer">Packet Tracer</button>
+        <button class="filter-tag" data-category="routing-l2-l3">L2 & L3 / VLANs</button>
+        <button class="filter-tag" data-category="sockets">Sockets & Python</button>
+        <button class="filter-tag" data-category="services">Serviços & VoIP</button>
+        <button class="filter-tag" data-category="projects">Projetos & Avaliações</button>
+      </div>
+    </section>
+
+    <!-- Schedule Grid -->
+    <section class="schedule-grid" id="schedule-container">
+
+      <!-- Aula 01 -->
+      <article class="schedule-card" data-category="packet-tracer">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">05/08/2026</span>
+            <span class="card-badge badge-lab">Prática</span>
+          </div>
+          <h2 class="card-title">Introdução ao Packet Tracer</h2>
+          <p class="card-desc">Conhecendo o simulador da Cisco, montagem da primeira LAN física cabeada e wireless, teste de conectividade ICMP e mobilidade física no escritório.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Relatório LaTeX / Overleaf</span>
+          </div>
+          <a href="roteiros/01-introducao-packet-tracer.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 02 -->
+      <article class="schedule-card" data-category="packet-tracer">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">12/08/2026</span>
+            <span class="card-badge badge-lab">Prática</span>
+          </div>
+          <h2 class="card-title">Simulações no Packet Tracer</h2>
+          <p class="card-desc">Exploração profunda do Modo Simulation (Shift+S), análise de PDUs nas 7 camadas do Modelo OSI, criação de PDUs complexos e diagnóstico de redes defeituosas.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Arquivo .pkt & Questionário</span>
+          </div>
+          <a href="roteiros/02-simulacoes-packet-tracer.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 03 -->
+      <article class="schedule-card" data-category="routing-l2-l3">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">19/08/2026</span>
+            <span class="card-badge badge-lab">Prática</span>
+          </div>
+          <h2 class="card-title">VLANs e Roteadores</h2>
+          <p class="card-desc">Segmentação de domínios de broadcast com VLANs (Vendas e Engenharia), configuração de portas de acesso e tronco 802.1Q e roteamento Inter-VLAN via Router-on-a-Stick.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Cisco IOS 2960 / 2911</span>
+          </div>
+          <a href="roteiros/03-vlans-e-roteadores.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 04 -->
+      <article class="schedule-card" data-category="routing-l2-l3">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">26/08/2026</span>
+            <span class="card-badge badge-lab">Prática</span>
+          </div>
+          <h2 class="card-title">MAC Tables e Roteamento Estático</h2>
+          <p class="card-desc">Inspeção da memória CAM dos switches, análise de flooding vs forwarding, ciclo ARP Request/Reply e configuração de rotas estáticas ponto a ponto (/30).</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Auditoria CAM & L3</span>
+          </div>
+          <a href="roteiros/04-mac-tables-e-roteamento-estatico.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 05 -->
+      <article class="schedule-card" data-category="services">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">02/09/2026</span>
+            <span class="card-badge badge-lab">Prática</span>
+          </div>
+          <h2 class="card-title">Servidores DHCP, DNS e HTTP</h2>
+          <p class="card-desc">Subindo a pilha de serviços fundamentais da Internet: servidores de atribuição automática de IP (DHCP), resolução hierárquica de nomes (DNS) e servidor Web HTTP corporativo.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Serviços de Infraestrutura</span>
+          </div>
+          <a href="roteiros/05-servidores-dhcp-dns-http.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 06 -->
+      <article class="schedule-card" data-category="sockets">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">09/09/2026</span>
+            <span class="card-badge badge-lab">Programação</span>
+          </div>
+          <h2 class="card-title">Sockets em Python</h2>
+          <p class="card-desc">Programação de rede na camada de transporte: criação de sockets TCP com Python, ciclo socket(), bind(), listen(), accept(), envio de bytes e criação de um monitor de sistema remoto.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Scripts Python .py</span>
+          </div>
+          <a href="roteiros/06-sockets-python.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 07 -->
+      <article class="schedule-card has-project" data-category="projects sockets">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">16/09/2026</span>
+            <span class="card-badge badge-project">Projeto Avaliativo</span>
+          </div>
+          <h2 class="card-title">Projeto 1 - Servidor Múltiplos Usuários com Sockets TCP</h2>
+          <p class="card-desc">Construção de uma aplicação cliente-servidor multithreaded (jogo textual, chat dinâmico ou serviço colaborativo) atendendo múltiplos usuários simultâneos.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Vídeo & Código no Canvas</span>
+          </div>
+          <a href="roteiros/07-projeto-1-sockets-tcp.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 08 -->
+      <article class="schedule-card" data-category="routing-l2-l3">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">23/09/2026</span>
+            <span class="card-badge badge-lab">Prática</span>
+          </div>
+          <h2 class="card-title">Acesso Remoto e Uso de CLI</h2>
+          <p class="card-desc">Configuração do Roteador Cisco ISR 4331 via CLI, geração de chaves RSA criptográficas, ativação de SSH seguro para gerência e DHCP pool para hosts de clientes.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>SSH & Cisco ISR 4331</span>
+          </div>
+          <a href="roteiros/08-acesso-remoto-e-cli.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 09 -->
+      <article class="schedule-card" data-category="routing-l2-l3">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">30/09/2026</span>
+            <span class="card-badge badge-lab">Prática</span>
+          </div>
+          <h2 class="card-title">Switches IDF e MDF com Interface Trunk</h2>
+          <p class="card-desc">Estrutura física de data center em prédios corporativos: distribuição principal (MDF), armários intermediários (IDF), cabeamento de backbone Gigabit e trunks 802.1Q.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Modo Físico & Cabeamento</span>
+          </div>
+          <a href="roteiros/09-switches-idf-mdf-trunk.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 10 -->
+      <article class="schedule-card" data-category="services">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">07/10/2026</span>
+            <span class="card-badge badge-lab">Prática</span>
+          </div>
+          <h2 class="card-title">VOIP (Telefonia IP Básica)</h2>
+          <p class="card-desc">Telefonia sobre IP com Cisco CallManager Express (CME), configuração de pool DHCP com Option 150 (TFTP), registro de ephones e chamadas de áudio entre ramais.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Cisco CME & IP Phones</span>
+          </div>
+          <a href="roteiros/10-voip.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 11 -->
+      <article class="schedule-card" data-category="services routing-l2-l3">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">14/10/2026</span>
+            <span class="card-badge badge-lab">Prática</span>
+          </div>
+          <h2 class="card-title">NAT e Hierarquia de DNS</h2>
+          <p class="card-desc">Simulação do ecossistema real da Internet: links seriais WAN (HWIC-2T), nuvens de acesso, NAT com overload (PAT) e servidores DNS Root (.), TLD (.com) e autoritativo.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>WAN & Tradução NAT</span>
+          </div>
+          <a href="roteiros/11-nat-e-hierarquia-dns.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 12 -->
+      <article class="schedule-card" data-category="routing-l2-l3">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">21/10/2026</span>
+            <span class="card-badge badge-lab">Prática</span>
+          </div>
+          <h2 class="card-title">Spanning Tree Protocol (STP)</h2>
+          <p class="card-desc">Prevenção de loops de camada 2 e broadcast storm: eleição da Root Bridge (Ponte Raiz), transição de estados de portas (Blocking, Listening, Learning, Forwarding) e convergência.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>STP IEEE 802.1D</span>
+          </div>
+          <a href="roteiros/12-spanning-tree-protocol.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 13 -->
+      <article class="schedule-card has-work" data-category="projects routing-l2-l3">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">28/10/2026</span>
+            <span class="card-badge badge-work">Trabalho Teórico-Prático</span>
+          </div>
+          <h2 class="card-title">Trabalho - Minimum Spanning Tree (MST)</h2>
+          <p class="card-desc">Análise algorítmica profunda de Prim e Kruskal comparados ao Spanning Tree Protocol (STP), simulação gráfica no Visualgo e cálculo de árvores de custo mínimo em grafos de switches.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Relatório Analítico no Canvas</span>
+          </div>
+          <a href="roteiros/13-trabalho-minimum-spanning-tree.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 14 -->
+      <article class="schedule-card has-project" data-category="projects routing-l2-l3">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">04/11/2026</span>
+            <span class="card-badge badge-project">Projeto Final • Parte 1</span>
+          </div>
+          <h2 class="card-title">Projeto Final - Aula 01</h2>
+          <p class="card-desc">Início da infraestrutura corporativa do projeto final: montagem de prédio de 2 andares (MDF no 1º, IDF no 2º), planejamento de VLANs (ADM, VOIP, DMZ, GUEST, MGMT) e cabeamento de switches.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Camada Física & L2</span>
+          </div>
+          <a href="roteiros/14-projeto-final-aula-01.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 15 -->
+      <article class="schedule-card" data-category="services">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">11/11/2026</span>
+            <span class="card-badge badge-lab">Prática</span>
+          </div>
+          <h2 class="card-title">VOIP (Telefonia IP Avançada)</h2>
+          <p class="card-desc">Aprofundamento de voz sobre IP: Voice VLANs dedicadas, priorização de tráfego de voz, dial-peers e integração dos telefones IP com o roteador corporativo CME.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Voice VLAN & Dial-Peers</span>
+          </div>
+          <a href="roteiros/15-voip-avancado.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 16 -->
+      <article class="schedule-card" data-category="routing-l2-l3">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">18/11/2026</span>
+            <span class="card-badge badge-lab">Prática</span>
+          </div>
+          <h2 class="card-title">Topologias e STP Avançado</h2>
+          <p class="card-desc">Construção de topologias em malha com alta redundância, manipulação de prioridades Spanning Tree, recursos PortFast e BPDU Guard para segurança de borda.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Redundância & PortFast</span>
+          </div>
+          <a href="roteiros/16-topologias-e-stp.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 17 -->
+      <article class="schedule-card has-project" data-category="projects routing-l2-l3">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">25/11/2026</span>
+            <span class="card-badge badge-project">Projeto Final • Checkpoint</span>
+          </div>
+          <h2 class="card-title">Projeto Final - Aula 01 (Validação & Revisão)</h2>
+          <p class="card-desc">Sessão dedicada de revisão, testes de integridade das VLANs nos armários MDF/IDF, conformidade do cabeamento e preparação das interfaces para o roteamento centralizado.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Auditoria de Camada 2</span>
+          </div>
+          <a href="roteiros/17-projeto-final-revisao-l2.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 18 -->
+      <article class="schedule-card has-project" data-category="projects services routing-l2-l3">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">02/12/2026</span>
+            <span class="card-badge badge-project">Projeto Final • Parte 2</span>
+          </div>
+          <h2 class="card-title">Projeto Final - Aula 02</h2>
+          <p class="card-desc">Ativação do roteamento Inter-VLAN no Switch Core L3 3560, configuração de DHCP centralizado no servidor SRV-NET, DNS corporativo interno e saída para Internet com NAT/PAT no R-EDGE.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Switch L3 & NAT Internet</span>
+          </div>
+          <a href="roteiros/18-projeto-final-aula-02.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 19 -->
+      <article class="schedule-card has-project" data-category="projects services">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">09/12/2026</span>
+            <span class="card-badge badge-project">Projeto Final • Parte 3</span>
+          </div>
+          <h2 class="card-title">Projeto Final - Aula 03</h2>
+          <p class="card-desc">Fechamento do projeto corporativo: implantação da rede Wi-Fi de visitantes (VLAN 40) com APs, ativação da central telefônica Cisco 2811 CME e listas de controle de acesso (ACLs).</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot"></span>
+            <span>Wi-Fi Guest, CME & ACLs</span>
+          </div>
+          <a href="roteiros/19-projeto-final-aula-03.html" class="btn btn-primary btn-sm">Acessar Roteiro →</a>
+        </div>
+      </article>
+
+      <!-- Aula 20 -->
+      <article class="schedule-card" data-category="projects">
+        <div>
+          <div class="card-header-meta">
+            <span class="card-date">16/12/2026</span>
+            <span class="card-badge badge-closure">Encerramento</span>
+          </div>
+          <h2 class="card-title">Fechamento das Notas</h2>
+          <p class="card-desc">Encerramento do semestre letivo: conferência de submissões no Canvas, auto-avaliação do projeto corporativo, fechamento dos diários de notas e feedbacks finais da disciplina.</p>
+        </div>
+        <div class="card-footer">
+          <div class="card-status">
+            <span class="status-dot completed"></span>
+            <span>Fim do Semestre 2026.2</span>
+          </div>
+          <a href="roteiros/20-fechamento-notas.html" class="btn btn-outline btn-sm">Ver Checklist Final →</a>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- Fallback de Nenhum Resultado -->
+    <div id="no-results-msg" style="display: none; text-align: center; padding: 3rem; color: var(--text-muted);">
+      <p style="font-size: 1.2rem;">Nenhuma atividade encontrada com o termo pesquisado.</p>
+      <p style="font-size: 0.9rem; margin-top: 0.5rem;">Tente buscar por termos como "VLAN", "STP", "Socket", "Packet Tracer" ou clique em "Todos".</p>
+    </div>
+  </main>
+
+  <!-- Modal do Gerador de Código Iframe para o Canvas -->
+  <div id="canvas-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <button id="close-canvas-modal-btn" class="modal-close" title="Fechar">&times;</button>
+      <h3 style="margin-bottom: 0.5rem; color: var(--text-primary);">📦 Como Incorporar no Canvas LMS</h3>
+      <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+        Você pode incorporar a página inicial ou qualquer roteiro de laboratório individual diretamente dentro de uma página ou tarefa do Canvas.
+      </p>
+
+      <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem; text-transform: uppercase;">Selecione o Roteiro para Embutir:</label>
+      <select id="canvas-lab-select" style="width: 100%; padding: 0.6rem; border-radius: 6px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary); margin-bottom: 1rem; outline: none;">
+        <option value="">🏠 Home do Curso (Visão Geral & Cronograma Completo)</option>
+        <option value="roteiros/01-introducao-packet-tracer.html">01 - Introdução ao Packet Tracer (05/08/2026)</option>
+        <option value="roteiros/02-simulacoes-packet-tracer.html">02 - Simulações no Packet Tracer (12/08/2026)</option>
+        <option value="roteiros/03-vlans-e-roteadores.html">03 - VLANs e Roteadores (19/08/2026)</option>
+        <option value="roteiros/04-mac-tables-e-roteamento-estatico.html">04 - MAC Tables e Roteamento Estático (26/08/2026)</option>
+        <option value="roteiros/05-servidores-dhcp-dns-http.html">05 - Servidores DHCP, DNS e HTTP (02/09/2026)</option>
+        <option value="roteiros/06-sockets-python.html">06 - Sockets em Python (09/09/2026)</option>
+        <option value="roteiros/07-projeto-1-sockets-tcp.html">07 - Projeto 1: Servidor Múltiplos Usuários (16/09/2026)</option>
+        <option value="roteiros/08-acesso-remoto-e-cli.html">08 - Acesso Remoto e Uso de CLI (23/09/2026)</option>
+        <option value="roteiros/09-switches-idf-mdf-trunk.html">09 - Switches IDF e MDF com Interface Trunk (30/09/2026)</option>
+        <option value="roteiros/10-voip.html">10 - VOIP Telefonia IP (07/10/2026)</option>
+        <option value="roteiros/11-nat-e-hierarquia-dns.html">11 - NAT e Hierarquia de DNS (14/10/2026)</option>
+        <option value="roteiros/12-spanning-tree-protocol.html">12 - Spanning Tree Protocol (21/10/2026)</option>
+        <option value="roteiros/13-trabalho-minimum-spanning-tree.html">13 - Trabalho: Minimum Spanning Tree (28/10/2026)</option>
+        <option value="roteiros/14-projeto-final-aula-01.html">14 - Projeto Final: Aula 01 (04/11/2026)</option>
+        <option value="roteiros/15-voip-avancado.html">15 - VOIP Telefonia Avançada (11/11/2026)</option>
+        <option value="roteiros/16-topologias-e-stp.html">16 - Topologias e STP (18/11/2026)</option>
+        <option value="roteiros/17-projeto-final-revisao-l2.html">17 - Projeto Final: Revisão L2 (25/11/2026)</option>
+        <option value="roteiros/18-projeto-final-aula-02.html">18 - Projeto Final: Aula 02 (02/12/2026)</option>
+        <option value="roteiros/19-projeto-final-aula-03.html">19 - Projeto Final: Aula 03 (09/12/2026)</option>
+        <option value="roteiros/20-fechamento-notas.html">20 - Fechamento das Notas (16/12/2026)</option>
+      </select>
+
+      <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem; text-transform: uppercase;">Código HTML (Copie e cole no Editor HTML do Canvas):</label>
+      <textarea id="canvas-iframe-code" readonly rows="4" style="width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; padding: 0.75rem; border-radius: 6px; background: var(--bg-primary); border: 1px solid var(--border-color); color: #38bdf8; margin-bottom: 1.25rem; resize: none;"></textarea>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button id="copy-iframe-btn" class="btn btn-primary">📋 Copiar Código Iframe</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.5rem; align-items: center;">
+      <p><strong>Laboratório de Redes de Computadores</strong> • Semestre 2026.2</p>
+      <p>Material didático interativo estruturado para GitHub Pages e Canvas LMS • Professor Leonardo de Mélo João</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

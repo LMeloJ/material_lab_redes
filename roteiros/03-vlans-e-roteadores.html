@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 03: VLANs & Router-on-a-Stick • Lab de Redes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .pulse-dot { animation: pulseAnim 2s infinite; }
+    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+    .packet-anim { transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-purple-500 selection:text-white">
+
+  <!-- Toast Notifier -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900 border border-purple-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md">
+    <span class="text-emerald-400 font-bold">✓</span>
+    <span id="toast-msg" class="text-sm font-medium">Comando copiado com sucesso!</span>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/20 font-mono font-bold text-lg hover:scale-105 transition">
+          LR
+        </a>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            Lab 03: <span class="text-purple-400">VLANs & Router-on-a-Stick</span>
+          </h1>
+          <p class="text-xs text-slate-500">Segmentação 802.1Q, portas Access/Trunk e roteamento L3 inter-VLAN</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200 flex items-center gap-1">
+          ← Cronograma
+        </a>
+        <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
+          ↗️ Tela Cheia
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+          <span class="w-2 h-2 rounded-full bg-purple-400 pulse-dot"></span>
+          19/08/2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Canvas Submission Alert -->
+    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
+        📤
+      </div>
+      <div class="flex-1">
+        <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
+          Submissão Obrigatória no Canvas da Disciplina
+        </h4>
+        <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
+          Ao término do laboratório, envie na tarefa correspondente no <strong>Canvas</strong>:
+        </p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Arquivo .pkt: vlans_intervlan_seunome.pkt</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Relatório com respostas às Questões Técnicas (PDF)</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Prints de 'show vlan brief' e 'show ip route'</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Jump Navigation -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
+      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Modelos Mentais</a>
+      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold shadow-xs transition font-medium flex items-center gap-1">
+        ⚡ Simulador de Tagging 802.1Q & Trunk
+      </a>
+      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Comandos Cisco IOS</a>
+      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Armadilhas Comuns</a>
+      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition font-medium">4. Checklist de Entrega</a>
+    </div>
+
+    <!-- Intro Hero -->
+    <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div class="max-w-3xl">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30">
+          Laboratório 03 • Camada 2 & Camada 3
+        </span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4 tracking-tight">
+          Segmentação Lógica com VLANs e o Truque do "Router-on-a-Stick"
+        </h2>
+        <p class="text-slate-700 text-base leading-relaxed mb-6">
+          Uma rede sem segmentação (<em>flat network</em>) sofre com tempestades de broadcast e vulnerabilidades de espionagem. As <strong>VLANs (Virtual Local Area Networks)</strong> particionam um switch físico em múltiplos switches virtuais isolados. Para que eles conversem de volta, usamos uma única interface de roteador dividida em sub-interfaces com marcação <strong>IEEE 802.1Q</strong>.
+        </p>
+        <div class="flex flex-wrap gap-4 text-xs font-mono">
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Padrão Trunk:</span> <span class="text-purple-400 font-bold">IEEE 802.1Q (dot1q)</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">VLANs do Lab:</span> <span class="text-blue-400 font-bold">VLAN 10 (Vendas)</span> & <span class="text-amber-400 font-bold">VLAN 20 (Engenharia)</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Comando Chave:</span> <span class="text-emerald-400 font-bold">encapsulation dot1Q &lt;id&gt;</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: MODELOS MENTAIS -->
+    <section id="analogia" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-purple-600/20 text-purple-400 flex items-center justify-center font-bold text-sm">1</div>
+        <h3 class="text-2xl font-bold text-slate-900">Modelos Mentais: Como Funcionam as VLANs e o Tronco</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-purple-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center mb-3 text-xl">🧱</div>
+          <h4 class="font-bold text-slate-900 text-sm">A Parede de Concreto L2</h4>
+          <span class="text-xs text-blue-400 font-medium mb-1 block">"Isolamento Físico Virtual"</span>
+          <p class="text-xs text-slate-500">Dois PCs plugados lado a lado no mesmo switch físico, se estiverem em VLANs diferentes, é como se estivessem em prédios diferentes: nem o broadcast de ARP passa.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-purple-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center mb-3 text-xl">🏷️</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Carimbo de Passaporte</h4>
+          <span class="text-xs text-purple-400 font-medium mb-1 block">"Tag 802.1Q de 4 Bytes"</span>
+          <p class="text-xs text-slate-500">Ao sair por uma porta <em>Trunk</em>, o frame Ethernet ganha 4 bytes extras com o ID da VLAN (12 bits). Na porta <em>Access</em> de entrega final, essa tag é removida.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-purple-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 text-xl">🍭</div>
+          <h4 class="font-bold text-slate-900 text-sm">O "Router-on-a-Stick"</h4>
+          <span class="text-xs text-amber-400 font-medium mb-1 block">"O Pirulito de Rede"</span>
+          <p class="text-xs text-slate-500">Em vez de passar 20 cabos físicos para 20 VLANs, passa-se 1 único cabo físico operando como Trunk. O roteador cria interfaces virtuais (ex: <code>g0/0.10</code> e <code>g0/0.20</code>).</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-purple-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 text-xl">🛡️</div>
+          <h4 class="font-bold text-slate-900 text-sm">Fronteira de Segurança</h4>
+          <span class="text-xs text-emerald-400 font-medium mb-1 block">"Controle Centralizado"</span>
+          <p class="text-xs text-slate-500">Como todo tráfego entre departamentos precisa obrigatoriamente subir até o Roteador, é no Roteador que você depois aplica listas de controle de acesso (ACLs) e firewalls.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: SIMULADOR INTERATIVO -->
+    <section id="simulador" class="mb-14 scroll-mt-24">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-sm">⚡</div>
+          <h3 class="text-2xl font-bold text-slate-900">Simulador Interativo: Tagging 802.1Q & Router-on-a-Stick</h3>
+        </div>
+        <span class="text-xs bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full border border-cyan-200 font-medium">
+          Visualizador de Quadro Ethernet
+        </span>
+      </div>
+
+      <div class="bg-white border-2 border-slate-200/90 rounded-2xl overflow-hidden shadow-lg">
+        <!-- Top Control Bar -->
+        <div class="bg-slate-50 p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Modo de Teste:</span>
+            <div class="inline-flex rounded-lg bg-slate-200/70 p-1 border border-slate-300 text-xs">
+              <button id="btn-mode-inter" onclick="setMode('intervlan')" class="px-3 py-1 rounded-md font-medium bg-purple-600 text-white transition">Roteamento Inter-VLAN (V10 → V20)</button>
+              <button id="btn-mode-arp" onclick="setMode('arp_broadcast')" class="px-3 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition">Isolamento de Broadcast ARP</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-play-step" onclick="advanceStep()" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition shadow flex items-center gap-1.5">
+              <span>▶</span> Avançar Etapa do Pacote
+            </button>
+            <button onclick="resetSim()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition shadow-xs">
+              ↺ Reiniciar
+            </button>
+          </div>
+        </div>
+
+        <!-- Interactive Visual Topology -->
+        <div class="p-6 bg-slate-950/50 min-h-[300px] relative flex flex-col justify-center">
+          
+          <!-- Top Link to Router (Stick) -->
+          <div class="relative max-w-4xl mx-auto w-full">
+            
+            <!-- Router at Top -->
+            <div class="flex justify-center mb-6">
+              <div id="dev-router" class="p-3 rounded-xl bg-slate-900 border-2 border-slate-800 text-center w-72 shadow-lg transition">
+                <div class="text-2xl mb-1">🧭</div>
+                <div class="font-bold text-xs text-white">Roteador 2911 (Router-on-a-Stick)</div>
+                <div class="flex justify-center gap-2 mt-1 font-mono text-[10px]">
+                  <span class="px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-500/30">g0/0.10: 192.168.10.254</span>
+                  <span class="px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/30">g0/0.20: 192.168.20.254</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Vertical Trunk Wire -->
+            <div class="w-1 h-12 bg-slate-800 mx-auto relative">
+              <div id="trunk-active-line" class="w-full h-0 bg-purple-500 transition-all duration-500"></div>
+              <!-- Packet on Trunk -->
+              <div id="packet-trunk" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 opacity-0 transition-all duration-500">
+                <span class="px-2 py-1 rounded-md text-[10px] font-bold bg-purple-600 text-white shadow-lg shadow-purple-500/50 font-mono flex items-center gap-1 border border-white/20 whitespace-nowrap">
+                  🏷️ 802.1Q Tag: <span id="tag-num">10</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Switch in Middle -->
+            <div class="flex justify-center my-2">
+              <div id="dev-switch" class="p-3 rounded-xl bg-slate-900 border-2 border-purple-500/60 text-center w-80 shadow-lg">
+                <div class="text-2xl mb-1">🔀</div>
+                <div class="font-bold text-xs text-white">Switch Cisco 2960</div>
+                <div class="text-[10px] text-purple-300 font-mono mt-0.5">Porta Gig0/1: TRUNK (802.1Q Tagged)</div>
+                <div class="flex justify-center gap-4 text-[10px] font-mono text-slate-400 mt-1">
+                  <span>Fa0/1: Access VLAN 10</span>
+                  <span>Fa0/2: Access VLAN 20</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Horizontal Wires to PCs -->
+            <div class="grid grid-cols-2 gap-8 mt-6">
+              <!-- PC1 (VLAN 10) -->
+              <div id="dev-pc1" class="p-4 rounded-xl bg-slate-900 border-2 border-blue-500/40 text-center shadow-lg transition">
+                <div class="w-10 h-10 rounded-lg bg-blue-950 text-blue-400 flex items-center justify-center mx-auto text-xl mb-2">🖥️</div>
+                <div class="font-bold text-xs text-white">PC1 (Vendas)</div>
+                <div class="font-mono text-xs text-blue-400">192.168.10.1 /24</div>
+                <div class="font-mono text-[10px] text-slate-400 mt-1">Gateway: 192.168.10.254</div>
+                <span class="inline-block mt-2 px-2 py-0.5 rounded bg-blue-950 border border-blue-500/40 text-blue-300 text-[10px] font-bold">VLAN 10</span>
+              </div>
+
+              <!-- PC2 (VLAN 20) -->
+              <div id="dev-pc2" class="p-4 rounded-xl bg-slate-900 border-2 border-amber-500/40 text-center shadow-lg transition">
+                <div class="w-10 h-10 rounded-lg bg-amber-950 text-amber-400 flex items-center justify-center mx-auto text-xl mb-2">💻</div>
+                <div class="font-bold text-xs text-white">PC2 (Engenharia)</div>
+                <div class="font-mono text-xs text-amber-400">192.168.20.1 /24</div>
+                <div class="font-mono text-[10px] text-slate-400 mt-1">Gateway: 192.168.20.254</div>
+                <span class="inline-block mt-2 px-2 py-0.5 rounded bg-amber-950 border border-amber-500/40 text-amber-300 text-[10px] font-bold">VLAN 20</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Step Description Banner -->
+          <div class="mt-6 p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span id="step-badge" class="px-2 py-0.5 rounded bg-purple-950 text-purple-300 font-mono font-bold">ETAPA 0</span>
+              <span id="step-description" class="text-slate-700">Pronto para iniciar. Clique em "Avançar Etapa do Pacote".</span>
+            </div>
+            <span id="step-result" class="font-mono text-purple-400 font-semibold">Aguardando disparo</span>
+          </div>
+        </div>
+
+        <!-- Frame Dissection Box (Ethernet vs 802.1Q) -->
+        <div class="p-5 bg-slate-50 border-t border-slate-200">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <span>🔬</span> Estrutura do Quadro Ethernet em Trânsito (Dissecação de Bytes)
+            </h4>
+            <span id="frame-state-label" class="text-xs font-mono text-slate-400">Estado: Quadro Untagged Padrão</span>
+          </div>
+
+          <!-- Dynamic Frame Bar -->
+          <div class="grid grid-cols-12 gap-1 font-mono text-[11px] text-center mb-3">
+            <div class="col-span-2 p-2 rounded bg-slate-800 text-slate-700 border border-slate-700">Dest MAC<br><span class="text-[9px] text-slate-400">6 bytes</span></div>
+            <div class="col-span-2 p-2 rounded bg-slate-800 text-slate-700 border border-slate-700">Src MAC<br><span class="text-[9px] text-slate-400">6 bytes</span></div>
+            
+            <!-- 802.1Q Tag Slot (Highlighted when inside Trunk) -->
+            <div id="frame-tag-slot" class="col-span-3 p-2 rounded bg-slate-850 text-slate-500 border border-slate-800 transition-all duration-300">
+              <div id="tag-title" class="font-bold">Sem Tag 802.1Q</div>
+              <div id="tag-desc" class="text-[9px]">Porta Access (Untagged)</div>
+            </div>
+
+            <div class="col-span-2 p-2 rounded bg-indigo-950 text-indigo-300 border border-indigo-500/30">EtherType<br><span class="text-[9px]">0x0800 (IPv4)</span></div>
+            <div class="col-span-3 p-2 rounded bg-slate-800 text-slate-700 border border-slate-700">IP Packet + Payload<br><span class="text-[9px] text-slate-400">ICMP Echo Request</span></div>
+          </div>
+
+          <div id="frame-explanation" class="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed">
+            O PC1 não sabe o que é uma VLAN. Ele gera um quadro Ethernet padrão e entrega na porta Fa0/1 do switch.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: COMANDOS CISCO IOS -->
+    <section id="roteiro" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-purple-600/20 text-purple-400 flex items-center justify-center font-bold text-sm">2</div>
+        <h3 class="text-2xl font-bold text-slate-900">Guia de Configuração Cisco IOS</h3>
+      </div>
+
+      <!-- Switch Commands -->
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>⚙️</span> 1. Configuração do Switch 2960 (VLANs & Trunk)
+          </h4>
+          <button onclick="copyCode('code-switch')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition flex items-center gap-1">
+            📋 Copiar Bloco Switch
+          </button>
+        </div>
+        <p class="text-xs text-slate-700 mb-3 leading-relaxed">
+          Crie as duas VLANs, associe as portas de acesso dos computadores e defina a porta Gig0/1 conectada ao roteador como <strong>Trunk</strong>:
+        </p>
+
+        <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+<pre id="code-switch"><code>enable
+configure terminal
+
+! 1. Criação das VLANs de Vendas e Engenharia
+vlan 10
+ name VENDAS
+exit
+
+vlan 20
+ name ENGENHARIA
+exit
+
+! 2. Portas de Acesso (Access Ports para os PCs)
+interface fastEthernet 0/1
+ switchport mode access
+ switchport access vlan 10
+exit
+
+interface fastEthernet 0/2
+ switchport mode access
+ switchport access vlan 20
+exit
+
+! 3. Porta Tronco para o Roteador (Trunk 802.1Q)
+interface gigabitEthernet 0/1
+ switchport mode trunk
+ switchport trunk native vlan 1
+exit
+
+! 4. Validação
+do show vlan brief
+do show interfaces trunk</code></pre>
+        </div>
+      </div>
+
+      <!-- Router Commands -->
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>🧭</span> 2. Configuração do Roteador 2911 (Router-on-a-Stick)
+          </h4>
+          <button onclick="copyCode('code-router')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition flex items-center gap-1">
+            📋 Copiar Bloco Roteador
+          </button>
+        </div>
+        <p class="text-xs text-slate-700 mb-3 leading-relaxed">
+          Ative a interface física pai com <code>no shutdown</code> (não atribua IP a ela!) e crie as sub-interfaces lógicas para cada VLAN com o comando <code>encapsulation dot1Q &lt;id&gt;</code>:
+        </p>
+
+        <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+<pre id="code-router"><code>enable
+configure terminal
+
+! 1. Ativando a interface física principal (Sem IP!)
+interface gigabitEthernet 0/0
+ no shutdown
+exit
+
+! 2. Sub-interface lógica para a VLAN 10 (Vendas)
+interface gigabitEthernet 0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.254 255.255.255.0
+exit
+
+! 3. Sub-interface lógica para a VLAN 20 (Engenharia)
+interface gigabitEthernet 0/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.20.254 255.255.255.0
+exit
+
+! 4. Validação de Rotas e Status
+do show ip interface brief
+do show ip route</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: ARMADILHAS COMUNS -->
+    <section id="armadilhas" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center font-bold text-sm">3</div>
+        <h3 class="text-2xl font-bold text-slate-900">Armadilhas Comuns em VLANs & Roteamento Inter-VLAN</h3>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 1. Inverter a Ordem no Roteador
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            Tentar digitar o comando <code>ip address ...</code> na sub-interface antes do <code>encapsulation dot1Q</code> gera erro de sintaxe imediato no Cisco IOS: <em>"Configuring IP on a LAN subinterface requires 802.1Q"</em>.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Regra: Sempre digite primeiro 'encapsulation dot1Q &lt;id&gt;' e só depois o IP!
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 2. Esquecer de Ativar a Interface Pai
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            Mesmo configurando as sub-interfaces <code>.10</code> e <code>.20</code> corretamente, se você não executar <code>no shutdown</code> na interface física <code>g0/0</code>, o link permanecerá vermelho e inoperante.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Sintoma: Triângulos vermelhos no cabo entre Switch e Roteador.
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 3. Gateway Incompatível no Host
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            Configurar o PC da VLAN 10 com IP 192.168.10.1 e colocar o gateway como 192.168.20.254 faz com que o PC recuse a rota padrão ou descarte o pacote por conflito de sub-rede.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            O Default Gateway deve pertencer estritamente à mesma sub-rede do nó!
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: CHECKLIST DE ENTREGA NO CANVAS -->
+    <section id="checklist" class="mb-14 scroll-mt-24">
+      <div class="bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-xl">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">4</span>
+              <h3 class="text-2xl font-bold text-slate-900">Checklist de Entrega no Canvas</h3>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700 mt-1">
+              Marque os itens conforme concluir. O progresso é salvo localmente.
+            </p>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-black text-emerald-400" id="progress-val">0%</div>
+            <div class="text-xs text-slate-500">Concluído</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-purple-500 to-emerald-400 w-0 transition-all duration-300"></div>
+        </div>
+
+        <!-- Interactive Checkboxes -->
+        <div class="space-y-3 text-sm">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>VLANs Criadas no Switch:</strong> VLAN 10 (Vendas) e VLAN 20 (Engenharia) criadas com portas de acesso devidamente associadas e validadas com <code>show vlan brief</code>.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Porta Trunk Configurada:</strong> Porta <code>Gig0/1</code> do switch alterada para modo <code>trunk</code>, permitindo a passagem de tags 802.1Q.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Sub-interfaces no Roteador:</strong> Criadas <code>g0/0.10</code> e <code>g0/0.20</code> com <code>encapsulation dot1Q</code> e IPs correspondentes ao gateway de cada rede.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Ping Inter-VLAN Validado:</strong> Executado ping entre PC1 (192.168.10.1) e PC2 (192.168.20.1) com taxa de sucesso de 100%.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Submissão no Canvas Realizada:</strong> Salvei <code>vlans_intervlan_seunome.pkt</code> e anexei o relatório em PDF com respostas das questões técnicas e capturas de tela no Canvas.
+            </span>
+          </label>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-200 text-xs text-slate-500">
+          <span>Laboratório de Redes de Computadores • 2026.2</span>
+          <a href="#simulador" class="text-purple-400 hover:underline">Voltar ao Simulador ↑</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Navigation -->
+    <div class="flex items-center justify-between border-t border-slate-200 pt-6">
+      <a href="02-simulacoes-packet-tracer.html" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition flex items-center gap-1.5">
+        ← Lab 02: Simulações & PDU
+      </a>
+      <a href="04-mac-tables-e-roteamento-estatico.html" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg transition flex items-center gap-1.5">
+        Próximo: Lab 04 - MAC Tables & Roteamento Estático →
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Interactive Simulator Engine -->
+  <script>
+    let mode = 'intervlan';
+    let step = 0;
+
+    const interVlanSteps = [
+      {
+        badge: 'ETAPA 0',
+        desc: 'PC1 (VLAN 10) quer enviar um Ping para PC2 (VLAN 20). Como o IP de destino pertence a outra rede, ele envia para o Default Gateway (192.168.10.254).',
+        result: 'Pronto para disparo',
+        resultClass: 'text-purple-400',
+        activeDev: 'dev-pc1',
+        tagSlotBg: 'bg-slate-850 border-slate-800 text-slate-500',
+        tagTitle: 'Sem Tag 802.1Q',
+        tagDesc: 'Quadro Ethernet padrão saindo do PC',
+        explanation: 'O PC1 gera um quadro comum (Untagged). Hosts terminais não conhecem nem manipulam tags 802.1Q.',
+        trunkActive: '0%',
+        packetTrunkOpacity: 0
+      },
+      {
+        badge: 'ETAPA 1: NO SWITCH (ACCESS → TRUNK)',
+        desc: 'O Switch recebe o quadro na porta Fa0/1 (Access VLAN 10). Ao enviar pela porta Gig0/1 (Trunk), o switch injeta a Tag IEEE 802.1Q!',
+        result: '🏷️ Tag 802.1Q Injetada (VLAN ID 10)',
+        resultClass: 'text-purple-300',
+        activeDev: 'dev-switch',
+        tagSlotBg: 'bg-purple-950 border-purple-500/80 text-purple-300 ring-2 ring-purple-500/50',
+        tagTitle: 'TAG 802.1Q: VLAN 10',
+        tagDesc: 'TPID: 0x8100 | VID: 10 | PCP: 0',
+        explanation: 'No tronco, o Switch adiciona 4 bytes ao cabeçalho. A etiqueta identifica que este quadro pertence à VLAN 10 de Vendas.',
+        trunkActive: '50%',
+        packetTrunkOpacity: 1,
+        tagNum: '10'
+      },
+      {
+        badge: 'ETAPA 2: NO ROTEADOR (ROUTER-ON-A-STICK)',
+        desc: 'O Roteador recebe o quadro na sub-interface g0/0.10, remove a tag, lê o IP de destino (192.168.20.1) e decide rotear L3 para a sub-interface g0/0.20!',
+        result: 'Roteamento L3 Inter-VLAN Concluído',
+        resultClass: 'text-emerald-400',
+        activeDev: 'dev-router',
+        tagSlotBg: 'bg-amber-950 border-amber-500/80 text-amber-300 ring-2 ring-amber-500/50',
+        tagTitle: 'NOVA TAG 802.1Q: VLAN 20',
+        tagDesc: 'Encapsulado para a VLAN 20 de retorno',
+        explanation: 'O roteador consulta sua Routing Table: rede 192.168.20.0/24 é alcançável via g0/0.20. Ele injeta a TAG da VLAN 20 e devolve pelo mesmo cabo!',
+        trunkActive: '100%',
+        packetTrunkOpacity: 1,
+        tagNum: '20'
+      },
+      {
+        badge: 'ETAPA 3: ENTREGA NO DESTINO',
+        desc: 'O Switch recebe o quadro com tag 20 na porta Trunk, remove a tag 802.1Q e entrega o quadro limpo (untagged) na porta Fa0/2 de PC2!',
+        result: 'Ping Entregue com Sucesso em PC2! (RTT < 1ms)',
+        resultClass: 'text-emerald-400',
+        activeDev: 'dev-pc2',
+        tagSlotBg: 'bg-slate-850 border-slate-800 text-slate-500',
+        tagTitle: 'Sem Tag (Untagged)',
+        tagDesc: 'Tag removida pela porta Access Fa0/2',
+        explanation: 'A porta Access é responsável por remover a tag antes de entregar a placa de rede do cliente. O PC2 recebe um pacote IP limpo!',
+        trunkActive: '0%',
+        packetTrunkOpacity: 0
+      }
+    ];
+
+    const arpSteps = [
+      {
+        badge: 'ETAPA 0: ARP BROADCAST',
+        desc: 'PC1 envia uma requisição ARP para endereço de difusão FF:FF:FF:FF:FF:FF na VLAN 10.',
+        result: 'Difusão Gerada na VLAN 10',
+        resultClass: 'text-blue-400',
+        activeDev: 'dev-pc1',
+        tagSlotBg: 'bg-slate-850 border-slate-800 text-slate-500',
+        tagTitle: 'Sem Tag (ARP Broadcast)',
+        tagDesc: 'Destino: FF:FF:FF:FF:FF:FF',
+        explanation: 'O broadcast inunda todas as portas pertencentes à VLAN 10.',
+        trunkActive: '0%',
+        packetTrunkOpacity: 0
+      },
+      {
+        badge: 'ETAPA 1: ISOLAMENTO TOTAL',
+        desc: 'O Switch encaminha o broadcast apenas para as portas da VLAN 10 e para o Tronco. A porta Fa0/2 (VLAN 20) NÃO recebe absolutamente nada!',
+        result: '🛡️ Domínio de Broadcast Isolado com Sucesso',
+        resultClass: 'text-emerald-400',
+        activeDev: 'dev-switch',
+        tagSlotBg: 'bg-blue-950 border-blue-500/80 text-blue-300',
+        tagTitle: 'VLAN 10 BROADCAST',
+        tagDesc: 'Bloqueado para portas da VLAN 20',
+        explanation: 'A VLAN cumpriu seu papel de segurança e performance: a Engenharia (VLAN 20) não tem sua CPU interrompida por pacotes da Vendas (VLAN 10)!',
+        trunkActive: '0%',
+        packetTrunkOpacity: 0
+      }
+    ];
+
+    function setMode(m) {
+      mode = m;
+      step = 0;
+      const bInter = document.getElementById('btn-mode-inter');
+      const bArp = document.getElementById('btn-mode-arp');
+      if (m === 'intervlan') {
+        bInter.className = 'px-3 py-1 rounded-md font-medium bg-purple-600 text-white transition';
+        bArp.className = 'px-3 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition';
+      } else {
+        bArp.className = 'px-3 py-1 rounded-md font-medium bg-purple-600 text-white transition';
+        bInter.className = 'px-3 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition';
+      }
+      render();
+    }
+
+    function advanceStep() {
+      const arr = (mode === 'intervlan') ? interVlanSteps : arpSteps;
+      if (step < arr.length - 1) step++;
+      else step = 0;
+      render();
+    }
+
+    function resetSim() {
+      step = 0;
+      render();
+    }
+
+    function render() {
+      const data = (mode === 'intervlan') ? interVlanSteps[step] : arpSteps[step];
+
+      // Highlight active dev
+      ['dev-pc1', 'dev-switch', 'dev-router', 'dev-pc2'].forEach(id => {
+        const el = document.getElementById(id);
+        if (id === data.activeDev) {
+          el.classList.add('ring-2', 'ring-purple-400', 'bg-slate-850');
+        } else {
+          el.classList.remove('ring-2', 'ring-purple-400', 'bg-slate-850');
+        }
+      });
+
+      // Trunk line & packet
+      document.getElementById('trunk-active-line').style.height = data.trunkActive;
+      const pktTrunk = document.getElementById('packet-trunk');
+      pktTrunk.style.opacity = data.packetTrunkOpacity;
+      if (data.tagNum) document.getElementById('tag-num').innerText = data.tagNum;
+
+      // Banner text
+      document.getElementById('step-badge').innerText = data.badge;
+      document.getElementById('step-description').innerText = data.desc;
+      document.getElementById('step-result').innerText = data.result;
+      document.getElementById('step-result').className = 'font-mono font-semibold ' + data.resultClass;
+
+      // Frame bar
+      const tagSlot = document.getElementById('frame-tag-slot');
+      tagSlot.className = 'col-span-3 p-2 rounded transition-all duration-300 ' + data.tagSlotBg;
+      document.getElementById('tag-title').innerText = data.tagTitle;
+      document.getElementById('tag-desc').innerText = data.tagDesc;
+      document.getElementById('frame-explanation').innerHTML = data.explanation;
+    }
+
+    function copyCode(id) {
+      const code = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(code);
+      showToast('Comandos copiados para a área de transferência!');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      t.classList.remove('opacity-0', 'translate-y-20');
+      setTimeout(() => t.classList.add('opacity-0', 'translate-y-20'), 2500);
+    }
+
+    function updateProgress() {
+      const checks = document.querySelectorAll('.lab-check');
+      let done = 0;
+      checks.forEach(c => { if (c.checked) done++; });
+      const pct = Math.round((done / checks.length) * 100);
+      document.getElementById('progress-val').innerText = pct + '%';
+      document.getElementById('progress-bar').style.width = pct + '%';
+      localStorage.setItem('lr_lab03_progress', pct);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      render();
+      const saved = localStorage.getItem('lr_lab03_progress');
+      if (saved) {
+        const checks = document.querySelectorAll('.lab-check');
+        const count = Math.round((parseInt(saved) / 100) * checks.length);
+        for (let i = 0; i < count; i++) {
+          if (checks[i]) checks[i].checked = true;
+        }
+        updateProgress();
+      }
+    });
+  </script>
+</body>
+</html>

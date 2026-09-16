@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 12: Spanning Tree Protocol (STP) • Lab de Redes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .pulse-dot { animation: pulseAnim 2s infinite; }
+    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-amber-500 selection:text-white">
+
+  <!-- Toast Notifier -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900 border border-amber-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md">
+    <span class="text-emerald-400 font-bold">✓</span>
+    <span id="toast-msg" class="text-sm font-medium">Comando copiado com sucesso!</span>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/20 font-mono font-bold text-lg hover:scale-105 transition">
+          LR
+        </a>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            Lab 12: <span class="text-amber-400">Spanning Tree Protocol (STP)</span>
+          </h1>
+          <p class="text-xs text-slate-500">Prevenção de loops L2, eleição de Root Bridge e tolerância a falhas</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200 flex items-center gap-1">
+          ← Cronograma
+        </a>
+        <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
+          ↗️ Tela Cheia
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span class="w-2 h-2 rounded-full bg-amber-400 pulse-dot"></span>
+          21/10/2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Canvas Submission Alert -->
+    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
+        📤
+      </div>
+      <div class="flex-1">
+        <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
+          Submissão Obrigatória no Canvas da Disciplina
+        </h4>
+        <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
+          Ao término da prática, envie na respectiva tarefa no <strong>Canvas</strong>:
+        </p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Arquivo .pkt: stp_topologia_seunome.pkt</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Relatório com tabela de portas (Root, Desig, Blocked)</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Print comprovando failover quando o link principal é cortado</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Jump Navigation -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
+      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Modelos Mentais</a>
+      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold shadow-xs transition font-medium flex items-center gap-1">
+        ⚡ Simulador de Root Bridge & Failover
+      </a>
+      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Comandos Cisco IOS</a>
+      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Armadilhas Comuns</a>
+      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition font-medium">4. Checklist de Entrega</a>
+    </div>
+
+    <!-- Intro Hero -->
+    <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div class="max-w-3xl">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+          Laboratório 12 • Alta Disponibilidade de Camada 2
+        </span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4 tracking-tight">
+          Destruindo Loops Físicos com o Spanning Tree Protocol (IEEE 802.1D)
+        </h2>
+        <p class="text-slate-700 text-base leading-relaxed mb-6">
+          Em redes corporativas, cabos redundantes são obrigatórios para evitar que a rede caia se um cabo for rompido. No entanto, enlaces redundantes em Camada 2 criam loops catastróficos que geram <strong>Broadcast Storms</strong> e paralisam os switches em segundos. O <strong>Spanning Tree Protocol (STP)</strong> calcula uma árvore sem laços, elegendo uma <strong>Ponte Raiz (Root Bridge)</strong> e bloqueando estrategicamente portas redundantes até que ocorra uma falha física.
+        </p>
+        <div class="flex flex-wrap gap-4 text-xs font-mono">
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Padrão:</span> <span class="text-amber-400 font-bold">IEEE 802.1D / PVST+</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Estados de Porta:</span> <span class="text-yellow-400 font-bold">Blocking → Listening → Learning → Forwarding</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Comando Raiz:</span> <span class="text-emerald-400 font-bold">spanning-tree vlan 1 priority 4096</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: MODELOS MENTAIS -->
+    <section id="analogia" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center font-bold text-sm">1</div>
+        <h3 class="text-2xl font-bold text-slate-900">Modelos Mentais: O Guarda de Trânsito STP</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center mb-3 text-xl">🌪️</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Fantasma do Broadcast Storm</h4>
+          <span class="text-xs text-rose-400 font-medium mb-1 block">"Loop Infinito de Camada 2"</span>
+          <p class="text-xs text-slate-500">Headers Ethernet não têm TTL! Um único ARP em loop gira para sempre, duplicando em cada porta e derrubando a CPU de todos os switches em 3 segundos.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 text-xl">👑</div>
+          <h4 class="font-bold text-slate-900 text-sm">A Eleição do Rei (Root Bridge)</h4>
+          <span class="text-xs text-amber-400 font-medium mb-1 block">"Menor Bridge ID Vence"</span>
+          <p class="text-xs text-slate-500">O switch com menor prioridade (ex: 4096 contra 32768) vira a Ponte Raiz da rede. Todas as suas portas tornam-se ativas (Designated Forwarding).</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-yellow-500/10 text-yellow-400 flex items-center justify-center mb-3 text-xl">✂️</div>
+          <h4 class="font-bold text-slate-900 text-sm">A Tesoura Lógica (Blocked Port)</h4>
+          <span class="text-xs text-yellow-400 font-medium mb-1 block">"LED Laranja / Standby"</span>
+          <p class="text-xs text-slate-500">O STP desativa virtualmente uma porta no anel. O cabo continua conectado fisicamente, mas nenhum quadro do usuário passa por ele.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 text-xl">🛡️</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Socorro Automático (Failover)</h4>
+          <span class="text-xs text-emerald-400 font-medium mb-1 block">"Convergência de 30-50s"</span>
+          <p class="text-xs text-slate-500">Se o link verde principal arrebentar, a porta laranja acorda, passa pelas etapas Listening e Learning e vira Forwarding verde, restaurando a rede!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: SIMULADOR INTERATIVO -->
+    <section id="simulador" class="mb-14 scroll-mt-24">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm">⚡</div>
+          <h3 class="text-2xl font-bold text-slate-900">Simulador Interativo: Triângulo Redundante & Failover</h3>
+        </div>
+        <span class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200 font-medium font-mono">
+          Topologia Anel S1-S2-S3
+        </span>
+      </div>
+
+      <div class="bg-white border-2 border-slate-200/90 rounded-2xl overflow-hidden shadow-lg">
+        <!-- Control Bar -->
+        <div class="bg-slate-50 p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Ações de Topologia:</span>
+            <button id="btn-cut-link" onclick="toggleCutLink()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition flex items-center gap-1.5">
+              <span>✂️</span> Romper Link S1-S2
+            </button>
+            <button id="btn-force-root" onclick="toggleForceRoot()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1.5">
+              <span>👑</span> Forçar S1 como Root (Priority 4096)
+            </button>
+          </div>
+
+          <button onclick="resetStpSim()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition shadow-xs">
+            ↺ Reiniciar STP
+          </button>
+        </div>
+
+        <!-- Interactive Visual Triangle -->
+        <div class="p-6 bg-slate-50 border-b border-slate-200">
+          <div class="max-w-2xl mx-auto py-4 relative">
+            
+            <!-- Triangle Switches -->
+            <!-- Top Switch: S1 -->
+            <div class="flex justify-center mb-12">
+              <div id="box-s1" class="p-4 rounded-xl bg-slate-900 border-2 border-emerald-500 text-center w-64 shadow-xl transition relative">
+                <span id="s1-crown" class="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950 flex items-center gap-1">
+                  👑 ROOT BRIDGE
+                </span>
+                <div class="text-2xl mt-1">🔀</div>
+                <div class="font-bold text-xs text-white">Switch S1 (Catalyst 2960)</div>
+                <div id="s1-prio-label" class="text-[10px] text-amber-300 font-mono">Priority: 4096 | MAC: 0001.0001.0001</div>
+                <div class="flex justify-around mt-2 text-[10px] font-mono">
+                  <span class="text-emerald-400 font-bold">Fa0/1: DESG (FWD) 🟢</span>
+                  <span class="text-emerald-400 font-bold">Fa0/2: DESG (FWD) 🟢</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Connecting Lines (Triangle) -->
+            <!-- Horizontal Wire S2 <-> S3 -->
+            <div class="grid grid-cols-2 gap-16">
+              <!-- Switch S2 (Bottom Left) -->
+              <div id="box-s2" class="p-4 rounded-xl bg-slate-900 border-2 border-slate-800 text-center shadow-xl transition">
+                <div class="text-2xl">🔀</div>
+                <div class="font-bold text-xs text-white">Switch S2 (2960)</div>
+                <div class="text-[10px] text-slate-400 font-mono">Priority: 32769 | Non-Root</div>
+                <div class="mt-2 text-[10px] font-mono space-y-1">
+                  <div id="s2-fa01" class="text-emerald-400 font-bold">Fa0/1: ROOT (FWD) 🟢</div>
+                  <div id="s2-fa02" class="text-emerald-400 font-bold">Fa0/2: DESG (FWD) 🟢</div>
+                </div>
+              </div>
+
+              <!-- Switch S3 (Bottom Right) -->
+              <div id="box-s3" class="p-4 rounded-xl bg-slate-900 border-2 border-slate-800 text-center shadow-xl transition">
+                <div class="text-2xl">🔀</div>
+                <div class="font-bold text-xs text-white">Switch S3 (2960)</div>
+                <div class="text-[10px] text-slate-400 font-mono">Priority: 32769 | Non-Root</div>
+                <div class="mt-2 text-[10px] font-mono space-y-1">
+                  <div id="s3-fa02" class="text-emerald-400 font-bold">Fa0/2: ROOT (FWD) 🟢</div>
+                  <div id="s3-fa01" class="text-amber-400 font-bold">Fa0/1: BLK (ALT) 🟠</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- STP Status Banner -->
+          <div id="stp-banner" class="mt-6 p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span id="stp-status-badge" class="px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 font-mono font-bold">STP ESTÁVEL</span>
+              <span id="stp-status-text" class="text-slate-200">Árvore de Spanning Tree convergida sem loops. Porta Fa0/1 de S3 bloqueada em Standby (🟠).</span>
+            </div>
+            <span class="text-emerald-400 font-mono font-bold">0% Broadcast Loop</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: GUIA DE COMANDOS -->
+    <section id="roteiro" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center font-bold text-sm">2</div>
+        <h3 class="text-2xl font-bold text-slate-900">Guia de Comandos Cisco IOS</h3>
+      </div>
+
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>⚙️</span> Comandos Essenciais do Spanning Tree
+          </h4>
+          <button onclick="copyCode('code-stp-cmds')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white transition flex items-center gap-1">
+            📋 Copiar Comandos STP
+          </button>
+        </div>
+        <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+<pre id="code-stp-cmds"><code>enable
+
+! 1. Inspecionar o estado da árvore STP e portas
+show spanning-tree
+show spanning-tree vlan 1
+
+! 2. Forçar o switch local como Ponte Raiz Primária
+configure terminal
+spanning-tree vlan 1 priority 4096
+! (Ou utilizando o macro):
+spanning-tree vlan 1 root primary
+exit
+
+! 3. Validar se tornou Root Bridge (deve constar: "This bridge is the root")
+show spanning-tree</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: ARMADILHAS COMUNS -->
+    <section id="armadilhas" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center font-bold text-sm">3</div>
+        <h3 class="text-2xl font-bold text-slate-900">Armadilhas Comuns em Spanning Tree</h3>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 1. Eleição Acidental da Root Bridge
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            Se você não configurar explicitamente a prioridade (ex: 4096), todos os switches terão a prioridade 32768. O switch mais velho com menor MAC ganhará a eleição, atraindo todo o tráfego da empresa para um switch fraco!
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Sempre defina a prioridade do Core: 'priority 4096'.
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 2. Os Múltiplos de 4096
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            O Cisco IOS rejeita prioridades arbitrárias como 5000 ou 1000. Devido ao System ID Extension (12 bits), a prioridade DEVE ser estritamente um múltiplo de 4096 (0, 4096, 8192, 12288, etc.).
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Prioridade aceita: múltiplos exatos de 4096.
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 3. A Paciência dos 50 Segundos
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            No STP clássico (802.1D), a porta laranja leva até 50 segundos para virar verde durante uma queda. Os alunos acham que quebrou e deletam a configuração antes do tempo!
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Aguarde o timer ou use Rapid PVST+ (Lab 16).
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: CHECKLIST DE ENTREGA NO CANVAS -->
+    <section id="checklist" class="mb-14 scroll-mt-24">
+      <div class="bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-xl">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">4</span>
+              <h3 class="text-2xl font-bold text-slate-900">Checklist de Entrega no Canvas</h3>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700 mt-1">
+              Marque os itens conforme concluir. O progresso é salvo localmente.
+            </p>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-black text-emerald-400" id="progress-val">0%</div>
+            <div class="text-xs text-slate-500">Concluído</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-amber-500 to-emerald-400 w-0 transition-all duration-300"></div>
+        </div>
+
+        <!-- Interactive Checkboxes -->
+        <div class="space-y-3 text-sm">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Topologia em Triângulo Conectada:</strong> 3 Switches 2960 interligados com cabos diretos e estabilização de convergência observada.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Root Bridge Forçada no Switch S1:</strong> Comando <code>spanning-tree vlan 1 priority 4096</code> executado e validado com "This bridge is the root".
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Tabela de Estados Preenchida:</strong> Identificadas todas as portas Root (RP), Designated (DP) e Blocked/Alternate (ALT).
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Teste de Failover e Rompimento de Link:</strong> Cabo principal removido e reconvergência da porta bloqueada para Forwarding comprovada com ping contínuo.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Submissão Efetuada no Canvas:</strong> Arquivo <code>stp_topologia_seunome.pkt</code> e relatório técnico em PDF anexados na tarefa correspondente do Canvas.
+            </span>
+          </label>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-200 text-xs text-slate-500">
+          <span>Laboratório de Redes de Computadores • 2026.2</span>
+          <a href="#simulador" class="text-amber-400 hover:underline">Voltar ao Simulador ↑</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Navigation -->
+    <div class="flex items-center justify-between border-t border-slate-200 pt-6">
+      <a href="11-nat-e-hierarquia-dns.html" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition flex items-center gap-1.5">
+        ← Lab 11: NAT & Hierarquia DNS
+      </a>
+      <a href="13-trabalho-minimum-spanning-tree.html" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-white shadow-lg transition flex items-center gap-1.5">
+        Próximo: Lab 13 - Trabalho MST (Prim & Kruskal) →
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Interactive JavaScript Engine -->
+  <script>
+    let isLinkCut = false;
+    let isForcedRoot = true;
+
+    function toggleCutLink() {
+      isLinkCut = !isLinkCut;
+      const btn = document.getElementById('btn-cut-link');
+      const banner = document.getElementById('stp-banner');
+      const badge = document.getElementById('stp-status-badge');
+      const text = document.getElementById('stp-status-text');
+      const s3Port = document.getElementById('s3-fa01');
+
+      if (isLinkCut) {
+        btn.innerText = '↺ Restaurar Link S1-S2';
+        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5';
+        
+        // Failover transition
+        badge.innerText = 'FAILOVER EM ANDAMENTO';
+        badge.className = 'px-2.5 py-1 rounded bg-amber-950 text-amber-300 font-mono font-bold animate-pulse';
+        text.innerHTML = 'Link S1-S2 rompido! Porta Fa0/1 de S3 entrando em <em>Listening (15s) → Learning (15s)...</em>';
+        s3Port.innerHTML = 'Fa0/1: LSN/LRN (30s) 🟡';
+        s3Port.className = 'text-yellow-400 font-bold animate-pulse';
+
+        setTimeout(() => {
+          if (isLinkCut) {
+            badge.innerText = 'RECONVERGÊNCIA CONCLUÍDA';
+            badge.className = 'px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 font-mono font-bold';
+            text.innerHTML = 'Porta Fa0/1 de S3 agora é <strong>FORWARDING (Verde)</strong>! Tráfego de PC1 para PC2 restabelecido pelo caminho S1 ⟷ S3 ⟷ S2.';
+            s3Port.innerHTML = 'Fa0/1: ROOT (FWD) 🟢';
+            s3Port.className = 'text-emerald-400 font-bold';
+          }
+        }, 1500);
+
+      } else {
+        btn.innerText = '✂️ Romper Link S1-S2';
+        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition flex items-center gap-1.5';
+        badge.innerText = 'STP ESTÁVEL';
+        badge.className = 'px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 font-mono font-bold';
+        text.innerText = 'Link restaurado. STP rebloqueou Fa0/1 de S3 para manter a topologia livre de loops.';
+        s3Port.innerHTML = 'Fa0/1: BLK (ALT) 🟠';
+        s3Port.className = 'text-amber-400 font-bold';
+      }
+    }
+
+    function toggleForceRoot() {
+      isForcedRoot = !isForcedRoot;
+      const btn = document.getElementById('btn-force-root');
+      const crown = document.getElementById('s1-crown');
+      const s1Box = document.getElementById('box-s1');
+      const s1Prio = document.getElementById('s1-prio-label');
+
+      if (isForcedRoot) {
+        btn.innerText = 'Remover Prioridade 4096 (Reset para 32768)';
+        crown.classList.remove('hidden');
+        s1Box.classList.add('border-emerald-500');
+        s1Prio.innerText = 'Priority: 4096 | MAC: 0001.0001.0001';
+        showToast('S1 configurado com Priority 4096 (Root Bridge Primária)!');
+      } else {
+        btn.innerText = '👑 Forçar S1 como Root (Priority 4096)';
+        crown.classList.add('hidden');
+        s1Prio.innerText = 'Priority: 32769 (Padrão)';
+        showToast('Prioridade retornada ao padrão 32768.');
+      }
+    }
+
+    function resetStpSim() {
+      if (isLinkCut) toggleCutLink();
+      isForcedRoot = true;
+      document.getElementById('s1-crown').classList.remove('hidden');
+      document.getElementById('s1-prio-label').innerText = 'Priority: 4096 | MAC: 0001.0001.0001';
+    }
+
+    function copyCode(id) {
+      const code = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(code);
+      showToast('Comandos copiados para a área de transferência!');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      t.classList.remove('opacity-0', 'translate-y-20');
+      setTimeout(() => t.classList.add('opacity-0', 'translate-y-20'), 2500);
+    }
+
+    function updateProgress() {
+      const checks = document.querySelectorAll('.lab-check');
+      let done = 0;
+      checks.forEach(c => { if (c.checked) done++; });
+      const pct = Math.round((done / checks.length) * 100);
+      document.getElementById('progress-val').innerText = pct + '%';
+      document.getElementById('progress-bar').style.width = pct + '%';
+      localStorage.setItem('lr_lab12_progress', pct);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('lr_lab12_progress');
+      if (saved) {
+        const checks = document.querySelectorAll('.lab-check');
+        const count = Math.round((parseInt(saved) / 100) * checks.length);
+        for (let i = 0; i < count; i++) {
+          if (checks[i]) checks[i].checked = true;
+        }
+        updateProgress();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab de Redes: Desmistificando Sockets TCP em Python</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbars and transitions */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .pulse-dot {
+            animation: pulseAnimation 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulseAnimation {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.4;
+                transform: scale(1.15);
+            }
+        }
+
+        .active-nav-item {
+            border-color: #6366f1;
+            color: #818cf8;
+            background-color: rgba(99, 102, 241, 0.1);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Toast Notifier for code copy & interactive hints -->
+    <div id="toast"
+        class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900/95 border border-indigo-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md">
+        <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span id="toast-msg" class="text-sm font-medium">Copiado para a área de transferência!</span>
+    </div>
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 font-mono font-bold text-lg">
+                    &lt;/&gt;
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        Lab de Redes: <span class="text-indigo-400">Programação com Sockets</span>
+                    </h1>
+                    <p class="text-xs text-slate-500">Roteiro Didático Interativo • Python 3</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+                    TCP / IPv4
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Quick Jump Navigation -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
+            <a href="#analogia"
+                class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1.
+                A Analogia Mental</a>
+            <a href="#fluxo"
+                class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2.
+                O Ciclo de Vida TCP</a>
+            <a href="#simulador"
+                class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold transition font-medium flex items-center gap-1">
+                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
+                    </path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Simulador Visual
+            </a>
+            <a href="#etapa1"
+                class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3.
+                Aperto de Mão</a>
+            <a href="#etapa2"
+                class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">4.
+                Bytes & Strings</a>
+            <a href="#etapa3"
+                class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">5.
+                Monitor Remoto</a>
+            <a href="#armadilhas"
+                class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">6.
+                Erros Clássicos</a>
+            <a href="#desafio"
+                class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-amber-50 border border-amber-200 text-amber-800 hover:border-amber-300 hover:text-amber-950 font-semibold transition font-medium">7.
+                Desafio Prático</a>
+        </div>
+
+        <!-- Canvas Submission Alert -->
+        <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
+                📤
+            </div>
+            <div class="flex-1">
+                <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
+                    Submissão Obrigatória no Canvas da Disciplina
+                </h4>
+                <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
+                    Ao término da aula prática, submeta na respectiva tarefa no <strong>Canvas</strong> o código-fonte <code>socket_tcp.py</code> e o <strong>relatório curto em PDF</strong> gerado a partir do modelo LaTeX no Overleaf.
+                </p>
+                <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+                    <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Código socket_tcp.py</span>
+                    <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Relatório PDF no Overleaf</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Intro Hero -->
+        <section
+            class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+            <div class="max-w-3xl">
+                <span
+                    class="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+                    Laboratório Preparatório • Trabalho 1
+                </span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4 tracking-tight">
+                    Sockets: Conectando dois processos pelo espaço e tempo
+                </h2>
+                <p class="text-slate-700 text-base sm:text-lg leading-relaxed mb-6">
+                    Até hoje, seus programas em Python executavam isolados em uma única máquina. Hoje vamos abrir um
+                    canal bidirecional direto entre duas aplicações usando a API de Sockets BSD — o alicerce sob o qual
+                    toda a Web funciona.
+                </p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                        <span class="text-indigo-400 font-mono text-sm block font-semibold mb-1">Passo 1</span>
+                        <span class="text-sm font-medium text-slate-700">Estabelecer o canal TCP (Handshake)</span>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                        <span class="text-indigo-400 font-mono text-sm block font-semibold mb-2">Passo 2</span>
+                        <span class="text-sm font-medium text-slate-700">Transmitir e converter Bytes brutos</span>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                        <span class="text-indigo-400 font-mono text-sm block font-semibold mb-2">Passo 3</span>
+                        <span class="text-sm font-medium text-slate-700">Construir um protocolo de aplicação</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 1: A ANALOGIA MENTAL -->
+        <section id="analogia" class="mb-14 scroll-mt-24">
+            <div class="flex items-center gap-3 mb-4">
+                <div
+                    class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-sm">
+                    1</div>
+                <h3 class="text-2xl font-bold text-slate-900">A Analogia Mental: O Telefone Corporativo</h3>
+            </div>
+            <p class="text-slate-400 text-sm mb-6">
+                Se você memorizar este modelo mental, nunca mais vai esquecer qual função deve chamar ou por que ela
+                trava a execução:
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Card 1 -->
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-indigo-500/40 transition">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center mb-4 text-xl">
+                        ☎️
+                    </div>
+                    <h4 class="font-bold text-slate-900 font-mono text-sm">socket.socket()</h4>
+                    <span class="text-xs text-indigo-600 font-semibold mb-2 block">"Comprar o aparelho telefônico"</span>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Você comprou o hardware e o cabo, mas o telefone ainda não está plugado em tomada nenhuma. Ele
+                        apenas sabe falar IPv4 e TCP.
+                    </p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-indigo-500/40 transition">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-purple-50 text-purple-700 border border-purple-100 flex items-center justify-center mb-4 text-xl">
+                        📍
+                    </div>
+                    <h4 class="font-bold text-slate-900 font-mono text-sm">bind(IP, Porta)</h4>
+                    <span class="text-xs text-purple-600 font-semibold mb-2 block">"Ligar o telefone no ramal 9999"</span>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        O prédio é o IP da máquina. A porta 9999 é o ramal exclusivo. O <code
+                            class="text-purple-700 bg-purple-50 px-1 py-0.5 rounded">bind</code> fixa seu aparelho naquele ramal específico.
+                    </p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-indigo-500/40 transition">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center mb-4 text-xl">
+                        👂
+                    </div>
+                    <h4 class="font-bold text-slate-900 font-mono text-sm">listen(fila)</h4>
+                    <span class="text-xs text-amber-700 font-semibold mb-2 block">"Ligar a campainha do ramal"</span>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Seu telefone agora está apto a receber chamadas do mundo exterior. O número entre parênteses é
+                        quantas chamadas podem esperar na fila.
+                    </p>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-indigo-500/40 transition">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center mb-4 text-xl">
+                        📞
+                    </div>
+                    <h4 class="font-bold text-slate-900 font-mono text-sm">accept()</h4>
+                    <span class="text-xs text-emerald-700 font-semibold mb-2 block">"Esperar tocar e atender!"</span>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        <strong class="text-slate-900">Bloqueante:</strong> o programa pausa aqui até tocar. Quando atende, ele cria uma linha
+                        privada (<code class="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">conexao</code>) e deixa a linha mãe livre para novos
+                        clientes!
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: CICLO DE VIDA E SIMULADOR VISUAL -->
+        <section id="fluxo" class="mb-14 scroll-mt-24">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-sm">
+                        2</div>
+                    <h3 class="text-2xl font-bold text-slate-900">Simulação Viva: Dois Terminais em Comunicação</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="setSimMode('guided')" id="btn-mode-guided"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-sm transition">
+                        Modo Passo-a-Passo Guiado
+                    </button>
+                    <button onclick="setSimMode('interactive')" id="btn-mode-interactive"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 transition">
+                        Modo Chat Livre
+                    </button>
+                </div>
+            </div>
+            <p class="text-slate-600 text-sm mb-6">
+                Observe como o código Python de cada terminal dita exatamente o que acontece no terminal vizinho. Veja
+                onde cada processo bloqueia e como os bytes fluem no cabo de rede:
+            </p>
+
+            <!-- Interactive Dual Terminal & Code Synchronizer -->
+            <div id="simulador"
+                class="bg-white border-2 border-slate-200/90 rounded-2xl p-5 sm:p-7 shadow-lg relative overflow-hidden">
+
+                <!-- Controls Bar -->
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-5 mb-5 border-b border-slate-200">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button id="btn-sim-prev" onclick="prevSimStep()"
+                            class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold transition disabled:opacity-40 disabled:hover:bg-slate-100 shadow-xs"
+                            disabled>
+                            ◀ Passo Anterior
+                        </button>
+                        <button id="btn-sim-next" onclick="stepSimulator()"
+                            class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/25">
+                            Avançar Passo <span id="sim-step-badge"
+                                class="font-mono text-[11px] bg-indigo-800/90 text-indigo-100 px-2 py-0.5 rounded font-bold">1/7</span> ▶
+                        </button>
+                        <button onclick="resetSimulator()"
+                            class="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 text-xs font-semibold transition shadow-xs">
+                            Reiniciar Lab
+                        </button>
+                    </div>
+
+                    <!-- Didactic Explanatory Banner -->
+                    <div id="sim-didactic-info"
+                        class="text-xs text-indigo-950 bg-indigo-50/90 border border-indigo-200/80 px-4 py-2.5 rounded-xl flex items-center gap-2 max-w-xl shadow-xs font-medium">
+                        <span class="text-amber-600 font-bold flex items-center gap-1 shrink-0">💡 O que está acontecendo:</span>
+                        <span id="sim-explanation-text" class="text-slate-700 leading-normal">Clique em 'Avançar Passo' para iniciar a execução do servidor.</span>
+                    </div>
+                </div>
+
+                <!-- Side-by-Side Terminals Container -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+
+                    <!-- LEFT: SERVIDOR TERMINAL & CODE (5 cols) -->
+                    <div class="lg:col-span-5 flex flex-col gap-3">
+                        <div
+                            class="bg-[#0d1117] border border-slate-800 rounded-xl overflow-hidden shadow-md flex flex-col h-full">
+                            <!-- Terminal Window Header -->
+                            <div
+                                class="bg-[#161b22] px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-[#ff5f56]"></span>
+                                    <span class="w-3 h-3 rounded-full bg-[#ffbd2e]"></span>
+                                    <span class="w-3 h-3 rounded-full bg-[#27c93f]"></span>
+                                    <span
+                                        class="font-mono text-xs text-slate-200 ml-2 font-semibold flex items-center gap-1.5">
+                                        🖥️ Servidor: <code class="text-indigo-400 font-normal">servidor.py</code>
+                                    </span>
+                                </div>
+                                <span id="term-server-badge"
+                                    class="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-bold">
+                                    OFFLINE
+                                </span>
+                            </div>
+
+                            <!-- Executing Code Highlighting Pane -->
+                            <div class="bg-[#161b22]/70 px-4 py-2 border-b border-slate-800 text-[11px] font-mono">
+                                <span
+                                    class="text-slate-400 block text-[10px] uppercase tracking-wider font-sans font-bold mb-1">Linha
+                                    em Execução no Python:</span>
+                                <div id="server-code-line"
+                                    class="text-amber-300 bg-[#0d1117] px-3 py-1.5 rounded border border-slate-800 font-mono font-semibold text-xs truncate">
+                                    # Aguardando início da simulação
+                                </div>
+                            </div>
+
+                            <!-- Terminal Stdout Window -->
+                            <div id="term-server-stdout"
+                                class="p-4 font-mono text-xs text-slate-100 space-y-1.5 min-h-[220px] max-h-[260px] overflow-y-auto flex-1 leading-relaxed bg-[#0d1117]">
+                                <div class="text-slate-400 italic">// Terminal 1 (Servidor Linux/Python 3.11)</div>
+                                <div class="text-emerald-400 font-bold">$ python3 servidor.py</div>
+                            </div>
+
+                            <!-- Server State Footnote -->
+                            <div
+                                class="p-3 bg-[#161b22] border-t border-slate-800 text-[11px] text-slate-300 font-mono flex items-center justify-between">
+                                <span>Socket escuta: <span id="server-socket-status" class="text-emerald-400 font-bold">Não criado</span></span>
+                                <span>Porta: <span class="text-indigo-300 font-bold">9999</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MIDDLE: THE WIRE / NETWORK PIPE (2 cols) -->
+                    <div class="lg:col-span-2 flex flex-col items-center justify-center py-2 relative">
+                        <div
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-col items-center justify-center gap-3 text-center h-full shadow-xs">
+                            <span class="text-[11px] font-mono uppercase tracking-widest text-slate-700 font-bold">Cabo
+                                de Rede (TCP)</span>
+
+                            <!-- Direction Indicator / Packet Pulse -->
+                            <div id="wire-animation"
+                                class="w-14 h-14 rounded-2xl border border-slate-200 bg-white flex items-center justify-center text-xl transition-all duration-300 shadow-sm">
+                                🔌
+                            </div>
+
+                            <div id="wire-packet-box"
+                                class="w-full bg-white border border-slate-200 rounded-lg p-2 font-mono text-[11px] min-h-[50px] flex flex-col items-center justify-center shadow-xs">
+                                <span id="wire-packet-tag" class="text-slate-800 font-bold">Sem tráfego</span>
+                                <span id="wire-packet-bytes" class="text-[10px] text-slate-500 font-medium">0 bytes</span>
+                            </div>
+
+                            <div
+                                class="w-full border-t border-slate-200 pt-2.5 flex flex-col gap-1 text-[11px] text-slate-600 font-mono">
+                                <div class="flex justify-between">
+                                    <span>SYN/ACK:</span> <span id="wire-handshake-status"
+                                        class="text-indigo-600 font-bold">Pendente</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>MTU Buffer:</span> <span class="text-slate-700 font-medium">1024 bytes</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: CLIENTE TERMINAL & CHAT (5 cols) -->
+                    <div class="lg:col-span-5 flex flex-col gap-3">
+                        <div
+                            class="bg-[#0d1117] border border-slate-800 rounded-xl overflow-hidden shadow-md flex flex-col h-full">
+                            <!-- Terminal Window Header -->
+                            <div
+                                class="bg-[#161b22] px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-[#ff5f56]"></span>
+                                    <span class="w-3 h-3 rounded-full bg-[#ffbd2e]"></span>
+                                    <span class="w-3 h-3 rounded-full bg-[#27c93f]"></span>
+                                    <span
+                                        class="font-mono text-xs text-slate-200 ml-2 font-semibold flex items-center gap-1.5">
+                                        💻 Cliente: <code class="text-emerald-400 font-normal">cliente.py</code>
+                                    </span>
+                                </div>
+                                <span id="term-client-badge"
+                                    class="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-bold">
+                                    DESCONECTADO
+                                </span>
+                            </div>
+
+                            <!-- Executing Code Highlighting Pane -->
+                            <div class="bg-[#161b22]/70 px-4 py-2 border-b border-slate-800 text-[11px] font-mono">
+                                <span
+                                    class="text-slate-400 block text-[10px] uppercase tracking-wider font-sans font-bold mb-1">Linha
+                                    em Execução no Python:</span>
+                                <div id="client-code-line"
+                                    class="text-emerald-300 bg-[#0d1117] px-3 py-1.5 rounded border border-slate-800 font-mono font-semibold text-xs truncate">
+                                    # Cliente pronto para conectar
+                                </div>
+                            </div>
+
+                            <!-- Terminal Stdout Window -->
+                            <div id="term-client-stdout"
+                                class="p-4 font-mono text-xs text-slate-100 space-y-1.5 min-h-[220px] max-h-[260px] overflow-y-auto flex-1 leading-relaxed bg-[#0d1117]">
+                                <div class="text-slate-400 italic">// Terminal 2 (Cliente Linux/Python 3.11)</div>
+                                <div class="text-emerald-400 font-bold">$ python3 cliente.py</div>
+                            </div>
+
+                            <!-- Client Action / Chat Input for interactive mode -->
+                            <div id="client-interactive-bar"
+                                class="p-2.5 bg-[#161b22] border-t border-slate-800 flex items-center gap-2">
+                                <input id="custom-client-msg" type="text" value="HORA"
+                                    placeholder="Digite HORA, SISTEMA, NOME ou texto..."
+                                    class="flex-1 bg-[#0d1117] border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-mono outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition placeholder-slate-500">
+                                <button onclick="sendInteractiveMessage()" id="btn-send-interactive"
+                                    class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center gap-1 shadow-sm">
+                                    <span>Enviar</span>
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Quick Protocol Chips (Interactive Mode Helper) -->
+                <div
+                    class="mt-5 pt-3.5 border-t border-slate-200 flex items-center justify-between flex-wrap gap-2 text-xs text-slate-600">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-slate-700">Testes rápidos:</span>
+                        <button onclick="setClientInput('HORA')"
+                            class="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border border-slate-200 rounded-md font-mono text-[11px] font-semibold transition shadow-xs">HORA</button>
+                        <button onclick="setClientInput('SISTEMA')"
+                            class="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border border-slate-200 rounded-md font-mono text-[11px] font-semibold transition shadow-xs">SISTEMA</button>
+                        <button onclick="setClientInput('NOME')"
+                            class="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border border-slate-200 rounded-md font-mono text-[11px] font-semibold transition shadow-xs">NOME</button>
+                        <button onclick="setClientInput('Olá mundo dos sockets!')"
+                            class="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 border border-slate-200 rounded-md font-mono text-[11px] font-semibold transition shadow-xs">Texto
+                            Livre</button>
+                    </div>
+                    <span class="text-[11px] text-slate-500 font-mono">Simulador de sockets TCP educacional v2.0</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- INTERACTIVE BYTE EXPLORER -->
+        <section class="mb-14">
+            <div class="bg-white border-2 border-slate-200/90 rounded-2xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                    <div>
+                        <h4 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <span class="text-indigo-600 font-mono text-sm">💡 Conceito Chave:</span>
+                            Por que precisamos de .encode() e .decode()?
+                        </h4>
+                        <p class="text-slate-600 text-xs mt-1">
+                            Placas de rede não transmitem "letras". Elas transmitem uma sequência crua de <strong class="text-slate-900">Bytes (0 a 255)</strong>.
+                        </p>
+                    </div>
+                    <span class="px-2.5 py-1 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono text-xs font-semibold">UTF-8 Encoding</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Digite um texto qualquer (String em Python):</label>
+                        <input id="interactive-text-input" type="text" value="Olá, Servidor! 🚀"
+                            oninput="updateByteViewer()"
+                            class="w-full bg-slate-50 border border-slate-300 focus:border-indigo-500 focus:bg-white rounded-lg px-3 py-2 text-sm text-slate-900 font-mono outline-none transition">
+                        <span class="text-[11px] text-slate-500 mt-1 block">Experimente caracteres acentuados ou emojis para ver mais bytes!</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Como viaja no fio após <code class="text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded">.encode()</code> (Bytes):</label>
+                        <div id="interactive-byte-output"
+                            class="w-full bg-[#0d1117] border border-slate-700 rounded-lg px-3 py-2 text-xs text-emerald-400 font-mono break-all min-h-[42px] flex items-center shadow-inner">
+                            b'Ol\xc3\xa1, Servidor! \xf0\x9f\x9a\x80'
+                        </div>
+                        <div id="interactive-byte-length" class="text-[11px] text-slate-500 font-medium mt-1">
+                            Tamanho: 19 bytes (cabe perfeitamente no buffer de 1024 bytes)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: ETAPA 1 - A CONEXÃO BÁSICA -->
+        <section id="etapa1" class="mb-14 scroll-mt-24">
+            <div class="flex items-center gap-3 mb-2">
+                <div
+                    class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-sm">
+                    3</div>
+                <h3 class="text-2xl font-bold text-slate-900">Etapa 1: A Conexão Básica (Aperto de Mão)</h3>
+            </div>
+            <p class="text-slate-400 text-sm mb-6">
+                Vamos criar dois arquivos separados. O objetivo desta etapa é apenas ver a conexão ocorrer com sucesso e
+                depois encerrar.
+            </p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- Servidor Box -->
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                    <div class="bg-[#161b22] px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
+                            <span class="w-3 h-3 rounded-full bg-yellow-500/80"></span>
+                            <span class="w-3 h-3 rounded-full bg-green-500/80"></span>
+                            <span class="font-mono text-xs font-medium text-slate-200 ml-2">servidor_basico.py</span>
+                        </div>
+                        <button onclick="copyCode('code-servidor-1')"
+                            class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 px-2.5 py-1 rounded transition flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            Copiar
+                        </button>
+                    </div>
+                    <div
+                        class="p-4 bg-[#0d1117] font-mono text-xs overflow-x-auto text-slate-100 leading-relaxed flex-1">
+                        <pre><code id="code-servidor-1"><span class="text-purple-400">import</span> socket
+
+<span class="text-slate-500"># 1. Cria socket IPv4 (AF_INET) e TCP (SOCK_STREAM)</span>
+servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+<span class="text-slate-500"># Evita o erro "Address already in use" se você reiniciar rápido!</span>
+servidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="text-amber-300">1</span>)
+
+<span class="text-slate-500"># 2. Vincula à porta 9999 de qualquer interface da máquina</span>
+servidor.bind((<span class="text-emerald-300">'0.0.0.0'</span>, <span class="text-amber-300">9999</span>))
+
+<span class="text-slate-500"># 3. Coloca em modo de escuta (fila de até 1 pendente)</span>
+servidor.listen(<span class="text-amber-300">1</span>)
+<span class="text-blue-400">print</span>(<span class="text-emerald-300">"--- SERVIDOR AGUARDANDO CONEXÃO NA PORTA 9999 ---"</span>)
+
+<span class="text-slate-500"># 4. accept() é BLOQUEANTE: o código congela aqui até um cliente chegar</span>
+conexao, endereco = servidor.accept()
+<span class="text-blue-400">print</span>(<span class="text-emerald-300">f"🎉 Conexão estabelecida com sucesso! IP de origem: {endereco}"</span>)
+
+<span class="text-slate-500"># 5. Encerra a conexão criada com o cliente</span>
+conexao.close()
+servidor.close()</code></pre>
+                    </div>
+                    <div class="p-3 bg-slate-50 border-t border-slate-200 text-[11px] text-slate-600">
+                        <strong>Atenção:</strong> O método <code class="text-indigo-300">accept()</code> retorna uma
+                        tupla de 2 itens: o novo socket exclusivo e os dados de IP/porta de quem ligou.
+                    </div>
+                </div>
+
+                <!-- Cliente Box -->
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                    <div class="bg-[#161b22] px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
+                            <span class="w-3 h-3 rounded-full bg-yellow-500/80"></span>
+                            <span class="w-3 h-3 rounded-full bg-green-500/80"></span>
+                            <span class="font-mono text-xs font-medium text-slate-200 ml-2">cliente_basico.py</span>
+                        </div>
+                        <button onclick="copyCode('code-cliente-1')"
+                            class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 px-2.5 py-1 rounded transition flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            Copiar
+                        </button>
+                    </div>
+                    <div
+                        class="p-4 bg-[#0d1117] font-mono text-xs overflow-x-auto text-slate-100 leading-relaxed flex-1">
+                        <pre><code id="code-cliente-1"><span class="text-purple-400">import</span> socket
+
+<span class="text-slate-500"># 1. Cria socket com as mesmas regras da chamada</span>
+cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+<span class="text-slate-500"># 2. Conecta ativamente ao IP do Servidor</span>
+<span class="text-slate-500"># '127.0.0.1' (localhost) aponta para a sua própria máquina</span>
+<span class="text-blue-400">print</span>(<span class="text-emerald-300">"Tentando conectar ao servidor na porta 9999..."</span>)
+cliente.connect((<span class="text-emerald-300">'127.0.0.1'</span>, <span class="text-amber-300">9999</span>))
+
+<span class="text-blue-400">print</span>(<span class="text-emerald-300">"🚀 Conectado com sucesso!"</span>)
+
+<span class="text-slate-500"># 3. Fecha o socket</span>
+cliente.close()</code></pre>
+                    </div>
+                    <div class="p-3 bg-slate-50 border-t border-slate-200 text-[11px] text-slate-600">
+                        <strong>Experimento Mental:</strong> O que acontece se você rodar o cliente <em>antes</em> do
+                        servidor estar no ar? Teste agora no terminal!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Execution Instructions Pill -->
+            <div
+                class="mt-4 bg-white border border-slate-200 shadow-sm p-4 rounded-xl flex items-center gap-3 text-xs text-slate-700">
+                <span class="px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 font-bold font-mono">Terminal:</span>
+                Abra 2 janelas de terminal lado a lado. Na primeira rode <code
+                    class="text-yellow-300 font-mono">python servidor_basico.py</code>. Na segunda rode <code
+                    class="text-yellow-300 font-mono">python cliente_basico.py</code>.
+            </div>
+        </section>
+
+        <!-- SECTION 4: ETAPA 2 - CONVERSAÇÃO (SEND E RECV) -->
+        <section id="etapa2" class="mb-14 scroll-mt-24">
+            <div class="flex items-center gap-3 mb-2">
+                <div
+                    class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-sm">
+                    4</div>
+                <h3 class="text-2xl font-bold text-slate-900">Etapa 2: A Conversa (Troca de Dados)</h3>
+            </div>
+            <p class="text-slate-400 text-sm mb-6">
+                Uma vez conectado, o canal TCP se comporta como dois canos contínuos. O que um lado escreve no <code
+                    class="text-indigo-300 font-mono">send()</code>, o outro lado lê no <code
+                    class="text-indigo-300 font-mono">recv()</code>.
+            </p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Servidor Dados -->
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                    <div class="bg-[#161b22] px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+                        <span class="font-mono text-xs font-medium text-slate-200">servidor_dados.py</span>
+                        <button onclick="copyCode('code-servidor-2')"
+                            class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 px-2.5 py-1 rounded transition flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            Copiar
+                        </button>
+                    </div>
+                    <div
+                        class="p-4 bg-[#0d1117] font-mono text-xs overflow-x-auto text-slate-100 leading-relaxed flex-1">
+                        <pre><code id="code-servidor-2"><span class="text-purple-400">import</span> socket
+
+servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+servidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="text-amber-300">1</span>)
+servidor.bind((<span class="text-emerald-300">'0.0.0.0'</span>, <span class="text-amber-300">9999</span>))
+servidor.listen(<span class="text-amber-300">1</span>)
+<span class="text-blue-400">print</span>(<span class="text-emerald-300">"Aguardando mensagem..."</span>)
+
+conexao, endereco = servidor.accept()
+
+<span class="text-slate-500"># recv(1024): lê até 1024 bytes do buffer TCP (também é bloqueante!)</span>
+dados_brutos = conexao.recv(<span class="text-amber-300">1024</span>)
+msg_recebida = dados_brutos.decode(<span class="text-emerald-300">'utf-8'</span>)
+
+<span class="text-blue-400">print</span>(<span class="text-emerald-300">f"[{endereco[0]}] disse: {msg_recebida}"</span>)
+
+<span class="text-slate-500"># Responde de volta para o cliente</span>
+resposta = <span class="text-emerald-300">f"Eco do Servidor: recebi '{msg_recebida}' com sucesso!"</span>
+conexao.send(resposta.encode(<span class="text-emerald-300">'utf-8'</span>))
+
+conexao.close()
+servidor.close()</code></pre>
+                    </div>
+                </div>
+
+                <!-- Cliente Dados -->
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                    <div class="bg-[#161b22] px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+                        <span class="font-mono text-xs font-medium text-slate-200">cliente_dados.py</span>
+                        <button onclick="copyCode('code-cliente-2')"
+                            class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 px-2.5 py-1 rounded transition flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            Copiar
+                        </button>
+                    </div>
+                    <div
+                        class="p-4 bg-[#0d1117] font-mono text-xs overflow-x-auto text-slate-100 leading-relaxed flex-1">
+                        <pre><code id="code-cliente-2"><span class="text-purple-400">import</span> socket
+
+cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+cliente.connect((<span class="text-emerald-300">'127.0.0.1'</span>, <span class="text-amber-300">9999</span>))
+
+<span class="text-slate-500"># 1. Envia mensagem formatada em bytes</span>
+msg = <span class="text-emerald-300">"Olá, Servidor! Consegue me ouvir?"</span>
+cliente.send(msg.encode(<span class="text-emerald-300">'utf-8'</span>))
+
+<span class="text-slate-500"># 2. Aguarda a resposta vinda do servidor</span>
+resposta_bytes = cliente.recv(<span class="text-amber-300">1024</span>)
+resposta_texto = resposta_bytes.decode(<span class="text-emerald-300">'utf-8'</span>)
+
+<span class="text-blue-400">print</span>(<span class="text-emerald-300">f"Servidor respondeu: {resposta_texto}"</span>)
+
+cliente.close()</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: ETAPA 3 - MONITOR REMOTO COM LOOP -->
+        <section id="etapa3" class="mb-14 scroll-mt-24">
+            <div class="flex items-center gap-3 mb-2">
+                <div
+                    class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-sm">
+                    5</div>
+                <h3 class="text-2xl font-bold text-slate-900">Etapa 3: Servidor Persistente & Protocolo de Aplicação</h3>
+            </div>
+            <p class="text-slate-400 text-sm mb-6">
+                Um servidor real não encerra após atender um único cliente. Ele roda em um loop contínuo <code
+                    class="text-indigo-300 font-mono">while True:</code> aceitando requisições sequenciais e processando
+                comandos.
+            </p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Servidor Persistente -->
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                    <div class="bg-[#161b22] px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+                        <span class="font-mono text-xs font-medium text-slate-200">servidor_monitor.py</span>
+                        <button onclick="copyCode('code-servidor-3')"
+                            class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 px-2.5 py-1 rounded transition flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            Copiar
+                        </button>
+                    </div>
+                    <div
+                        class="p-4 bg-[#0d1117] font-mono text-xs overflow-x-auto text-slate-100 leading-relaxed flex-1">
+                        <pre><code id="code-servidor-3"><span class="text-purple-400">import</span> socket
+<span class="text-purple-400">import</span> platform
+<span class="text-purple-400">import</span> datetime
+
+<span class="text-slate-500"># Função de negócio: processa o protocolo</span>
+<span class="text-purple-400">def</span> <span class="text-blue-400">processar_comando</span>(cmd):
+    <span class="text-purple-400">if</span> cmd == <span class="text-emerald-300">"SISTEMA"</span>:
+        <span class="text-purple-400">return</span> platform.system() + <span class="text-emerald-300">" "</span> + platform.release()
+    <span class="text-purple-400">elif</span> cmd == <span class="text-emerald-300">"NOME"</span>:
+        <span class="text-purple-400">return</span> platform.node()
+    <span class="text-purple-400">elif</span> cmd == <span class="text-emerald-300">"HORA"</span>:
+        <span class="text-purple-400">return</span> datetime.datetime.now().strftime(<span class="text-emerald-300">"%H:%M:%S"</span>)
+    <span class="text-purple-400">else</span>:
+        <span class="text-purple-400">return</span> <span class="text-emerald-300">"ERRO: Comando desconhecido. Use: SISTEMA, NOME ou HORA"</span>
+
+servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+servidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="text-amber-300">1</span>)
+servidor.bind((<span class="text-emerald-300">'0.0.0.0'</span>, <span class="text-amber-300">9999</span>))
+servidor.listen(<span class="text-amber-300">5</span>)
+<span class="text-blue-400">print</span>(<span class="text-emerald-300">"🚀 Servidor de Monitoramento online na porta 9999!"</span>)
+
+<span class="text-purple-400">while</span> <span class="text-amber-300">True</span>:
+    conn, addr = servidor.accept()
+    <span class="text-blue-400">print</span>(<span class="text-emerald-300">f"\n[+] Conexão recebida de: {addr}"</span>)
+    
+    cmd_cliente = conn.recv(<span class="text-amber-300">1024</span>).decode(<span class="text-emerald-300">'utf-8'</span>).strip().upper()
+    <span class="text-blue-400">print</span>(<span class="text-emerald-300">f"    Comando solicitado: {cmd_cliente}"</span>)
+    
+    resposta = processar_comando(cmd_cliente)
+    conn.send(resposta.encode(<span class="text-emerald-300">'utf-8'</span>))
+    
+    <span class="text-slate-500"># Fecha a conexão individual, mantendo o servidor vivo</span>
+    conn.close()</code></pre>
+                    </div>
+                </div>
+
+                <!-- Cliente Interativo -->
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                    <div class="bg-[#161b22] px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+                        <span class="font-mono text-xs font-medium text-slate-200">cliente_interativo.py</span>
+                        <button onclick="copyCode('code-cliente-3')"
+                            class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 px-2.5 py-1 rounded transition flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            Copiar
+                        </button>
+                    </div>
+                    <div
+                        class="p-4 bg-[#0d1117] font-mono text-xs overflow-x-auto text-slate-100 leading-relaxed flex-1">
+                        <pre><code id="code-cliente-3"><span class="text-purple-400">import</span> socket
+
+<span class="text-purple-400">def</span> <span class="text-blue-400">menu</span>():
+    <span class="text-blue-400">print</span>(<span class="text-emerald-300">"\n" + "="*30</span>)
+    <span class="text-blue-400">print</span>(<span class="text-emerald-300">"   PAINEL DE MONITORAMENTO"</span>)
+    <span class="text-blue-400">print</span>(<span class="text-emerald-300">"="*30</span>)
+    <span class="text-blue-400">print</span>(<span class="text-emerald-300">"Opções: SISTEMA | NOME | HORA | SAIR"</span>)
+    <span class="text-purple-400">return</span> <span class="text-blue-400">input</span>(<span class="text-emerald-300">"&gt;&gt; Digite o comando: "</span>).strip().upper()
+
+<span class="text-purple-400">while</span> <span class="text-amber-300">True</span>:
+    cmd = menu()
+    <span class="text-purple-400">if</span> cmd == <span class="text-emerald-300">"SAIR"</span>:
+        <span class="text-blue-400">print</span>(<span class="text-emerald-300">"Encerrando cliente..."</span>)
+        <span class="text-purple-400">break</span>
+    
+    <span class="text-slate-500"># Cria uma nova conexão para cada requisição (estilo HTTP/1.0)</span>
+    c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    c.connect((<span class="text-emerald-300">'127.0.0.1'</span>, <span class="text-amber-300">9999</span>))
+    c.send(cmd.encode(<span class="text-emerald-300">'utf-8'</span>))
+    
+    resultado = c.recv(<span class="text-amber-300">1024</span>).decode(<span class="text-emerald-300">'utf-8'</span>)
+    <span class="text-blue-400">print</span>(<span class="text-emerald-300">f"\n[RESPOSTA RECEBIDA]: {resultado}"</span>)
+    c.close()</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: ARMADILHAS CLÁSSICAS -->
+        <section id="armadilhas" class="mb-14 scroll-mt-24">
+            <div class="flex items-center gap-3 mb-4">
+                <div
+                    class="w-8 h-8 rounded-lg bg-red-600/20 text-red-400 flex items-center justify-center font-bold text-sm">
+                    6</div>
+                <h3 class="text-2xl font-bold text-slate-900">Armadilhas Clássicas & Como Debugar</h3>
+            </div>
+            <p class="text-slate-400 text-sm mb-6">
+                Erros que 95% dos estudantes encontram no primeiro dia de sockets:
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <!-- Pitfall 1 -->
+                <div class="bg-white border-2 border-red-200/80 rounded-xl p-5 shadow-xs">
+                    <div class="flex items-center gap-2 text-red-700 font-mono text-xs font-bold mb-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                            </path>
+                        </svg>
+                        Address already in use
+                    </div>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">
+                        Ocorre quando você fecha o servidor com <kbd
+                            class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded font-mono text-[10px] text-slate-800">Ctrl+C</kbd> e tenta rodar
+                        de novo logo em seguida. A porta ainda está no estado TCP <code
+                            class="text-red-700 bg-red-50 px-1 py-0.5 rounded">TIME_WAIT</code> pelo SO.
+                    </p>
+                    <div
+                        class="bg-[#0d1117] p-2.5 rounded-lg border border-slate-800 text-[11px] font-mono text-emerald-300 shadow-inner">
+                        <strong class="text-white">Solução:</strong> Adicione antes do bind:<br>
+                        <code>servidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)</code>
+                    </div>
+                </div>
+
+                <!-- Pitfall 2 -->
+                <div class="bg-white border-2 border-amber-200/80 rounded-xl p-5 shadow-xs">
+                    <div class="flex items-center gap-2 text-amber-700 font-mono text-xs font-bold mb-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        ConnectionRefusedError
+                    </div>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">
+                        O cliente tentou conectar em uma porta onde não existe nenhum processo executando o <code
+                            class="text-amber-700 bg-amber-50 px-1 py-0.5 rounded">listen()</code>.
+                    </p>
+                    <div
+                        class="bg-[#0d1117] p-2.5 rounded-lg border border-slate-800 text-[11px] font-mono text-amber-300 shadow-inner">
+                        <strong class="text-white">Solução:</strong> Certifique-se de que o <strong>servidor já está rodando</strong> no
+                        outro terminal antes de disparar o cliente.
+                    </div>
+                </div>
+
+                <!-- Pitfall 3 -->
+                <div class="bg-white border-2 border-purple-200/80 rounded-xl p-5 shadow-xs">
+                    <div class="flex items-center gap-2 text-purple-700 font-mono text-xs font-bold mb-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        TypeError: bytes-like object
+                    </div>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">
+                        Ocorre ao chamar <code class="text-purple-700 bg-purple-50 px-1 py-0.5 rounded">send("texto")</code> direto, esquecendo de
+                        codificar a string para o formato binário.
+                    </p>
+                    <div
+                        class="bg-[#0d1117] p-2.5 rounded-lg border border-slate-800 text-[11px] font-mono text-purple-300 shadow-inner">
+                        <strong class="text-white">Solução:</strong> Sempre use <br>
+                        <code>.encode('utf-8')</code> no envio e <br>
+                        <code>.decode('utf-8')</code> na recepção.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 7: O DESAFIO DE HOJE -->
+        <section id="desafio" class="mb-14 scroll-mt-24">
+            <div
+                class="bg-gradient-to-br from-indigo-50 via-white to-purple-50/60 border-2 border-indigo-200 rounded-2xl p-6 sm:p-8 shadow-md relative">
+                <div
+                    class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 mb-3">
+                    🔥 Missão Prática de Hoje
+                </div>
+                <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-3 tracking-tight">
+                    Proponha e Implemente o seu Servidor de Aplicação
+                </h3>
+                <p class="text-slate-700 text-sm leading-relaxed mb-6 max-w-3xl">
+                    Vocês devem implementar um par Servidor/Cliente onde o cliente envia uma entrada do usuário e o
+                    servidor processa uma lógica customizada antes de retornar a resposta. Hoje vocês devem demonstrar
+                    ao professor que o esqueleto está funcionando!
+                </p>
+
+                <!-- Ideas Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+                        <h5 class="font-bold text-indigo-700 text-sm mb-1">Opção A: Criptografia com Cifra de César</h5>
+                        <p class="text-xs text-slate-600 mb-2 leading-relaxed">
+                            O cliente envia um comando no formato estruturado: <code
+                                class="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded font-mono">CIFRAR|3|SEGREDO</code> ou <code
+                                class="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded font-mono">DECIFRAR|3|VHJUGGR</code>.
+                        </p>
+                        <div class="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                            💡 Dica: No servidor use <code class="text-indigo-700 font-semibold">cmd.split("|")</code> para separar o
+                            modo, a chave e a mensagem.
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+                        <h5 class="font-bold text-emerald-700 text-sm mb-1">Opção B: Rolador de Dados RPG</h5>
+                        <p class="text-xs text-slate-600 mb-2 leading-relaxed">
+                            O cliente envia strings no padrão: <code class="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded font-mono">2d20+5</code> ou
+                            <code class="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded font-mono">1d6+1d4</code>. O servidor sorteia os números e
+                            devolve cada rolagem e o total somado.
+                        </p>
+                        <div class="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                            💡 Dica: Use o módulo <code class="text-indigo-700 font-semibold">random.randint</code> do Python.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Progress Checklist -->
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                        Checklist para aprovação do laboratório:
+                    </h4>
+                    <div class="space-y-2.5 text-xs text-slate-700">
+                        <label class="flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox"
+                                class="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-0 bg-slate-900">
+                            <span>Executei com sucesso o servidor básico e o cliente em terminais distintos</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox"
+                                class="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-0 bg-slate-900">
+                            <span>Entendi o papel de <code class="text-indigo-300 font-mono">encode()</code> e <code
+                                    class="text-indigo-300 font-mono">decode()</code> na camada de transporte</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox"
+                                class="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-0 bg-slate-900">
+                            <span>Adicionei <code class="text-indigo-300 font-mono">SO_REUSEADDR</code> para evitar
+                                travamento de portas</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox"
+                                class="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-0 bg-slate-900">
+                            <span>Defini o protocolo do meu desafio (formato exato da mensagem enviada e
+                                devolvida)</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox"
+                                class="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-0 bg-slate-900">
+                            <span>Apresentei a demonstração funcionando ao professor</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="border-t border-slate-900 pt-8 pb-12 text-center text-xs text-slate-500">
+            <p>Laboratório de Redes de Computadores • Ciência da Computação / Engenharia</p>
+            <p class="mt-1">Construído com base no padrão BSD Sockets e Python 3 socket module.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        // Copy Code Helper with Fallback
+        function copyCode(elementId) {
+            const codeElement = document.getElementById(elementId);
+            if (!codeElement) return;
+
+            const text = codeElement.innerText;
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                showToast("Código copiado para o Clipboard!");
+            } catch (err) {
+                showToast("Falha ao copiar automaticamente.");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            toastMsg.innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 2500);
+        }
+
+        // Interactive Byte Viewer
+        function updateByteViewer() {
+            const input = document.getElementById('interactive-text-input').value;
+            const outputElem = document.getElementById('interactive-byte-output');
+            const lengthElem = document.getElementById('interactive-byte-length');
+
+            // Convert to UTF-8 bytes representation
+            const encoder = new TextEncoder();
+            const bytes = encoder.encode(input);
+
+            let byteStr = "b'";
+            for (let i = 0; i < bytes.length; i++) {
+                const b = bytes[i];
+                // ASCII printable range: 32 to 126 except backslash and single quote
+                if (b >= 32 && b <= 126 && b !== 92 && b !== 39) {
+                    byteStr += String.fromCharCode(b);
+                } else {
+                    byteStr += '\\x' + b.toString(16).padStart(2, '0');
+                }
+            }
+            byteStr += "'";
+
+            outputElem.innerText = byteStr;
+            lengthElem.innerText = `Tamanho real: ${bytes.length} bytes na memória (${input.length} caracteres em Python)`;
+        }
+
+        // ADVANCED TERMINAL SIMULATOR STATE MACHINE
+        let simMode = 'guided'; // 'guided' or 'interactive'
+        let currentStep = 0;
+
+        const simulationSteps = [
+            {
+                step: 1,
+                serverBadge: { text: "CRIANDO SOCKET", class: "bg-amber-950 text-amber-300 border-amber-500/40" },
+                serverCode: "servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)",
+                serverOutput: [
+                    `<span class="text-slate-500">$ python3 servidor.py</span>`,
+                    `<span class="text-indigo-400">[KERNEL]</span> Socket TCP/IPv4 instanciado em memória.`
+                ],
+                serverSocketState: "socket(AF_INET, SOCK_STREAM)",
+
+                clientBadge: { text: "DESCONECTADO", class: "bg-slate-800 text-slate-300 border-slate-700" },
+                clientCode: "# cliente.py ainda não foi executado no terminal 2",
+                clientOutput: [
+                    `<span class="text-slate-400 italic">// Terminal 2 (Cliente aguardando)</span>`
+                ],
+
+                wireIcon: "💤",
+                wireClass: "border-slate-300 bg-white text-slate-500 shadow-sm",
+                wireTag: "Inativo",
+                wireBytes: "0 bytes",
+                handshakeText: "Sem Conexão",
+                explanation: "O servidor cria a estrutura de dados do socket no Kernel do Sistema Operacional."
+            },
+            {
+                step: 2,
+                serverBadge: { text: "BIND & LISTEN", class: "bg-indigo-950 text-indigo-300 border-indigo-500/40" },
+                serverCode: "servidor.bind(('0.0.0.0', 9999))\nservidor.listen(1)",
+                serverOutput: [
+                    `<span class="text-slate-400">$ python3 servidor.py</span>`,
+                    `<span class="text-indigo-400 font-bold">[KERNEL]</span> Socket TCP/IPv4 instanciado em memória.`,
+                    `<span class="text-purple-300 font-bold">[BIND]</span> Porta 9999 associada a todas as placas (0.0.0.0)`,
+                    `<span class="text-amber-300 font-bold">[LISTEN]</span> Modo de escuta ativado. Fila de espera: 1`
+                ],
+                serverSocketState: "0.0.0.0:9999 [LISTEN]",
+
+                clientBadge: { text: "DESCONECTADO", class: "bg-slate-800 text-slate-300 border-slate-700" },
+                clientCode: "# cliente.py ainda não foi disparado",
+                clientOutput: [
+                    `<span class="text-slate-400 italic">// Terminal 2 (Cliente aguardando)</span>`
+                ],
+
+                wireIcon: "👂",
+                wireClass: "border-indigo-300 bg-indigo-50 text-indigo-700 shadow-sm",
+                wireTag: "Porta 9999 Aberta",
+                wireBytes: "Pronto p/ conexões",
+                handshakeText: "Escutando",
+                explanation: "O servidor amarra o socket à porta 9999 (bind) e liga a escuta (listen). A porta agora está aberta no SO!"
+            },
+            {
+                step: 3,
+                serverBadge: { text: "BLOQUEADO NO ACCEPT()", class: "bg-red-950 text-red-300 border-red-500/40 animate-pulse" },
+                serverCode: "conexao, endereco = servidor.accept()  # BLOQUEANTE!",
+                serverOutput: [
+                    `<span class="text-slate-400">$ python3 servidor.py</span>`,
+                    `<span class="text-indigo-400 font-bold">[KERNEL]</span> Socket TCP/IPv4 instanciado em memória.`,
+                    `<span class="text-purple-300 font-bold">[BIND]</span> Porta 9999 associada a todas as placas (0.0.0.0)`,
+                    `<span class="text-amber-300 font-bold">[LISTEN]</span> Modo de escuta ativado. Fila de espera: 1`,
+                    `<span class="text-yellow-300 font-semibold">--- SERVIDOR AGUARDANDO CONEXÃO NA PORTA 9999 ---</span>`,
+                    `<span class="text-red-400 font-bold">⏸️ [PAUSA] accept() congelou a thread até um cliente discar...</span>`
+                ],
+                serverSocketState: "accept() esperando cliente...",
+
+                clientBadge: { text: "DESCONECTADO", class: "bg-slate-800 text-slate-300 border-slate-700" },
+                clientCode: "# Aluno vai dar 'python3 cliente.py' no terminal 2...",
+                clientOutput: [
+                    `<span class="text-slate-400 italic">// Terminal 2 pronto. Digite enter para conectar.</span>`
+                ],
+
+                wireIcon: "⏳",
+                wireClass: "border-amber-300 bg-amber-50 text-amber-700 shadow-sm",
+                wireTag: "Aguardando SYN",
+                wireBytes: "Linha livre",
+                handshakeText: "Esperando cliente",
+                explanation: "ATENÇÃO AQUI: A função accept() é BLOQUEANTE. O processo do servidor dorme e não gasta CPU até alguém conectar."
+            },
+            {
+                step: 4,
+                serverBadge: { text: "HANDSHAKE TCP", class: "bg-emerald-950 text-emerald-300 border-emerald-500/50" },
+                serverCode: "# accept() DESBLOQUEOU! Criou 'conexao' para este cliente",
+                serverOutput: [
+                    `<span class="text-yellow-300 font-semibold">--- SERVIDOR AGUARDANDO CONEXÃO NA PORTA 9999 ---</span>`,
+                    `<span class="text-red-400 font-bold">⏸️ [PAUSA] accept() congelou a thread até um cliente discar...</span>`,
+                    `<span class="text-emerald-400 font-bold">🎉 [HANDSHAKE 3-WAY CONCLUÍDO]</span>`,
+                    `<span class="text-cyan-300">Novo canal criado: conexao de ('127.0.0.1', 54812)</span>`,
+                    `<span class="text-slate-300 font-mono">Conexão estabelecida com sucesso!</span>`
+                ],
+                serverSocketState: "conexao = [CANAL PRIVADO]",
+
+                clientBadge: { text: "CONECTADO (:54812)", class: "bg-emerald-950 text-emerald-300 border-emerald-500/50" },
+                clientCode: "cliente.connect(('127.0.0.1', 9999))",
+                clientOutput: [
+                    `<span class="text-slate-400">$ python3 cliente.py</span>`,
+                    `<span class="text-slate-300">Tentando conectar ao servidor na porta 9999...</span>`,
+                    `<span class="text-emerald-400 font-bold">🚀 Conectado com sucesso ao servidor!</span>`
+                ],
+
+                wireIcon: "🤝",
+                wireClass: "border-emerald-300 bg-emerald-50 text-emerald-700 shadow-md",
+                wireTag: "SYN ➔ SYN-ACK ➔ ACK",
+                wireBytes: "Handshake OK",
+                handshakeText: "Túnel Estabelecido!",
+                explanation: "O cliente chamou connect(('127.0.0.1', 9999)). O TCP executou o aperto de mão de 3 vias (Handshake). O accept() do servidor finalmente desbloqueia!"
+            },
+            {
+                step: 5,
+                serverBadge: { text: "RECEBENDO DADOS (recv)", class: "bg-indigo-950 text-indigo-300 border-indigo-500/40" },
+                serverCode: "msg_bruta = conexao.recv(1024)\ntexto = msg_bruta.decode('utf-8')",
+                serverOutput: [
+                    `<span class="text-emerald-400">Conexão estabelecida com sucesso!</span>`,
+                    `<span class="text-slate-300">recv(1024) capturou do buffer TCP:</span>`,
+                    `<span class="text-amber-300 font-mono">Bytes brutos: b'HORA' (4 bytes)</span>`,
+                    `<span class="text-cyan-300 font-mono">Decodificado UTF-8: "HORA"</span>`
+                ],
+                serverSocketState: "Processando comando 'HORA'",
+
+                clientBadge: { text: "ENVIANDO BYTES", class: "bg-indigo-950 text-indigo-300 border-indigo-500/40" },
+                clientCode: "msg = 'HORA'\ncliente.send(msg.encode('utf-8'))",
+                clientOutput: [
+                    `<span class="text-emerald-400">🚀 Conectado com sucesso ao servidor!</span>`,
+                    `<span class="text-slate-300">Texto digitado: 'HORA'</span>`,
+                    `<span class="text-purple-300 font-mono">.encode('utf-8') gerou b'HORA'</span>`,
+                    `<span class="text-cyan-300">Enviando pelo socket cliente.send()...</span>`
+                ],
+
+                wireIcon: "📨",
+                wireClass: "border-cyan-400 bg-cyan-50 text-cyan-800 shadow-md animate-bounce",
+                wireTag: "Cliente ➔ Servidor",
+                wireBytes: "b'HORA' (4B)",
+                handshakeText: "Dados no cabo",
+                explanation: "O cliente converteu a string em bytes com .encode() e enviou. O servidor capturou esses bytes com recv(1024) e reverteu para string com .decode()."
+            },
+            {
+                step: 6,
+                serverBadge: { text: "RESPONDENDO (send)", class: "bg-emerald-950 text-emerald-300 border-emerald-500/40" },
+                serverCode: "resposta = '14:45:00'\nconexao.send(resposta.encode('utf-8'))",
+                serverOutput: [
+                    `<span class="text-cyan-300 font-mono">Decodificado UTF-8: "HORA"</span>`,
+                    `<span class="text-emerald-400">Executando obter_info('HORA')...</span>`,
+                    `<span class="text-slate-300">Resposta gerada: "14:45:00"</span>`,
+                    `<span class="text-purple-300 font-mono">Enviando b'14:45:00' (8 bytes) de volta...</span>`
+                ],
+                serverSocketState: "Resposta enviada",
+
+                clientBadge: { text: "LENDO RESPOSTA", class: "bg-emerald-950 text-emerald-300 border-emerald-500/40" },
+                clientCode: "resposta = cliente.recv(1024).decode('utf-8')",
+                clientOutput: [
+                    `<span class="text-cyan-300">Enviando pelo socket cliente.send()...</span>`,
+                    `<span class="text-slate-300">cliente.recv(1024) aguardou resposta...</span>`,
+                    `<span class="text-emerald-300 font-bold">>>> RESPOSTA DO SERVIDOR: 14:45:00</span>`
+                ],
+
+                wireIcon: "📩",
+                wireClass: "border-emerald-400 bg-emerald-50 text-emerald-800 shadow-md animate-bounce",
+                wireTag: "Servidor ➔ Cliente",
+                wireBytes: "b'14:45:00' (8B)",
+                handshakeText: "Retorno de dados",
+                explanation: "O servidor calculou a resposta no Python, codificou em bytes e enviou de volta pelo canal privado 'conexao'."
+            },
+            {
+                step: 7,
+                serverBadge: { text: "LOOP PRONTO (while True)", class: "bg-indigo-950 text-indigo-300 border-indigo-500/40" },
+                serverCode: "conexao.close()\n# Retorna para o topo do while True: servidor.accept()",
+                serverOutput: [
+                    `<span class="text-slate-300">conexao.close() executado. Canal finalizado.</span>`,
+                    `<span class="text-yellow-300 mt-1 block">--- SERVIDOR PRONTO PARA O PRÓXIMO CLIENTE ---</span>`,
+                    `<span class="text-slate-400 font-mono italic">[O servidor continua vivo atendendo em loop!]</span>`
+                ],
+                serverSocketState: "0.0.0.0:9999 (Aguardando novo cliente)",
+
+                clientBadge: { text: "ENCERRADO (close)", class: "bg-slate-800 text-slate-300 border-slate-700" },
+                clientCode: "cliente.close()\n# Processo do cliente finaliza",
+                clientOutput: [
+                    `<span class="text-emerald-300 font-bold">>>> RESPOSTA DO SERVIDOR: 14:45:00</span>`,
+                    `<span class="text-slate-300">cliente.close() liberou o socket.</span>`,
+                    `<span class="text-slate-400">$ _</span>`
+                ],
+
+                wireIcon: "🏁",
+                wireClass: "border-slate-300 bg-slate-100 text-slate-600 shadow-xs",
+                wireTag: "Conexão Encerrada",
+                wireBytes: "FIN-ACK enviado",
+                handshakeText: "Canal Fechado",
+                explanation: "Ao chamar close(), os pacotes FIN são trocados. O cliente fecha seu processo, mas o servidor continua rodando no 'while True' pronto para outro aluno!"
+            }
+        ];
+
+        function setSimMode(mode) {
+            simMode = mode;
+            const btnGuided = document.getElementById('btn-mode-guided');
+            const btnInteractive = document.getElementById('btn-mode-interactive');
+
+            if (mode === 'guided') {
+                btnGuided.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-sm transition";
+                btnInteractive.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 transition";
+                document.getElementById('sim-didactic-info').classList.remove('hidden');
+            } else {
+                btnInteractive.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white shadow-sm transition";
+                btnGuided.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 transition";
+                showToast("Modo Chat Livre ativado! Digite um comando e clique em Enviar.");
+            }
+        }
+
+        function setClientInput(val) {
+            document.getElementById('custom-client-msg').value = val;
+        }
+
+        function stepSimulator() {
+            if (currentStep < simulationSteps.length) {
+                currentStep++;
+            } else {
+                currentStep = 1;
+            }
+            renderAdvancedSimulator();
+        }
+
+        function prevSimStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                renderAdvancedSimulator();
+            }
+        }
+
+        function resetSimulator() {
+            currentStep = 0;
+            document.getElementById('sim-step-badge').innerText = "0/7";
+            document.getElementById('btn-sim-prev').disabled = true;
+
+            // Reset server elements
+            document.getElementById('term-server-badge').innerText = "OFFLINE";
+            document.getElementById('term-server-badge').className = "font-mono text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-bold";
+            document.getElementById('server-code-line').innerText = "# Aguardando início da simulação";
+            document.getElementById('term-server-stdout').innerHTML = `
+        <div class="text-slate-400 italic">// Terminal 1 (Servidor Linux/Python 3.11)</div>
+        <div class="text-emerald-400 font-bold">$ python3 servidor.py</div>
+      `;
+            document.getElementById('server-socket-status').innerText = "Não criado";
+
+            // Reset client elements
+            document.getElementById('term-client-badge').innerText = "DESCONECTADO";
+            document.getElementById('term-client-badge').className = "font-mono text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-bold";
+            document.getElementById('client-code-line').innerText = "# Cliente pronto para conectar";
+            document.getElementById('term-client-stdout').innerHTML = `
+        <div class="text-slate-400 italic">// Terminal 2 (Cliente Linux/Python 3.11)</div>
+        <div class="text-emerald-400 font-bold">$ python3 cliente.py</div>
+      `;
+
+            // Reset wire
+            document.getElementById('wire-animation').innerText = "🔌";
+            document.getElementById('wire-animation').className = "w-14 h-14 rounded-2xl border border-slate-200 bg-white flex items-center justify-center text-xl transition-all duration-300 shadow-sm";
+            document.getElementById('wire-packet-tag').innerText = "Sem tráfego";
+            document.getElementById('wire-packet-bytes').innerText = "0 bytes";
+            document.getElementById('wire-handshake-status').innerText = "Pendente";
+            document.getElementById('sim-explanation-text').innerText = "Clique em 'Avançar Passo' para iniciar a execução do servidor.";
+        }
+
+        function renderAdvancedSimulator() {
+            const data = simulationSteps[currentStep - 1];
+            if (!data) return;
+
+            document.getElementById('sim-step-badge').innerText = `${data.step}/7`;
+            document.getElementById('btn-sim-prev').disabled = data.step <= 1;
+
+            // Server Updates
+            const sBadge = document.getElementById('term-server-badge');
+            sBadge.innerText = data.serverBadge.text;
+            sBadge.className = `font-mono text-[10px] px-2 py-0.5 rounded border ${data.serverBadge.class}`;
+            document.getElementById('server-code-line').innerText = data.serverCode;
+            document.getElementById('term-server-stdout').innerHTML = data.serverOutput.map(line => `<div>${line}</div>`).join('');
+            document.getElementById('server-socket-status').innerText = data.serverSocketState;
+
+            // Auto scroll terminal
+            const sTerm = document.getElementById('term-server-stdout');
+            sTerm.scrollTop = sTerm.scrollHeight;
+
+            // Client Updates
+            const cBadge = document.getElementById('term-client-badge');
+            cBadge.innerText = data.clientBadge.text;
+            cBadge.className = `font-mono text-[10px] px-2 py-0.5 rounded border ${data.clientBadge.class}`;
+            document.getElementById('client-code-line').innerText = data.clientCode;
+            document.getElementById('term-client-stdout').innerHTML = data.clientOutput.map(line => `<div>${line}</div>`).join('');
+
+            const cTerm = document.getElementById('term-client-stdout');
+            cTerm.scrollTop = cTerm.scrollHeight;
+
+            // Wire Updates
+            const wire = document.getElementById('wire-animation');
+            wire.innerText = data.wireIcon;
+            wire.className = `w-14 h-14 rounded-2xl border flex items-center justify-center text-xl transition-all duration-300 ${data.wireClass}`;
+            document.getElementById('wire-packet-tag').innerText = data.wireTag;
+            document.getElementById('wire-packet-bytes').innerText = data.wireBytes;
+            document.getElementById('wire-handshake-status').innerText = data.handshakeText;
+            document.getElementById('sim-explanation-text').innerText = data.explanation;
+        }
+
+        // Interactive Custom Message Simulation
+        function sendInteractiveMessage() {
+            const msgInput = document.getElementById('custom-client-msg');
+            const text = msgInput.value.trim();
+            if (!text) return;
+
+            const encoder = new TextEncoder();
+            const byteLen = encoder.encode(text).length;
+
+            // Calculate simulated server response
+            let serverResponse = "";
+            const cmdUpper = text.toUpperCase();
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+
+            if (cmdUpper === "HORA") {
+                serverResponse = timeStr;
+            } else if (cmdUpper === "SISTEMA") {
+                serverResponse = "Linux 6.5.0-35-generic x86_64";
+            } else if (cmdUpper === "NOME") {
+                serverResponse = "servidor-laboratorio-redes";
+            } else {
+                serverResponse = `Eco do Servidor: recebi '${text}' (${byteLen} bytes)`;
+            }
+
+            // 1. Client sends
+            document.getElementById('term-client-badge').innerText = "ENVIANDO...";
+            document.getElementById('term-client-badge').className = "font-mono text-[10px] px-2 py-0.5 rounded border bg-indigo-950 text-indigo-300 border-indigo-500/40";
+            document.getElementById('client-code-line').innerText = `cliente.send("${text}".encode('utf-8'))`;
+
+            const cStdout = document.getElementById('term-client-stdout');
+            cStdout.innerHTML += `
+        <div class="text-cyan-300 mt-2 font-semibold">&gt; Enviando: "${text}"</div>
+        <div class="text-slate-400 font-mono text-[11px]">Enviados ${byteLen} bytes via socket.send()</div>
+      `;
+            cStdout.scrollTop = cStdout.scrollHeight;
+
+            // 2. Wire transmits
+            const wire = document.getElementById('wire-animation');
+            wire.innerText = "📨";
+            wire.className = "w-14 h-14 rounded-2xl border border-cyan-400 bg-cyan-50 text-cyan-800 shadow-md animate-bounce flex items-center justify-center text-xl transition-all";
+            document.getElementById('wire-packet-tag').innerText = "Cliente ➔ Servidor";
+            document.getElementById('wire-packet-bytes').innerText = `b'${text.substring(0, 10)}...' (${byteLen}B)`;
+
+            // 3. Server receives and responds after brief animation delay
+            setTimeout(() => {
+                document.getElementById('term-server-badge').innerText = "PROCESSANDO";
+                document.getElementById('term-server-badge').className = "font-mono text-[10px] px-2 py-0.5 rounded border bg-amber-950 text-amber-300 border-amber-500/40";
+                document.getElementById('server-code-line').innerText = `msg = conexao.recv(1024).decode('utf-8')  # Recebeu: "${text}"`;
+
+                const sStdout = document.getElementById('term-server-stdout');
+                sStdout.innerHTML += `
+          <div class="text-yellow-300 mt-2 font-semibold">[NOVA MSG] Recebido de ('127.0.0.1', 54812):</div>
+          <div class="text-slate-100 bg-[#161b22] px-2.5 py-1 rounded font-mono text-xs border border-slate-800">"${text}" (${byteLen} bytes)</div>
+          <div class="text-emerald-400 font-mono text-[11px]">Processando resposta: "${serverResponse}"</div>
+        `;
+                sStdout.scrollTop = sStdout.scrollHeight;
+
+                // Wire returns
+                wire.innerText = "📩";
+                wire.className = "w-14 h-14 rounded-2xl border border-emerald-400 bg-emerald-50 text-emerald-800 shadow-md flex items-center justify-center text-xl transition-all";
+                document.getElementById('wire-packet-tag').innerText = "Servidor ➔ Cliente";
+                document.getElementById('wire-packet-bytes').innerText = `${serverResponse.length} bytes`;
+
+                setTimeout(() => {
+                    document.getElementById('client-code-line').innerText = `resposta = cliente.recv(1024).decode('utf-8')`;
+                    cStdout.innerHTML += `
+            <div class="text-emerald-400 font-bold mt-1">&lt;&lt;&lt; [RESPOSTA]: ${serverResponse}</div>
+          `;
+                    cStdout.scrollTop = cStdout.scrollHeight;
+
+                    document.getElementById('term-client-badge').innerText = "CONECTADO";
+                    document.getElementById('term-client-badge').className = "font-mono text-[10px] px-2 py-0.5 rounded border bg-emerald-950 text-emerald-300 border-emerald-500/40";
+                    document.getElementById('term-server-badge').innerText = "ESCUTANDO";
+                    document.getElementById('term-server-badge').className = "font-mono text-[10px] px-2 py-0.5 rounded border bg-indigo-950 text-indigo-300 border-indigo-500/40";
+                }, 500);
+
+            }, 600);
+        }
+    </script>
+</body>
+
+</html>

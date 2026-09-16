@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 04: MAC Tables & Roteamento Estático • Lab de Redes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .pulse-dot { animation: pulseAnim 2s infinite; }
+    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+    .hop-anim { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-cyan-500 selection:text-white">
+
+  <!-- Toast Notifier -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900 border border-cyan-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md">
+    <span class="text-emerald-400 font-bold">✓</span>
+    <span id="toast-msg" class="text-sm font-medium">Comando copiado com sucesso!</span>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 font-mono font-bold text-lg hover:scale-105 transition">
+          LR
+        </a>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            Lab 04: <span class="text-cyan-400">MAC Tables & Roteamento Estático</span>
+          </h1>
+          <p class="text-xs text-slate-500">Memória CAM L2, flooding vs unicast e rotas estáticas IPv4 (/30)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200 flex items-center gap-1">
+          ← Cronograma
+        </a>
+        <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
+          ↗️ Tela Cheia
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 pulse-dot"></span>
+          26/08/2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Canvas Submission Alert -->
+    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
+        📤
+      </div>
+      <div class="flex-1">
+        <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
+          Submissão Obrigatória no Canvas da Disciplina
+        </h4>
+        <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
+          Ao término do laboratório, envie na tarefa correspondente no <strong>Canvas</strong>:
+        </p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Arquivo .pkt: roteamento_estatico_seunome.pkt</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Relatório com prints de 'show mac address-table'</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Auditoria do teste tracert passando pelos roteadores</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Jump Navigation -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
+      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Modelos Mentais</a>
+      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold shadow-xs transition font-medium flex items-center gap-1">
+        ⚡ Simulador Dual: CAM Table & Next-Hop
+      </a>
+      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Comandos Cisco IOS</a>
+      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Armadilhas Comuns</a>
+      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition font-medium">4. Checklist de Entrega</a>
+    </div>
+
+    <!-- Intro Hero -->
+    <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div class="max-w-3xl">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+          Laboratório 04 • Comutação L2 & Roteamento L3
+        </span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4 tracking-tight">
+          Como o Switch Aprende e Como o Roteador Encontra o Próximo Salto
+        </h2>
+        <p class="text-slate-700 text-base leading-relaxed mb-6">
+          Um switch opera na Camada 2 inspecionando o <strong>MAC de Origem</strong> para preencher sua memória CAM (<em>Content-Addressable Memory</em>). Já um roteador opera na Camada 3 consultando sua <strong>Tabela de Roteamento</strong> e decrementando o campo <strong>TTL (Time To Live)</strong> a cada salto para evitar loops infinitos.
+        </p>
+        <div class="flex flex-wrap gap-4 text-xs font-mono">
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Comando CAM:</span> <span class="text-cyan-400 font-bold">show mac address-table</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Link WAN Ponto a Ponto:</span> <span class="text-blue-400 font-bold">10.0.0.0/30 (Máscara .252)</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Comando Rota:</span> <span class="text-emerald-400 font-bold">ip route &lt;dest&gt; &lt;mask&gt; &lt;next-hop&gt;</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: MODELOS MENTAIS -->
+    <section id="analogia" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">1</div>
+        <h3 class="text-2xl font-bold text-slate-900">Modelos Mentais: Tabela CAM vs Tabela de Rotas</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-3 text-xl">📬</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Carteiro Observador</h4>
+          <span class="text-xs text-cyan-400 font-medium mb-1 block">"Aprendizado por Source MAC"</span>
+          <p class="text-xs text-slate-500">O switch nunca pergunta "quem é você?". Ele simplesmente olha o remetente de qualquer carta recebida na porta Fa0/1 e anota no caderninho: "Porta 1 = MAC A".</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 text-xl">📢</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Grito no Pátio</h4>
+          <span class="text-xs text-amber-400 font-medium mb-1 block">"Unknown Unicast Flooding"</span>
+          <p class="text-xs text-slate-500">Se o switch precisa entregar um quadro para o MAC B e nunca ouviu falar dele, ele replica o pacote para absolutamente todas as portas ativas exceto a de entrada.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center mb-3 text-xl">🛣️</div>
+          <h4 class="font-bold text-slate-900 text-sm">A Placa de Estrada</h4>
+          <span class="text-xs text-blue-400 font-medium mb-1 block">"Next-Hop (Próximo Salto)"</span>
+          <p class="text-xs text-slate-500">O roteador R1 não sabe como é o bairro final na LAN B; ele apenas sabe a regra: "Quer ir para a rede 192.168.2.0? Entregue para o IP do Roteador R2 (10.0.0.2)".</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center mb-3 text-xl">⏳</div>
+          <h4 class="font-bold text-slate-900 text-sm">A Ampulheta do Pacote</h4>
+          <span class="text-xs text-rose-400 font-medium mb-1 block">"TTL Decrement (Time to Live)"</span>
+          <p class="text-xs text-slate-500">A cada roteador atravessado, o cabeçalho IP perde 1 no TTL. Se chegar a 0, o roteador descarta o pacote e manda de volta um ICMP Time Exceeded ao remetente.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: SIMULADOR INTERATIVO DUAL -->
+    <section id="simulador" class="mb-14 scroll-mt-24">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-sm">⚡</div>
+          <h3 class="text-2xl font-bold text-slate-900">Simulador Interativo: Tabela CAM & Roteamento L3</h3>
+        </div>
+        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+          <button id="tab-cam" onclick="switchSimTab('cam')" class="px-3 py-1 rounded font-medium bg-cyan-600 text-white transition">1. Aprendizado CAM (L2)</button>
+          <button id="tab-route" onclick="switchSimTab('route')" class="px-3 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition">2. Próximo Salto & TTL (L3)</button>
+        </div>
+      </div>
+
+      <!-- SIM VIEW 1: CAM TABLE -->
+      <div id="view-cam" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+        <div class="bg-slate-50 p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-500">Status da Memória CAM:</span>
+            <span id="cam-status-pill" class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/40">Vazia (0 entradas dinâmicas)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btn-fire-frame" onclick="fireCamTest()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow flex items-center gap-1.5">
+              <span>▶</span> Disparar Quadro PC1 → PC3
+            </button>
+            <button onclick="clearCamTable()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition shadow-xs">
+              🗑️ Limpar Tabela CAM
+            </button>
+          </div>
+        </div>
+
+        <div class="p-6 bg-slate-50 border-b border-slate-200">
+          <!-- Switch and 4 PCs -->
+          <div class="max-w-3xl mx-auto">
+            <!-- Center Switch -->
+            <div id="cam-switch" class="p-4 rounded-xl bg-slate-900 border-2 border-slate-700 text-center mb-8 relative transition">
+              <div class="text-3xl mb-1">🔀</div>
+              <div class="font-bold text-sm text-white">Switch Cisco 2960</div>
+              <div class="text-[11px] text-cyan-400 font-mono mt-0.5">Memória CAM Dinâmica</div>
+              <div id="flooding-alert" class="hidden mt-2 px-3 py-1 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold animate-pulse">
+                📢 UNKNOWN UNICAST FLOODING! Inundando portas Fa0/2, Fa0/3, Fa0/4!
+              </div>
+              <div id="forward-alert" class="hidden mt-2 px-3 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold">
+                🎯 UNICAST FORWARDING DIRETO! Destino conhecido na porta Fa0/3! (Sem flooding)
+              </div>
+            </div>
+
+            <!-- 4 PCs Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+              <div id="pc-box-1" class="p-3 rounded-xl bg-slate-900 border border-slate-800 transition">
+                <div class="text-xl mb-1">🖥️</div>
+                <div class="font-bold text-xs text-white">PC 1 (Fa0/1)</div>
+                <div class="text-[10px] font-mono text-cyan-400">MAC: 0001.AA11.0001</div>
+              </div>
+              <div id="pc-box-2" class="p-3 rounded-xl bg-slate-900 border border-slate-800 transition">
+                <div class="text-xl mb-1">💻</div>
+                <div class="font-bold text-xs text-white">PC 2 (Fa0/2)</div>
+                <div class="text-[10px] font-mono text-slate-400">MAC: 0001.AA11.0002</div>
+              </div>
+              <div id="pc-box-3" class="p-3 rounded-xl bg-slate-900 border border-slate-800 transition">
+                <div class="text-xl mb-1">💻</div>
+                <div class="font-bold text-xs text-white">PC 3 (Fa0/3)</div>
+                <div class="text-[10px] font-mono text-emerald-400">MAC: 0001.AA11.0003</div>
+              </div>
+              <div id="pc-box-4" class="p-3 rounded-xl bg-slate-900 border border-slate-800 transition">
+                <div class="text-xl mb-1">💻</div>
+                <div class="font-bold text-xs text-white">PC 4 (Fa0/4)</div>
+                <div class="text-[10px] font-mono text-slate-400">MAC: 0001.AA11.0004</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live CAM Table Display -->
+        <div class="p-5 bg-slate-50 border-t border-slate-200">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-white uppercase tracking-wider font-mono">Saída de 'show mac address-table':</span>
+            <span class="text-[11px] text-slate-400 font-mono">Envelhecimento padrão: 300 segundos</span>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-200 font-mono text-xs overflow-x-auto shadow-xs">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="text-slate-500 border-b border-slate-200">
+                  <th class="pb-1">Vlan</th>
+                  <th class="pb-1">Mac Address</th>
+                  <th class="pb-1">Type</th>
+                  <th class="pb-1">Ports</th>
+                </tr>
+              </thead>
+              <tbody id="cam-table-body" class="divide-y divide-slate-850 text-slate-700">
+                <tr id="cam-empty-row">
+                  <td colspan="4" class="py-2 text-slate-500 text-center italic">Nenhuma entrada dinâmica registrada (Tabela Vazia)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIM VIEW 2: L3 ROUTING & TTL -->
+      <div id="view-route" class="hidden bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+        <div class="bg-slate-50 p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-500">Configuração de Rotas:</span>
+            <button id="toggle-route-btn" onclick="toggleRouteState()" class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+              ✓ Rotas Bidirecionais Ativas (R1 & R2)
+            </button>
+          </div>
+          <button onclick="playRouteTrace()" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow flex items-center gap-1.5">
+            <span>▶</span> Executar Tracert (PC-A → PC-B)
+          </button>
+        </div>
+
+        <div class="p-6 bg-slate-50 border-b border-slate-200">
+          <!-- Multi-Hop Topology Diagram -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center max-w-4xl mx-auto py-4">
+            <!-- PC-A -->
+            <div id="hop-pca" class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center hop-anim">
+              <div class="text-2xl mb-1">🖥️</div>
+              <div class="font-bold text-xs text-white">PC-A (LAN A)</div>
+              <div class="text-[11px] text-cyan-400 font-mono">192.168.1.1</div>
+              <div class="text-[10px] text-slate-400 font-mono">GW: 192.168.1.254</div>
+            </div>
+
+            <!-- R1 -->
+            <div id="hop-r1" class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center hop-anim">
+              <div class="text-2xl mb-1">🧭</div>
+              <div class="font-bold text-xs text-white">Roteador R1</div>
+              <div class="text-[10px] text-slate-700 font-mono">g0/0: 192.168.1.254</div>
+              <div class="text-[10px] text-blue-400 font-mono">g0/1: 10.0.0.1 (/30)</div>
+            </div>
+
+            <!-- R2 -->
+            <div id="hop-r2" class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center hop-anim">
+              <div class="text-2xl mb-1">🧭</div>
+              <div class="font-bold text-xs text-white">Roteador R2</div>
+              <div class="text-[10px] text-blue-400 font-mono">g0/1: 10.0.0.2 (/30)</div>
+              <div class="text-[10px] text-slate-700 font-mono">g0/0: 192.168.2.254</div>
+            </div>
+
+            <!-- PC-B -->
+            <div id="hop-pcb" class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center hop-anim">
+              <div class="text-2xl mb-1">💻</div>
+              <div class="font-bold text-xs text-white">PC-B (LAN B)</div>
+              <div class="text-[11px] text-emerald-400 font-mono">192.168.2.1</div>
+              <div class="text-[10px] text-slate-400 font-mono">GW: 192.168.2.254</div>
+            </div>
+          </div>
+
+          <!-- Trace Console Output -->
+          <div class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 font-mono text-xs">
+            <div class="text-slate-400 mb-2 font-bold uppercase tracking-wider">Console Tracert (Windows Prompt):</div>
+            <div id="trace-output" class="text-slate-700 space-y-1">
+              <p class="text-slate-500">C:\Users\Aluno> tracert 192.168.2.1</p>
+              <p class="text-slate-500 italic">Clique em "Executar Tracert" para visualizar os saltos e o decréscimo de TTL.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: COMANDOS CISCO IOS -->
+    <section id="roteiro" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">2</div>
+        <h3 class="text-2xl font-bold text-slate-900">Guia de Comandos Cisco IOS</h3>
+      </div>
+
+      <!-- Switch CAM Commands -->
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>🔀</span> 1. Inspeção e Limpeza da Tabela CAM no Switch
+          </h4>
+          <button onclick="copyCode('code-cam')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition flex items-center gap-1">
+            📋 Copiar Comandos CAM
+          </button>
+        </div>
+        <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+<pre id="code-cam"><code>enable
+! Visualizar a tabela de endereços MAC completa
+show mac address-table
+
+! Limpar todas as entradas dinâmicas para forçar flooding de aprendizado
+clear mac address-table dynamic
+
+! Inspecionar porta específica
+show mac address-table interface fastEthernet 0/1</code></pre>
+        </div>
+      </div>
+
+      <!-- R1 & R2 Routing Commands -->
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>🧭</span> 2. Configuração de Rotas Estáticas Bidirecionais
+          </h4>
+          <div class="flex gap-2">
+            <button onclick="copyCode('code-r1')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition">
+              📋 Copiar R1
+            </button>
+            <button onclick="copyCode('code-r2')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition">
+              📋 Copiar R2
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 font-mono text-xs">
+          <!-- R1 -->
+          <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+            <div class="text-cyan-400 font-bold mb-2">// Configuração Roteador R1</div>
+<pre id="code-r1"><code>enable
+configure terminal
+hostname R1
+
+! Link LAN A
+interface gigabitEthernet 0/0
+ ip address 192.168.1.254 255.255.255.0
+ no shutdown
+exit
+
+! Link WAN /30 com R2
+interface gigabitEthernet 0/1
+ ip address 10.0.0.1 255.255.255.252
+ no shutdown
+exit
+
+! Rota Estática para LAN B via R2
+ip route 192.168.2.0 255.255.255.0 10.0.0.2
+
+do show ip route</code></pre>
+          </div>
+
+          <!-- R2 -->
+          <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+            <div class="text-blue-400 font-bold mb-2">// Configuração Roteador R2</div>
+<pre id="code-r2"><code>enable
+configure terminal
+hostname R2
+
+! Link LAN B
+interface gigabitEthernet 0/0
+ ip address 192.168.2.254 255.255.255.0
+ no shutdown
+exit
+
+! Link WAN /30 com R1
+interface gigabitEthernet 0/1
+ ip address 10.0.0.2 255.255.255.252
+ no shutdown
+exit
+
+! Rota Estática para LAN A via R1
+ip route 192.168.1.0 255.255.255.0 10.0.0.1
+
+do show ip route</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: ARMADILHAS COMUNS -->
+    <section id="armadilhas" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center font-bold text-sm">3</div>
+        <h3 class="text-2xl font-bold text-slate-900">Armadilhas Comuns de Roteamento & CAM</h3>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 1. A Rota de Ida Existe, a de Volta Não!
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            O erro mais clássico dos alunos: configurar a rota em R1 e esquecer de R2. O pacote chega perfeitamente ao host de destino, mas na hora de responder, R2 não tem rota para a LAN A e descarta o Echo Reply!
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Sintoma: Request timed out mesmo com as interfaces ligadas.
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 2. Máscara WAN /30 Inválida
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            A máscara <code>255.255.255.252</code> (/30) possui apenas 2 endereços úteis: <code>.1</code> e <code>.2</code>. Usar <code>.3</code> (broadcast) ou <code>.0</code> (rede) causará erro de sobreposição (<em>overlap</em>).
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Regra: Em links /30, configure estritamente IP ímpar em uma ponta e par na outra.
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 3. Apontar Next-Hop para Interface Local
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            Digitar em R1: <code>ip route 192.168.2.0 255.255.255.0 10.0.0.1</code> (o IP do próprio R1!). O next-hop deve ser SEMPRE o IP da interface do vizinho do outro lado do cabo (10.0.0.2).
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Next-hop = Endereço do Roteador Vizinho.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: CHECKLIST DE ENTREGA NO CANVAS -->
+    <section id="checklist" class="mb-14 scroll-mt-24">
+      <div class="bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-xl">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">4</span>
+              <h3 class="text-2xl font-bold text-slate-900">Checklist de Entrega no Canvas</h3>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700 mt-1">
+              Marque os itens conforme concluir. O progresso é salvo localmente.
+            </p>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-black text-emerald-400" id="progress-val">0%</div>
+            <div class="text-xs text-slate-500">Concluído</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 w-0 transition-all duration-300"></div>
+        </div>
+
+        <!-- Interactive Checkboxes -->
+        <div class="space-y-3 text-sm">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Tabela CAM Inspecionada:</strong> Observei a tabela vazia após <code>clear mac address-table dynamic</code> e verifiquei o aprendizado após o primeiro tráfego.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Link WAN /30 Configurado:</strong> Interfaces <code>g0/1</code> dos roteadores configuradas com a sub-rede <code>10.0.0.0/30</code> e ativas com <code>no shutdown</code>.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Rotas Estáticas Bidirecionais:</strong> Rota para LAN B cadastrada em R1 e rota para LAN A cadastrada em R2, validadas com código <code>S</code> em <code>show ip route</code>.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Ping & Tracert de Ponta a Ponta:</strong> Comunicação 100% OK entre PC-A e PC-B com auditoria de saltos via <code>tracert</code>.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Submissão no Canvas Realizada:</strong> Salvei o arquivo como <code>roteamento_estatico_seunome.pkt</code> e enviei o relatório em PDF com as capturas e respostas no Canvas.
+            </span>
+          </label>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-200 text-xs text-slate-500">
+          <span>Laboratório de Redes de Computadores • 2026.2</span>
+          <a href="#simulador" class="text-cyan-400 hover:underline">Voltar ao Simulador ↑</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Navigation -->
+    <div class="flex items-center justify-between border-t border-slate-200 pt-6">
+      <a href="03-vlans-e-roteadores.html" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition flex items-center gap-1.5">
+        ← Lab 03: VLANs & Router-on-a-Stick
+      </a>
+      <a href="05-servidores-dhcp-dns-http.html" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg transition flex items-center gap-1.5">
+        Próximo: Lab 05 - DHCP, DNS & HTTP →
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Interactive JavaScript Engine -->
+  <script>
+    let camEntries = [];
+    let camFiredCount = 0;
+    let routesActive = true;
+
+    function switchSimTab(tab) {
+      const vCam = document.getElementById('view-cam');
+      const vRoute = document.getElementById('view-route');
+      const tCam = document.getElementById('tab-cam');
+      const tRoute = document.getElementById('tab-route');
+
+      if (tab === 'cam') {
+        vCam.classList.remove('hidden');
+        vRoute.classList.add('hidden');
+        tCam.className = 'px-3 py-1 rounded font-medium bg-cyan-600 text-white transition';
+        tRoute.className = 'px-3 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition';
+      } else {
+        vRoute.classList.remove('hidden');
+        vCam.classList.add('hidden');
+        tRoute.className = 'px-3 py-1 rounded font-medium bg-cyan-600 text-white transition';
+        tCam.className = 'px-3 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition';
+      }
+    }
+
+    function fireCamTest() {
+      camFiredCount++;
+      const floodAlert = document.getElementById('flooding-alert');
+      const fwdAlert = document.getElementById('forward-alert');
+      const pill = document.getElementById('cam-status-pill');
+
+      // First time: PC3 is not known -> FLOODING
+      if (camFiredCount === 1) {
+        floodAlert.classList.remove('hidden');
+        fwdAlert.classList.add('hidden');
+
+        // Flash all ports
+        ['pc-box-2', 'pc-box-3', 'pc-box-4'].forEach(id => {
+          document.getElementById(id).classList.add('ring-2', 'ring-amber-400', 'bg-amber-950/40');
+        });
+
+        // Switch learns PC1 and then PC3 response
+        setTimeout(() => {
+          camEntries = [
+            { vlan: 1, mac: '0001.AA11.0001', type: 'DYNAMIC', port: 'Fa0/1' },
+            { vlan: 1, mac: '0001.AA11.0003', type: 'DYNAMIC', port: 'Fa0/3' }
+          ];
+          renderCamTable();
+          pill.innerText = 'Populada (2 entradas dinâmicas)';
+          pill.className = 'px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40';
+
+          ['pc-box-2', 'pc-box-3', 'pc-box-4'].forEach(id => {
+            document.getElementById(id).classList.remove('ring-2', 'ring-amber-400', 'bg-amber-950/40');
+          });
+        }, 1200);
+
+      } else {
+        // Subsequent times: Unicast Forwarding
+        floodAlert.classList.add('hidden');
+        fwdAlert.classList.remove('hidden');
+
+        // Only PC3 flashes!
+        document.getElementById('pc-box-3').classList.add('ring-2', 'ring-emerald-400', 'bg-emerald-950/50');
+        setTimeout(() => {
+          document.getElementById('pc-box-3').classList.remove('ring-2', 'ring-emerald-400', 'bg-emerald-950/50');
+        }, 1200);
+      }
+    }
+
+    function clearCamTable() {
+      camEntries = [];
+      camFiredCount = 0;
+      document.getElementById('flooding-alert').classList.add('hidden');
+      document.getElementById('forward-alert').classList.add('hidden');
+      const pill = document.getElementById('cam-status-pill');
+      pill.innerText = 'Vazia (0 entradas dinâmicas)';
+      pill.className = 'px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/40';
+      renderCamTable();
+      showToast('Tabela CAM limpa via clear mac address-table dynamic!');
+    }
+
+    function renderCamTable() {
+      const tbody = document.getElementById('cam-table-body');
+      if (camEntries.length === 0) {
+        tbody.innerHTML = `<tr id="cam-empty-row"><td colspan="4" class="py-2 text-slate-500 text-center italic">Nenhuma entrada dinâmica registrada (Tabela Vazia)</td></tr>`;
+      } else {
+        tbody.innerHTML = camEntries.map(e => `
+          <tr>
+            <td class="py-1 text-cyan-400">${e.vlan}</td>
+            <td class="py-1 text-white font-bold">${e.mac}</td>
+            <td class="py-1 text-slate-400">${e.type}</td>
+            <td class="py-1 text-emerald-400 font-bold">${e.port}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function toggleRouteState() {
+      routesActive = !routesActive;
+      const btn = document.getElementById('toggle-route-btn');
+      if (routesActive) {
+        btn.innerText = '✓ Rotas Bidirecionais Ativas (R1 & R2)';
+        btn.className = 'px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40';
+      } else {
+        btn.innerText = '❌ Falha: Rota de Volta em R2 Ausente!';
+        btn.className = 'px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-500/40';
+      }
+    }
+
+    function playRouteTrace() {
+      const out = document.getElementById('trace-output');
+      out.innerHTML = `<p class="text-cyan-400">Rastreando a rota para 192.168.2.1 com no máximo 30 saltos:</p>`;
+
+      const hops = ['hop-pca', 'hop-r1', 'hop-r2', 'hop-pcb'];
+      hops.forEach(h => document.getElementById(h).classList.remove('ring-2', 'ring-cyan-400', 'bg-slate-850'));
+
+      // Hop 1: R1
+      setTimeout(() => {
+        document.getElementById('hop-pca').classList.add('ring-2', 'ring-cyan-400', 'bg-slate-850');
+        document.getElementById('hop-r1').classList.add('ring-2', 'ring-cyan-400', 'bg-slate-850');
+        out.innerHTML += `<p class="text-slate-700">  1    &lt;1 ms    &lt;1 ms    &lt;1 ms  192.168.1.254 (Gateway R1 - TTL decremented to 127)</p>`;
+      }, 500);
+
+      // Hop 2: R2
+      setTimeout(() => {
+        document.getElementById('hop-pca').classList.remove('ring-2', 'ring-cyan-400');
+        document.getElementById('hop-r2').classList.add('ring-2', 'ring-cyan-400', 'bg-slate-850');
+        out.innerHTML += `<p class="text-slate-700">  2     2 ms     1 ms     1 ms  10.0.0.2 (Next-Hop Link WAN /30 - TTL decremented to 126)</p>`;
+      }, 1200);
+
+      // Hop 3: Dest or Failure
+      setTimeout(() => {
+        if (routesActive) {
+          document.getElementById('hop-pcb').classList.add('ring-2', 'ring-emerald-400', 'bg-emerald-950/60');
+          out.innerHTML += `
+            <p class="text-emerald-400">  3     1 ms     1 ms     1 ms  192.168.2.1 (Host Destino PC-B - Rastreamento concluído com sucesso!)</p>
+          `;
+        } else {
+          document.getElementById('hop-r2').classList.add('ring-2', 'ring-rose-500', 'bg-rose-950/60');
+          out.innerHTML += `
+            <p class="text-rose-400">  3     *        *        *     Esgotado o tempo limite da solicitação (R2 não possui rota de volta para 192.168.1.0/24!).</p>
+          `;
+        }
+      }, 1900);
+    }
+
+    function copyCode(id) {
+      const code = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(code);
+      showToast('Comandos copiados para a área de transferência!');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      t.classList.remove('opacity-0', 'translate-y-20');
+      setTimeout(() => t.classList.add('opacity-0', 'translate-y-20'), 2500);
+    }
+
+    function updateProgress() {
+      const checks = document.querySelectorAll('.lab-check');
+      let done = 0;
+      checks.forEach(c => { if (c.checked) done++; });
+      const pct = Math.round((done / checks.length) * 100);
+      document.getElementById('progress-val').innerText = pct + '%';
+      document.getElementById('progress-bar').style.width = pct + '%';
+      localStorage.setItem('lr_lab04_progress', pct);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderCamTable();
+      const saved = localStorage.getItem('lr_lab04_progress');
+      if (saved) {
+        const checks = document.querySelectorAll('.lab-check');
+        const count = Math.round((parseInt(saved) / 100) * checks.length);
+        for (let i = 0; i < count; i++) {
+          if (checks[i]) checks[i].checked = true;
+        }
+        updateProgress();
+      }
+    });
+  </script>
+</body>
+</html>

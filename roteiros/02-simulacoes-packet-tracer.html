@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 02: Simulações Avançadas e Inspeção de PDU • Lab de Redes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .pulse-dot { animation: pulseAnim 2s infinite; }
+    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+    .packet-anim { transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Toast Notifier -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900 border border-indigo-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md">
+    <span class="text-emerald-400 font-bold">✓</span>
+    <span id="toast-msg" class="text-sm font-medium">Copiado para a área de transferência!</span>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 font-mono font-bold text-lg hover:scale-105 transition">
+          LR
+        </a>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            Lab 02: <span class="text-cyan-400">Simulações & Inspeção de PDU</span>
+          </h1>
+          <p class="text-xs text-slate-500">Modo de simulação discreta, camadas OSI e diagnóstico de falhas</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200 flex items-center gap-1">
+          ← Cronograma
+        </a>
+        <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
+          ↗️ Tela Cheia
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 pulse-dot"></span>
+          12/08/2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Canvas Submission Alert -->
+    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
+        📤
+      </div>
+      <div class="flex-1">
+        <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
+          Submissão Obrigatória no Canvas da Disciplina
+        </h4>
+        <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
+          Ao término desta atividade prática, submeta na respectiva tarefa no <strong>Canvas</strong>:
+        </p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Arquivo corrigido: rede_corrigida_seunome.pkt</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Questionário Conceitual respondido (PDF)</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Print da inspeção de PDU (Camadas OSI)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Jump Navigation -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
+      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Modelos Mentais</a>
+      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold shadow-xs transition font-medium flex items-center gap-1">
+        ⚡ Simulador de PDU & Camadas OSI
+      </a>
+      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Roteiro Prático</a>
+      <a href="#diagnostico" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Desafio da Rede Defeituosa</a>
+      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">4. Armadilhas Comuns</a>
+      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition font-medium">5. Checklist de Entrega</a>
+    </div>
+
+    <!-- Intro Hero -->
+    <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div class="max-w-3xl">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+          Laboratório 02 • Simulação & Diagnóstico
+        </span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4 tracking-tight">
+          Congelando o Tempo na Rede: PDU e Modelo OSI
+        </h2>
+        <p class="text-slate-700 text-base leading-relaxed mb-6">
+          No modo tempo real, os pacotes viajam na velocidade da luz e somem em microssegundos. O modo de <strong>Simulação Discreta</strong> do Cisco Packet Tracer permite pausar a física da rede, inspecionar cabeçalhos camada por camada e descobrir exatamente onde e por que um pacote é descartado.
+        </p>
+        <div class="flex flex-wrap gap-4 text-xs font-mono">
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Atalho Simulação:</span> <span class="text-cyan-400 font-bold">Shift + S</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Atalho Tempo Real:</span> <span class="text-indigo-400 font-bold">Shift + R</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Arquivo Defeituoso:</span> <a href="../assets/downloads/rede_com_problemas.pkt" download class="text-emerald-400 underline font-bold">📥 rede_com_problemas.pkt</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: MODELOS MENTAIS -->
+    <section id="analogia" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">1</div>
+        <h3 class="text-2xl font-bold text-slate-900">Modelos Mentais: A Anatomia de uma PDU</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-3 text-xl">🔬</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Raio-X do Pacote</h4>
+          <span class="text-xs text-cyan-400 font-medium mb-1 block">"Encapsulamento L1 a L7"</span>
+          <p class="text-xs text-slate-500">Cada dispositivo que recebe o pacote descasca camadas até a sua responsabilidade: Switch analisa L2 (MAC); Roteador analisa L3 (IP); Host lê até L7.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-3 text-xl">✉️</div>
+          <h4 class="font-bold text-slate-900 text-sm">Simple vs Complex PDU</h4>
+          <span class="text-xs text-indigo-400 font-medium mb-1 block">"Carta Comum vs Sedex Sob Medida"</span>
+          <p class="text-xs text-slate-500">Simple PDU dispara um ICMP Echo Request básico. Complex PDU permite forçar intervalo periódico, tamanho de payload, TOS e porta de transporte customizada.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 text-xl">⏱️</div>
+          <h4 class="font-bold text-slate-900 text-sm">Lista de Eventos</h4>
+          <span class="text-xs text-amber-400 font-medium mb-1 block">"Filme Frame-a-Frame"</span>
+          <p class="text-xs text-slate-500">O Packet Tracer cria uma fila cronológica de micro-eventos. Clicar no botão <em>Capture/Forward</em> avança exatamente um evento físico de propagação.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center mb-3 text-xl">❌</div>
+          <h4 class="font-bold text-slate-900 text-sm">A "Red Cross" de Descarte</h4>
+          <span class="text-xs text-rose-400 font-medium mb-1 block">"Sem Rota ou Sem ARP"</span>
+          <p class="text-xs text-slate-500">Quando um pacote morre com um 'X' vermelho, a janela do PDU explica na aba <em>Out Layers</em> o motivo exato: gateway incorreto, buffer full ou ARP timeout.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: SIMULADOR INTERATIVO -->
+    <section id="simulador" class="mb-14 scroll-mt-24">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-sm">⚡</div>
+          <h3 class="text-2xl font-bold text-slate-900">Simulador Interativo: Dissecação de PDU & Modo Simulação</h3>
+        </div>
+        <span class="text-xs bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full border border-cyan-200 font-medium">
+          Sandbox Didático Integrado
+        </span>
+      </div>
+
+      <div class="bg-white border-2 border-slate-200/90 rounded-2xl overflow-hidden shadow-lg">
+        <!-- Top Control Bar -->
+        <div class="bg-slate-50 p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Cenário de Teste:</span>
+            <div class="inline-flex rounded-lg bg-slate-200/70 p-1 border border-slate-300 text-xs">
+              <button id="btn-scen-simple" onclick="setScenario('simple')" class="px-3 py-1 rounded-md font-medium bg-cyan-600 text-white transition">Simple PDU (Ping OK)</button>
+              <button id="btn-scen-broken" onclick="setScenario('broken')" class="px-3 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition">Máscara Incompatível (Drop)</button>
+              <button id="btn-scen-complex" onclick="setScenario('complex')" class="px-3 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition">Complex PDU (Periódico)</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-play-step" onclick="playStep()" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow flex items-center gap-1.5">
+              <span>▶</span> Avançar Passo (Capture/Forward)
+            </button>
+            <button onclick="resetSimulation()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition shadow-xs">
+              ↺ Reiniciar
+            </button>
+          </div>
+        </div>
+
+        <!-- Interactive Visual Canvas -->
+        <div class="p-6 bg-slate-950/50 min-h-[260px] relative flex flex-col justify-center">
+          
+          <!-- Wire diagram -->
+          <div class="relative max-w-4xl mx-auto w-full py-8">
+            <!-- Connecting Wire -->
+            <div class="absolute top-1/2 left-16 right-16 h-1 bg-slate-800 -translate-y-1/2 z-0"></div>
+            <div id="wire-active" class="absolute top-1/2 left-16 w-0 h-1 bg-cyan-500 -translate-y-1/2 z-0 transition-all duration-500"></div>
+
+            <!-- Animated Packet Dot -->
+            <div id="packet-indicator" class="absolute top-1/2 left-16 -translate-x-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-cyan-500 text-slate-950 font-bold flex items-center justify-center text-xs shadow-lg shadow-cyan-500/50 packet-anim opacity-0 pointer-events-none">
+              ✉️
+            </div>
+
+            <!-- Devices Grid -->
+            <div class="relative z-10 grid grid-cols-4 gap-4 text-center">
+              <!-- PC1 -->
+              <div id="dev-pc1" class="flex flex-col items-center p-3 rounded-xl bg-slate-900 border-2 border-cyan-500/60 shadow-lg transition">
+                <div class="w-12 h-12 rounded-xl bg-cyan-950 text-cyan-400 flex items-center justify-center text-2xl mb-2">🖥️</div>
+                <div class="font-bold text-xs text-white">PC1 (Origem)</div>
+                <div class="font-mono text-[11px] text-cyan-400">192.168.0.1</div>
+                <div id="pc1-mask" class="font-mono text-[10px] text-slate-400">/24 (255.255.255.0)</div>
+                <span class="mt-1 px-1.5 py-0.5 rounded text-[9px] bg-slate-800 text-slate-700 font-mono">Fa0 (MAC: ...00:01)</span>
+              </div>
+
+              <!-- Switch -->
+              <div id="dev-sw" class="flex flex-col items-center p-3 rounded-xl bg-slate-900 border border-slate-800 shadow-lg transition">
+                <div class="w-12 h-12 rounded-xl bg-indigo-950 text-indigo-400 flex items-center justify-center text-2xl mb-2">🔀</div>
+                <div class="font-bold text-xs text-white">Switch 2960</div>
+                <div class="font-mono text-[11px] text-indigo-300">L2 Forwarding</div>
+                <div class="font-mono text-[10px] text-slate-400">CAM Table Match</div>
+                <span class="mt-1 px-1.5 py-0.5 rounded text-[9px] bg-indigo-950 text-indigo-300 font-mono">Ports Fa0/1 - Fa0/3</span>
+              </div>
+
+              <!-- PC2 -->
+              <div id="dev-pc2" class="flex flex-col items-center p-3 rounded-xl bg-slate-900 border border-slate-800 shadow-lg transition">
+                <div class="w-12 h-12 rounded-xl bg-blue-950 text-blue-400 flex items-center justify-center text-2xl mb-2">💻</div>
+                <div class="font-bold text-xs text-white">PC2 (Destino)</div>
+                <div id="pc2-ip" class="font-mono text-[11px] text-blue-400">192.168.0.2</div>
+                <div id="pc2-mask" class="font-mono text-[10px] text-slate-400">/24 (255.255.255.0)</div>
+                <span class="mt-1 px-1.5 py-0.5 rounded text-[9px] bg-slate-800 text-slate-700 font-mono">Fa0 (MAC: ...00:02)</span>
+              </div>
+
+              <!-- Router R1 (Gateway) -->
+              <div id="dev-r1" class="flex flex-col items-center p-3 rounded-xl bg-slate-900 border border-slate-800 shadow-lg transition opacity-60">
+                <div class="w-12 h-12 rounded-xl bg-purple-950 text-purple-400 flex items-center justify-center text-2xl mb-2">🧭</div>
+                <div class="font-bold text-xs text-white">Roteador R1</div>
+                <div class="font-mono text-[11px] text-purple-300">192.168.0.254</div>
+                <div class="font-mono text-[10px] text-slate-400">Gateway Padrão</div>
+                <span class="mt-1 px-1.5 py-0.5 rounded text-[9px] bg-purple-950 text-purple-300 font-mono">Gig0/0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step Description Banner -->
+          <div id="sim-status-banner" class="mt-4 p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span id="step-badge" class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 font-mono font-bold">PASSO 0</span>
+              <span id="step-description" class="text-slate-700">Pronto para iniciar. Clique em "Avançar Passo" para disparar o PDU de PC1.</span>
+            </div>
+            <span id="step-result" class="font-mono text-cyan-400 font-semibold">Aguardando disparo</span>
+          </div>
+        </div>
+
+        <!-- PDU Inspector Panel (Simulating Packet Tracer PDU Window) -->
+        <div class="p-5 bg-slate-50 border-t border-slate-200">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span>📋</span> Janela de Informações do PDU (Packet Tracer PDU Model)
+            </h4>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400">Camadas Ativas: <strong id="active-layers-count" class="text-cyan-400">L1, L2, L3</strong></span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs font-mono">
+            <!-- In Layers / Out Layers Table -->
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+              <div class="text-slate-400 font-semibold uppercase text-[10px] tracking-wider mb-2 text-indigo-400">Camadas OSI em Análise (Nó Atual)</div>
+              
+              <div id="pdu-l7" class="p-2 rounded bg-white border border-slate-200 shadow-sm flex justify-between text-slate-500">
+                <span>Camada 7 (Aplicação):</span>
+                <span class="text-right">N/A (ICMP não usa porta de app)</span>
+              </div>
+              <div id="pdu-l4" class="p-2 rounded bg-white border border-slate-200 shadow-sm flex justify-between text-slate-500">
+                <span>Camada 4 (Transporte):</span>
+                <span id="pdu-l4-val" class="text-right">ICMP Type 8 (Echo Request)</span>
+              </div>
+              <div id="pdu-l3" class="p-2 rounded bg-slate-900 border border-cyan-500/30 flex justify-between text-cyan-300">
+                <span>Camada 3 (Rede IPv4):</span>
+                <span id="pdu-l3-val" class="text-right">Orig: 192.168.0.1 → Dest: 192.168.0.2</span>
+              </div>
+              <div id="pdu-l2" class="p-2 rounded bg-slate-900 border border-cyan-500/30 flex justify-between text-cyan-300">
+                <span>Camada 2 (Enlace Ethernet II):</span>
+                <span id="pdu-l2-val" class="text-right">MAC: ...00:01 → ...00:02</span>
+              </div>
+              <div id="pdu-l1" class="p-2 rounded bg-slate-900 border border-cyan-500/30 flex justify-between text-cyan-300">
+                <span>Camada 1 (Física):</span>
+                <span id="pdu-l1-val" class="text-right">Porta FastEthernet0/1 (Cabo Direto)</span>
+              </div>
+            </div>
+
+            <!-- Packet Tracer Inbound/Outbound PDU Details -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="text-slate-400 font-semibold uppercase text-[10px] tracking-wider mb-2 text-cyan-400">Decisão do Mecanismo de Simulação</div>
+                <div id="pdu-decision-box" class="p-3 rounded-lg bg-white border border-slate-200 text-slate-800 shadow-xs space-y-1.5 leading-relaxed">
+                  <p>1. O host compara o IP de destino com sua própria máscara.</p>
+                  <p>2. Como <code>192.168.0.2</code> está na mesma sub-rede <code>/24</code>, o destino é considerado <strong>local</strong>.</p>
+                  <p>3. Não há necessidade de enviar para o Default Gateway (R1).</p>
+                  <p>4. O quadro é enviado diretamente via Switch para o MAC do PC2.</p>
+                </div>
+              </div>
+
+              <div id="pdu-verdict" class="mt-3 p-2.5 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 flex items-center justify-between">
+                <span class="font-bold">Status da Entrega:</span>
+                <span id="pdu-verdict-text">Pacote pronto para envio</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: ROTEIRO PRÁTICO -->
+    <section id="roteiro" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">2</div>
+        <h3 class="text-2xl font-bold text-slate-900">Roteiro de Execução Prática</h3>
+      </div>
+
+      <!-- Etapa 1 -->
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="w-7 h-7 rounded-full bg-cyan-600 text-white font-bold flex items-center justify-center text-xs">1</span>
+          <h4 class="text-lg font-bold text-slate-900">Preparando a Topologia e Filtros de Simulação</h4>
+        </div>
+        <p class="text-sm text-slate-700 leading-relaxed mb-4">
+          Para que o modo simulação seja compreensível e não fique poluído com pacotes de broadcast do sistema operacional (como STP, CDP, LLDP ou ARP constantes), é essencial configurar a lista de filtros:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-xs">
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <h5 class="font-bold text-cyan-400 mb-2">1. Alternar para Modo Simulation</h5>
+            <p class="text-slate-400 mb-2">Pressione <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-white font-mono">Shift + S</kbd> ou clique na aba <em>Simulation</em> (ícone de cronômetro no canto inferior direito).</p>
+          </div>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <h5 class="font-bold text-cyan-400 mb-2">2. Filtrar Apenas ICMP</h5>
+            <p class="text-slate-400 mb-2">Clique em <strong>Edit Filters</strong>. Marque o botão <em>Show All/None</em> para desmarcar todos os protocolos e selecione somente <strong>ICMP</strong>.</p>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-lg bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-300 flex items-center gap-2">
+          <span>💡</span>
+          <span><strong>Dica de Produtividade:</strong> O atalho <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-white font-mono">Space</kbd> na simulação avança o próximo evento automaticamente!</span>
+        </div>
+      </div>
+
+      <!-- Etapa 2 -->
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="w-7 h-7 rounded-full bg-cyan-600 text-white font-bold flex items-center justify-center text-xs">2</span>
+          <h4 class="text-lg font-bold text-slate-900">Inspeção Detalhada de Camadas OSI (Simple PDU)</h4>
+        </div>
+        <p class="text-sm text-slate-700 leading-relaxed mb-4">
+          Crie um teste de conectividade entre dois PCs da LAN e pause o evento no momento em que o pacote chega ao Switch:
+        </p>
+
+        <div class="space-y-3 text-xs text-slate-700 mb-4">
+          <div class="flex items-start gap-3 bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-cyan-400 font-mono font-bold">Passo A:</span>
+            <span>Clique na ferramenta <strong>Add Simple PDU</strong> (tecla de atalho <kbd class="px-1 rounded bg-slate-800 text-white">P</kbd>). Clique primeiro em <strong>PC1</strong> (origem) e em seguida em <strong>PC2</strong> (destino).</span>
+          </div>
+          <div class="flex items-start gap-3 bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-cyan-400 font-mono font-bold">Passo B:</span>
+            <span>Clique uma vez no botão <strong>Capture / Forward</strong>. O envelope se moverá do PC1 para o Switch 2960.</span>
+          </div>
+          <div class="flex items-start gap-3 bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-cyan-400 font-mono font-bold">Passo C:</span>
+            <span>Clique no pequeno quadrado colorido correspondente ao evento na lista <em>Simulation Panel</em>. Uma janela modal intitulada <strong>PDU Information</strong> se abrirá.</span>
+          </div>
+        </div>
+
+        <!-- Mini Quiz Interativo -->
+        <div class="p-4 rounded-xl bg-slate-950 border border-indigo-500/40">
+          <h5 class="text-xs font-bold text-indigo-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <span>🧠</span> Checagem Conceitual: Por que o Switch só mostra Camadas 1 e 2?
+          </h5>
+          <p class="text-xs text-slate-700 mb-3">
+            Ao inspecionar a janela PDU enquanto o pacote está dentro do Switch 2960, as camadas 3 a 7 aparecem indisponíveis ou cinzas. Por quê?
+          </p>
+          <div class="space-y-2 text-xs" id="quiz-options-1">
+            <button onclick="answerQuiz(1, false, 'Incorreto. O switch recebe o frame com o pacote IP encapsulado dentro dele, mas ele não o interpreta.')" class="w-full text-left p-2.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 shadow-xs transition">
+              A) Porque o cabo Ethernet perdeu as informações de IP durante a transmissão física.
+            </button>
+            <button onclick="answerQuiz(1, true, 'Correto! Um Switch L2 tradicional é puramente uma ponte de comutação de enlace: ele lê o cabeçalho Ethernet (MAC de destino), consulta sua tabela CAM e encaminha sem jamais analisar ou alterar o cabeçalho IP (L3).')" class="w-full text-left p-2.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 shadow-xs transition">
+              B) Porque o Switch opera na Camada de Enlace (L2), tomando decisões apenas com base no endereço MAC sem ler o IP de rede.
+            </button>
+            <button onclick="answerQuiz(1, false, 'Incorreto. O Packet Tracer emula L3, mas o Switch 2960 é um equipamento L2.')" class="w-full text-left p-2.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 shadow-xs transition">
+              C) Porque o Packet Tracer tem um bug de visualização que oculta o IP em switches.
+            </button>
+          </div>
+          <div id="quiz-feedback-1" class="mt-3 text-xs hidden p-3 rounded-lg"></div>
+        </div>
+      </div>
+
+      <!-- Etapa 3 -->
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="w-7 h-7 rounded-full bg-cyan-600 text-white font-bold flex items-center justify-center text-xs">3</span>
+          <h4 class="text-lg font-bold text-slate-900">Disparo de Complex PDUs (Parâmetros Customizados)</h4>
+        </div>
+        <p class="text-sm text-slate-700 leading-relaxed mb-4">
+          Diferente do Simple PDU, o <strong>Complex PDU</strong> permite testar comportamentos contínuos ou protocolos específicos:
+        </p>
+
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs font-mono space-y-2 mb-4">
+          <div class="text-cyan-400 font-bold">Configurações para o Complex PDU:</div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-slate-700">
+            <div class="p-2 rounded bg-slate-900">Select Application: <strong class="text-white">PING</strong></div>
+            <div class="p-2 rounded bg-slate-900">Destination IP: <strong class="text-white">192.168.0.2</strong></div>
+            <div class="p-2 rounded bg-slate-900">Sequence Number: <strong class="text-white">1</strong></div>
+            <div class="p-2 rounded bg-slate-900">Periodic Interval: <strong class="text-amber-400">2 sec</strong></div>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Com o envio periódico, alterne para o modo <strong>Realtime (Shift + R)</strong> por 10 segundos e depois volte para <strong>Simulation</strong>. Veja na lista como dezenas de pings foram enfileirados no tempo.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION 4: DESAFIO DA REDE DEFEITUOSA -->
+    <section id="diagnostico" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-rose-600/20 text-rose-400 flex items-center justify-center font-bold text-sm">3</div>
+        <h3 class="text-2xl font-bold text-slate-900">Desafio Prático: Investigando a "Rede com Problemas"</h3>
+      </div>
+
+      <div class="bg-gradient-to-br from-rose-50 via-white to-red-50/60 border-2 border-rose-200 rounded-2xl p-6 sm:p-8 shadow-lg">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <span class="px-2.5 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">
+              Arquivo Oficial para Correção
+            </span>
+            <h4 class="text-xl font-bold text-slate-900 mt-1">rede_com_problemas.pkt</h4>
+            <p class="text-xs text-slate-600 mt-1">
+              Topologia contendo 2 sub-redes interligadas por um roteador com erros intencionais de máscara, IP e default gateway.
+            </p>
+          </div>
+          <a href="../assets/downloads/rede_com_problemas.pkt" download class="px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition shadow-lg shadow-rose-600/30 flex items-center gap-2 whitespace-nowrap">
+            📥 Baixar rede_com_problemas.pkt
+          </a>
+        </div>
+
+        <!-- Metodologia de Diagnóstico -->
+        <h5 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wider">Metodologia Científica de Rastreamento:</h5>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs mb-6">
+          <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+            <div class="text-rose-400 font-bold mb-1">Passo 1: O Ping Test Inicial</div>
+            <p class="text-slate-400">Tente pingar entre nós da mesma sub-rede e entre nós de sub-redes diferentes. Anote quais pares falham.</p>
+          </div>
+          <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+            <div class="text-amber-400 font-bold mb-1">Passo 2: Modo Simulação no Ponto de Falha</div>
+            <p class="text-slate-400">Dispare um PDU no par problemático no modo Simulation. Observe qual equipamento descarta o pacote com o 'X' vermelho.</p>
+          </div>
+          <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+            <div class="text-emerald-400 font-bold mb-1">Passo 3: Inspeção da Aba Out Layers</div>
+            <p class="text-slate-400">Abra o PDU no nó do descarte. O Packet Tracer informa: <em>"The default gateway is not set"</em> ou <em>"Subnet mismatch"</em>.</p>
+          </div>
+        </div>
+
+        <!-- Guia de Correção Interativo -->
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-bold text-white">Quadro de Diagnóstico para Preencher no seu Relatório:</span>
+            <span class="text-slate-400 font-mono">Salve como: rede_corrigida_seunome.pkt</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left font-mono">
+              <thead>
+                <tr class="border-b border-slate-200 text-slate-400">
+                  <th class="py-2">Dispositivo</th>
+                  <th class="py-2">Configuração Errada Encontrada</th>
+                  <th class="py-2">Correção Aplicada</th>
+                  <th class="py-2">Resultado Final</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-850 text-slate-700">
+                <tr>
+                  <td class="py-2 text-rose-400">PC-A</td>
+                  <td class="py-2">Máscara /25 em vez de /24</td>
+                  <td class="py-2 text-emerald-400">Ajustado para 255.255.255.0</td>
+                  <td class="py-2 text-cyan-400">Ping 100% OK</td>
+                </tr>
+                <tr>
+                  <td class="py-2 text-rose-400">PC-B</td>
+                  <td class="py-2">Gateway apontando para IP inexistente</td>
+                  <td class="py-2 text-emerald-400">Configurado IP da interface do R1</td>
+                  <td class="py-2 text-cyan-400">Roteamento L3 OK</td>
+                </tr>
+                <tr>
+                  <td class="py-2 text-rose-400">Roteador</td>
+                  <td class="py-2">Interface em shutdown administrativo</td>
+                  <td class="py-2 text-emerald-400">Executado comando `no shutdown`</td>
+                  <td class="py-2 text-cyan-400">Link Up / Green</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: ARMADILHAS COMUNS -->
+    <section id="armadilhas" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center font-bold text-sm">4</div>
+        <h3 class="text-2xl font-bold text-slate-900">Armadilhas Comuns no Modo Simulação</h3>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 1. "Buffer Full" na Lista de Eventos
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            Se você esquecer de filtrar os protocolos e deixar o modo simulação rodando, centenas de pacotes STP e CDP encherão o buffer, travando o Packet Tracer.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Solução: Clique no botão "Clear Event List" e selecione apenas ICMP em Edit Filters.
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 2. O Primeiro Ping Falha ("Timeout")
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            O primeiro ping em uma topologia recém-ligada quase sempre dá <em>Request timed out</em>. Os alunos acham que está tudo errado.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Causa Real: O host precisou enviar primeiro uma requisição ARP para descobrir o MAC de destino. O segundo ping será 100% OK!
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 3. Esquecer de Ligar a Porta (No Shutdown)
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            No Packet Tracer, portas de switches vêm ligadas (up) por padrão, mas interfaces de <strong>roteadores Cisco vêm administrativamente desligadas (down)</strong> com triângulos vermelhos.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Solução: Acessar a CLI do Roteador e executar <code>no shutdown</code> na interface.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 6: CHECKLIST DE ENTREGA NO CANVAS -->
+    <section id="checklist" class="mb-14 scroll-mt-24">
+      <div class="bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-xl">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">5</span>
+              <h3 class="text-2xl font-bold text-slate-900">Checklist de Entrega no Canvas</h3>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700 mt-1">
+              Marque os itens conforme concluir. O progresso é salvo no seu navegador.
+            </p>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-black text-emerald-400" id="progress-val">0%</div>
+            <div class="text-xs text-slate-500">Concluído</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 w-0 transition-all duration-300"></div>
+        </div>
+
+        <!-- Interactive Checkboxes -->
+        <div class="space-y-3 text-sm">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Inspeção de PDUs Realizada:</strong> Observei e anotei as camadas ativas (L1, L2, L3) para pacotes ICMP e ARP no modo Simulation.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Complex PDU Testado:</strong> Disparei pacote periódico com intervalo de 2s e validei o enfileiramento de eventos.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Rede com Problemas Corrigida:</strong> Diagnostiquei todos os erros do arquivo <code>rede_com_problemas.pkt</code> e testei comunicação total com sucesso.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Arquivo .PKT Salvo:</strong> Salvei a topologia corrigida com o nome <code>rede_corrigida_seunome.pkt</code>.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Submissão no Canvas Efetuada:</strong> Enviei o <code>.pkt</code> corrigido e o relatório em PDF na tarefa correspondente do Canvas.
+            </span>
+          </label>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-200 text-xs text-slate-500">
+          <span>Laboratório de Redes de Computadores • 2026.2</span>
+          <a href="#simulador" class="text-cyan-400 hover:underline">Voltar ao Simulador ↑</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Lab Navigation -->
+    <div class="flex items-center justify-between border-t border-slate-200 pt-6">
+      <a href="01-introducao-packet-tracer.html" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition flex items-center gap-1.5">
+        ← Lab 01: Introdução ao Packet Tracer
+      </a>
+      <a href="03-vlans-e-roteadores.html" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-lg transition flex items-center gap-1.5">
+        Próximo: Lab 03 - VLANs & Roteadores →
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Interactive JavaScript Engine -->
+  <script>
+    // State management
+    let currentScenario = 'simple';
+    let currentStep = 0;
+    const maxSteps = 4;
+
+    const scenarios = {
+      simple: {
+        steps: [
+          {
+            packetPos: '12%',
+            wireWidth: '0%',
+            banner: 'Pronto para iniciar. Clique em "Avançar Passo" para disparar o ICMP Echo Request de PC1.',
+            badge: 'PASSO 0',
+            activeLayers: 'L1, L2, L3',
+            l3: 'Orig: 192.168.0.1 → Dest: 192.168.0.2',
+            l2: 'MAC Origem: ...00:01 → Dest: ...00:02',
+            l1: 'Porta FastEthernet0/1',
+            decision: '1. O PC1 gera o pacote ICMP Echo Request.<br>2. Compara 192.168.0.2 com sua máscara /24.<br>3. Destino é LOCAL: envia direto para o Switch.',
+            verdict: 'Pronto para transmissão',
+            verdictClass: 'text-emerald-400',
+            activeDev: 'dev-pc1'
+          },
+          {
+            packetPos: '38%',
+            wireWidth: '38%',
+            banner: 'Pacote chegou ao Switch 2960. O Switch lê o cabeçalho Ethernet (L2).',
+            badge: 'PASSO 1: NO SWITCH',
+            activeLayers: 'L1, L2',
+            l3: 'Inalterado (Switch L2 não processa IP)',
+            l2: 'Consulta Tabela CAM: MAC ...00:02 associado à porta Fa0/2',
+            l1: 'Recebido em Fa0/1 → Encaminhado para Fa0/2',
+            decision: '1. O Switch aprende o MAC do PC1 na porta Fa0/1.<br>2. Consulta a tabela de endereços MAC (CAM Table).<br>3. Encaminha unicamente pela porta Fa0/2.',
+            verdict: 'Comutação L2 Efetuada com Sucesso',
+            verdictClass: 'text-cyan-400',
+            activeDev: 'dev-sw'
+          },
+          {
+            packetPos: '64%',
+            wireWidth: '64%',
+            banner: 'Pacote chegou em PC2! PC2 valida o IP, aceita o ICMP e prepara o Echo Reply.',
+            badge: 'PASSO 2: NO DESTINO',
+            activeLayers: 'L1, L2, L3, L4',
+            l3: 'IP Destino confere com a interface local (192.168.0.2)',
+            l2: 'MAC Destino confere com a NIC (...00:02)',
+            l1: 'Porta FastEthernet0/2',
+            decision: '1. PC2 remove o cabeçalho Ethernet.<br>2. Verifica que o IP é dele mesmo.<br>3. Prepara a resposta (ICMP Echo Reply - Type 0).',
+            verdict: 'Echo Request Recebido! Gerando Resposta...',
+            verdictClass: 'text-emerald-400',
+            activeDev: 'dev-pc2'
+          },
+          {
+            packetPos: '12%',
+            wireWidth: '100%',
+            banner: 'Echo Reply retornou para PC1! Conectividade bidirecional 100% comprovada!',
+            badge: 'PASSO 3: COMPLETO',
+            activeLayers: 'L1, L2, L3',
+            l3: 'Orig: 192.168.0.2 → Dest: 192.168.0.1 (Type 0)',
+            l2: 'MAC Destino: ...00:01',
+            l1: 'FastEthernet0/1',
+            decision: '1. O Switch entregou a resposta de volta ao PC1.<br>2. PC1 calcula o tempo de ida e volta (RTT < 1ms).<br>3. Ping concluído com sucesso total!',
+            verdict: 'PING 100% BEM-SUCEDIDO (0% Packet Loss)',
+            verdictClass: 'text-emerald-400',
+            activeDev: 'dev-pc1'
+          }
+        ]
+      },
+      broken: {
+        steps: [
+          {
+            packetPos: '12%',
+            wireWidth: '0%',
+            banner: 'PC1 tem máscara /24, mas PC2 foi configurado com IP de outra sub-rede sem gateway!',
+            badge: 'PASSO 0: FALHA',
+            activeLayers: 'L1, L2, L3',
+            l3: 'Orig: 192.168.0.1 → Dest: 192.168.1.50 (Fora da Sub-rede)',
+            l2: 'MAC Destino: DESCONHECIDO (Sem Gateway)',
+            l1: 'Porta FastEthernet0/1',
+            decision: '1. O host compara o IP com sua máscara 255.255.255.0.<br>2. O IP 192.168.1.50 NÃO pertence à rede local.<br>3. PC1 tenta buscar o Default Gateway na configuração.',
+            verdict: 'Verificando tabela de rotas...',
+            verdictClass: 'text-amber-400',
+            activeDev: 'dev-pc1'
+          },
+          {
+            packetPos: '12%',
+            wireWidth: '0%',
+            banner: '❌ DESCARTE NO PC1! O campo Default Gateway está em branco (0.0.0.0). Pacote descartado com Red Cross!',
+            badge: 'DROP: NO GATEWAY',
+            activeLayers: 'DROP',
+            l3: 'Destino remoto sem rota default configurada',
+            l2: 'Não é possível resolver ARP para rede externa',
+            l1: 'Nenhum sinal elétrico transmitido',
+            decision: '<strong>MOTIVO DA FALHA NO PACKET TRACER:</strong><br>O host não possui Default Gateway configurado. Como o IP de destino é remoto, o sistema operacional descarta o pacote imediatamente.',
+            verdict: '❌ PACKET DROPPED (Host Unreachable)',
+            verdictClass: 'text-rose-400',
+            activeDev: 'dev-pc1'
+          }
+        ]
+      },
+      complex: {
+        steps: [
+          {
+            packetPos: '12%',
+            wireWidth: '0%',
+            banner: 'Complex PDU: Disparo contínuo a cada 2 segundos com TTL=128 e payload customizado.',
+            badge: 'COMPLEX PDU',
+            activeLayers: 'L1, L2, L3, L4',
+            l3: 'Orig: 192.168.0.1 → Dest: 192.168.0.2 | TTL=128',
+            l2: 'Ethernet II | Periodic Interval: 2.0s',
+            l1: 'FastEthernet0/1',
+            decision: '1. O Packet Tracer agenda eventos periódicos no motor discreto.<br>2. A cada 2000ms da simulação, uma nova instância do PDU é colocada na fila.',
+            verdict: 'Emissão contínua programada',
+            verdictClass: 'text-indigo-400',
+            activeDev: 'dev-pc1'
+          },
+          {
+            packetPos: '64%',
+            wireWidth: '64%',
+            banner: 'Complex PDU fluindo no cabo periodicamente! Ideal para testar saturação e monitorar timers.',
+            badge: 'EVENT STREAM',
+            activeLayers: 'L1, L2, L3, L4',
+            l3: 'Seq #1 entregue, agendando Seq #2 em t+2s...',
+            l2: 'Encaminhamento transparente pelo Switch',
+            l1: 'Taxa de linha estável',
+            decision: '1. Sequência periódica em andamento.<br>2. Verifique na lista de eventos os carimbos de tempo crescendo de 2s em 2s.',
+            verdict: 'Ciclo Periódico Ativo',
+            verdictClass: 'text-cyan-400',
+            activeDev: 'dev-pc2'
+          }
+        ]
+      }
+    };
+
+    function setScenario(scen) {
+      currentScenario = scen;
+      currentStep = 0;
+      
+      // Update scen buttons
+      ['simple', 'broken', 'complex'].forEach(s => {
+        const btn = document.getElementById('btn-scen-' + s);
+        if (s === scen) {
+          btn.className = 'px-3 py-1 rounded-md font-medium bg-cyan-600 text-white transition';
+        } else {
+          btn.className = 'px-3 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition';
+        }
+      });
+
+      // Update devices presentation for broken scen
+      const pc2Ip = document.getElementById('pc2-ip');
+      if (scen === 'broken') {
+        pc2Ip.innerText = '192.168.1.50 (Rede Diferente!)';
+        pc2Ip.className = 'font-mono text-[11px] text-rose-400 font-bold';
+      } else {
+        pc2Ip.innerText = '192.168.0.2';
+        pc2Ip.className = 'font-mono text-[11px] text-blue-400';
+      }
+
+      renderStep();
+    }
+
+    function playStep() {
+      const scenData = scenarios[currentScenario].steps;
+      if (currentStep < scenData.length - 1) {
+        currentStep++;
+      } else {
+        currentStep = 0;
+      }
+      renderStep();
+    }
+
+    function resetSimulation() {
+      currentStep = 0;
+      renderStep();
+    }
+
+    function renderStep() {
+      const stepData = scenarios[currentScenario].steps[currentStep];
+      const packet = document.getElementById('packet-indicator');
+      const wire = document.getElementById('wire-active');
+
+      // Highlight active device
+      ['dev-pc1', 'dev-sw', 'dev-pc2', 'dev-r1'].forEach(id => {
+        const el = document.getElementById(id);
+        if (id === stepData.activeDev) {
+          el.classList.add('ring-2', 'ring-cyan-400', 'bg-slate-850');
+        } else {
+          el.classList.remove('ring-2', 'ring-cyan-400', 'bg-slate-850');
+        }
+      });
+
+      // Packet anim
+      packet.style.left = stepData.packetPos;
+      packet.style.opacity = (currentStep === 0 && currentScenario !== 'broken') ? '0.4' : '1';
+      wire.style.width = stepData.wireWidth;
+
+      if (currentScenario === 'broken' && currentStep === 1) {
+        packet.innerText = '❌';
+        packet.classList.remove('bg-cyan-500');
+        packet.classList.add('bg-rose-600', 'animate-bounce');
+      } else {
+        packet.innerText = '✉️';
+        packet.classList.remove('bg-rose-600', 'animate-bounce');
+        packet.classList.add('bg-cyan-500');
+      }
+
+      // Banner text
+      document.getElementById('step-badge').innerText = stepData.badge;
+      document.getElementById('step-description').innerHTML = stepData.banner;
+      document.getElementById('step-result').innerHTML = stepData.verdict;
+      document.getElementById('step-result').className = 'font-mono font-semibold ' + stepData.verdictClass;
+
+      // PDU Box
+      document.getElementById('active-layers-count').innerText = stepData.activeLayers;
+      document.getElementById('pdu-l3-val').innerText = stepData.l3;
+      document.getElementById('pdu-l2-val').innerText = stepData.l2;
+      document.getElementById('pdu-l1-val').innerText = stepData.l1;
+      document.getElementById('pdu-decision-box').innerHTML = stepData.decision;
+      document.getElementById('pdu-verdict-text').innerText = stepData.verdict;
+    }
+
+    // Quiz logic
+    function answerQuiz(num, isCorrect, feedback) {
+      const box = document.getElementById('quiz-feedback-' + num);
+      box.classList.remove('hidden', 'bg-emerald-950/80', 'text-emerald-300', 'border-emerald-500/40', 'bg-rose-950/80', 'text-rose-300', 'border-rose-500/40');
+      if (isCorrect) {
+        box.classList.add('bg-emerald-950/80', 'text-emerald-300', 'border', 'border-emerald-500/40');
+        box.innerHTML = '<strong>✓ Resposta Correta!</strong> ' + feedback;
+      } else {
+        box.classList.add('bg-rose-950/80', 'text-rose-300', 'border', 'border-rose-500/40');
+        box.innerHTML = '<strong>✗ Incorreto:</strong> ' + feedback;
+      }
+    }
+
+    // Progress persistence
+    function updateProgress() {
+      const checks = document.querySelectorAll('.lab-check');
+      let done = 0;
+      checks.forEach(c => { if(c.checked) done++; });
+      const pct = Math.round((done / checks.length) * 100);
+      document.getElementById('progress-val').innerText = pct + '%';
+      document.getElementById('progress-bar').style.width = pct + '%';
+      localStorage.setItem('lr_lab02_progress', pct);
+    }
+
+    // Load saved progress
+    window.addEventListener('DOMContentLoaded', () => {
+      renderStep();
+      const saved = localStorage.getItem('lr_lab02_progress');
+      if (saved) {
+        const checks = document.querySelectorAll('.lab-check');
+        const countToMark = Math.round((parseInt(saved) / 100) * checks.length);
+        for(let i = 0; i < countToMark; i++) {
+          if (checks[i]) checks[i].checked = true;
+        }
+        updateProgress();
+      }
+    });
+  </script>
+</body>
+</html>

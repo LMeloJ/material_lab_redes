@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 01: Introdução ao Packet Tracer • Lab de Redes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .pulse-dot { animation: pulseAnim 2s infinite; }
+    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Toast Notifier -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900 border border-indigo-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md">
+    <span class="text-emerald-400 font-bold">✓</span>
+    <span id="toast-msg" class="text-sm font-medium">Copiado para a área de transferência!</span>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 font-mono font-bold text-lg hover:scale-105 transition">
+          LR
+        </a>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            Lab 01: <span class="text-indigo-400">Introdução ao Packet Tracer</span>
+          </h1>
+          <p class="text-xs text-slate-500">Primeiros passos, topologia mista LAN/Wi-Fi e modo físico</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200 flex items-center gap-1">
+          ← Cronograma
+        </a>
+        <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
+          ↗️ Tela Cheia
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+          <span class="w-2 h-2 rounded-full bg-indigo-400 pulse-dot"></span>
+          05/08/2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Canvas Submission Alert -->
+    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
+        📤
+      </div>
+      <div class="flex-1">
+        <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
+          Submissão Obrigatória no Canvas da Disciplina
+        </h4>
+        <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
+          Ao término da aula prática, submeta na respectiva tarefa no <strong>Canvas</strong> o arquivo <code>lab01_seunome.pkt</code> e o <strong>relatório curto em PDF</strong> gerado a partir do modelo LaTeX no Overleaf.
+        </p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Arquivo .pkt Salvo</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Relatório PDF no Overleaf</span>
+          <a href="https://www.overleaf.com/read/szdpyxqfscjb#233461" target="_blank" rel="noopener" class="px-2.5 py-1 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 hover:text-indigo-900 font-medium underline">📄 Abrir Modelo LaTeX no Overleaf ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Jump Navigation -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
+      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Modelo Mental</a>
+      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold transition font-medium flex items-center gap-1">
+        ⚡ Simulador Interativo LAN & Wi-Fi
+      </a>
+      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Passo a Passo Prático</a>
+      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Armadilhas Comuns</a>
+      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition font-medium">4. Checklist de Entrega</a>
+    </div>
+
+    <!-- Intro Hero -->
+    <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div class="max-w-3xl">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+          Fundamentos de Redes • Aula Prática 01
+        </span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4 tracking-tight">
+          Cisco Packet Tracer: Da Teoria ao Primeiro Ping
+        </h2>
+        <p class="text-slate-700 text-base leading-relaxed mb-6">
+          O Packet Tracer é uma ferramenta de simulação de eventos discretos da Cisco. Neste primeiro laboratório, você construirá sua primeira infraestrutura local cabeada e sem fio, compreenderá a função do Switch na Camada de Enlace (L2) e investigará como a distância física impacta a conectividade de rádio.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION 1: MODELO MENTAL -->
+    <section id="analogia" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-sm">1</div>
+        <h3 class="text-2xl font-bold text-slate-900">Modelo Mental: Os Elementos de uma Rede Local</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-indigo-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center mb-3 text-xl">🖥️</div>
+          <h4 class="font-bold text-slate-900 text-sm">Host Terminal (PC / Laptop)</h4>
+          <span class="text-xs text-indigo-400 font-medium mb-1 block">"Os Moradores"</span>
+          <p class="text-xs text-slate-500">Possui um endereço lógico (IP) para identificação global e um endereço de hardware (MAC) fixado na placa de rede (NIC).</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-indigo-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center mb-3 text-xl">🔀</div>
+          <h4 class="font-bold text-slate-900 text-sm">Switch de Camada 2 (2960)</h4>
+          <span class="text-xs text-purple-400 font-medium mb-1 block">"A Mesa de Triagem Postal"</span>
+          <p class="text-xs text-slate-500">Interliga os nós da LAN. Ele não mexe em endereços IP: apenas lê o MAC de destino e direciona o quadro para a porta física exata.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-indigo-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 text-xl">📡</div>
+          <h4 class="font-bold text-slate-900 text-sm">Access Point (Wi-Fi)</h4>
+          <span class="text-xs text-amber-400 font-medium mb-1 block">"O Megafone Sem Fio"</span>
+          <p class="text-xs text-slate-500">Converte ondas de radiofrequência (IEEE 802.11) em sinais elétricos cabeadas (IEEE 802.3), estendendo a LAN sem fios.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-indigo-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 text-xl">📬</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Ping (Protocolo ICMP)</h4>
+          <span class="text-xs text-emerald-400 font-medium mb-1 block">"A Carta com Aviso de Recebimento"</span>
+          <p class="text-xs text-slate-500">Envia um <em>Echo Request</em> e aguarda um <em>Echo Reply</em>. Mede o tempo de ida e volta (RTT) e a taxa de entrega de pacotes.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: SIMULADOR INTERATIVO -->
+    <section id="simulador" class="mb-14 scroll-mt-24">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-sm">⚡</div>
+          <h3 class="text-2xl font-bold text-slate-900">Simulador Interativo: Topologia LAN e Mobilidade Wi-Fi</h3>
+        </div>
+        <span class="text-xs font-mono text-indigo-400 bg-indigo-950/60 border border-indigo-500/30 px-3 py-1 rounded-full">
+          Sandbox em Tempo Real
+        </span>
+      </div>
+      <p class="text-slate-400 text-sm mb-6">
+        Interaja com a topologia da aula antes de abrir o simulador da Cisco. Teste a comunicação cabeada, inspecione as camadas OSI e ajuste a distância do notebook para testar o limite de cobertura sem fio:
+      </p>
+
+      <div class="bg-white border-2 border-slate-200/90 rounded-2xl p-6 shadow-lg">
+        <!-- Interactive Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pb-6 mb-6 border-b border-slate-200">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-2">1. Selecione a Origem do Ping:</label>
+            <select id="sim-src-select" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 font-mono outline-none focus:border-indigo-500">
+              <option value="PC0">PC0 (Cabeado - 192.168.1.1)</option>
+              <option value="PC1">PC1 (Cabeado - 192.168.1.2)</option>
+              <option value="PC2">PC2 (Cabeado - 192.168.1.3)</option>
+              <option value="Notebook">Notebook (Wi-Fi - 192.168.1.4)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-2">2. Selecione o Destino:</label>
+            <select id="sim-dst-select" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 font-mono outline-none focus:border-indigo-500">
+              <option value="PC2">PC2 (Cabeado - 192.168.1.3)</option>
+              <option value="PC0">PC0 (Cabeado - 192.168.1.1)</option>
+              <option value="PC1">PC1 (Cabeado - 192.168.1.2)</option>
+              <option value="Notebook">Notebook (Wi-Fi - 192.168.1.4)</option>
+            </select>
+          </div>
+          <div class="flex items-end gap-2">
+            <button onclick="runInteractivePing()" id="btn-run-ping" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30">
+              <span>▶ Disparar PING (ICMP)</span>
+            </button>
+            <button onclick="resetInteractiveSim()" class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs py-2 px-3 rounded-lg transition shadow-xs">
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Wi-Fi Range Distance Slider -->
+        <div class="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <span class="text-xl">📡</span>
+            <div>
+              <span class="text-xs font-semibold text-slate-700 block">Distância Física do Notebook em relação ao Access Point:</span>
+              <span id="wifi-distance-label" class="text-[11px] text-emerald-400 font-mono">15 metros (Sinal Forte • Dentro da Célula)</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 w-full sm:w-64">
+            <span class="text-xs text-slate-500 font-mono">0m</span>
+            <input type="range" id="wifi-range-slider" min="5" max="60" value="15" oninput="updateWifiRange(this.value)" class="flex-1 accent-indigo-500 cursor-pointer">
+            <span class="text-xs text-slate-500 font-mono">60m</span>
+          </div>
+        </div>
+
+        <!-- Visual Canvas Stage -->
+        <div class="relative bg-slate-50 border border-slate-200 rounded-xl p-6 min-h-[320px] flex flex-col justify-between overflow-hidden">
+          
+          <!-- Coverage radius indicator overlay -->
+          <div id="wifi-coverage-zone" class="absolute top-4 right-4 w-72 h-72 rounded-full border-2 border-dashed border-cyan-500/30 bg-cyan-500/5 pointer-events-none transition-all duration-300 flex items-center justify-center">
+            <span class="text-[10px] font-mono text-cyan-400/60 uppercase tracking-widest">Área de Cobertura AP (30m)</span>
+          </div>
+
+          <!-- Top Row: Central Switch & Access Point -->
+          <div class="flex justify-around items-center relative z-10">
+            <!-- Switch -->
+            <div class="flex flex-col items-center bg-slate-900 border border-slate-700 px-5 py-3 rounded-xl shadow-lg">
+              <span class="text-2xl mb-1">🔀</span>
+              <span class="font-mono font-bold text-xs text-white">Switch 2960</span>
+              <span class="text-[10px] font-mono text-indigo-400">Camada 2 (MAC)</span>
+              <div class="flex gap-1 mt-2">
+                <span id="led-fa1" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span id="led-fa2" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span id="led-fa3" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span id="led-fa4" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              </div>
+            </div>
+
+            <!-- Access Point -->
+            <div class="flex flex-col items-center bg-slate-900 border border-slate-700 px-5 py-3 rounded-xl shadow-lg">
+              <span class="text-2xl mb-1">📡</span>
+              <span class="font-mono font-bold text-xs text-white">Access Point (AP-PT)</span>
+              <span class="text-[10px] font-mono text-cyan-400">Porta Fa0/4</span>
+              <span id="ap-signal-badge" class="mt-2 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">SSID: Livre</span>
+            </div>
+          </div>
+
+          <!-- Packet Motion Graphic -->
+          <div id="sim-packet-tracer" class="my-4 h-12 flex items-center justify-center font-mono text-xs text-slate-500 transition-all">
+            <span id="sim-packet-status" class="bg-slate-900/80 border border-slate-800 px-4 py-1.5 rounded-full text-slate-400">
+              Pronto para simulação. Selecione nós e clique em 'Disparar PING'.
+            </span>
+          </div>
+
+          <!-- Bottom Row: End Devices -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 relative z-10">
+            <!-- PC0 -->
+            <div id="card-node-PC0" class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex flex-col items-center text-center transition">
+              <span class="text-xl mb-1">🖥️</span>
+              <span class="font-bold text-xs text-white">PC0</span>
+              <code class="text-[10px] text-slate-400 font-mono">192.168.1.1</code>
+              <span class="text-[9px] text-slate-500 font-mono mt-1">MAC: 0001.42A1</span>
+            </div>
+
+            <!-- PC1 -->
+            <div id="card-node-PC1" class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex flex-col items-center text-center transition">
+              <span class="text-xl mb-1">🖥️</span>
+              <span class="font-bold text-xs text-white">PC1</span>
+              <code class="text-[10px] text-slate-400 font-mono">192.168.1.2</code>
+              <span class="text-[9px] text-slate-500 font-mono mt-1">MAC: 0001.42B2</span>
+            </div>
+
+            <!-- PC2 -->
+            <div id="card-node-PC2" class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex flex-col items-center text-center transition">
+              <span class="text-xl mb-1">🖥️</span>
+              <span class="font-bold text-xs text-white">PC2</span>
+              <code class="text-[10px] text-slate-400 font-mono">192.168.1.3</code>
+              <span class="text-[9px] text-slate-500 font-mono mt-1">MAC: 0001.42C3</span>
+            </div>
+
+            <!-- Notebook (Wi-Fi) -->
+            <div id="card-node-Notebook" class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex flex-col items-center text-center transition">
+              <span class="text-xl mb-1">💻</span>
+              <span class="font-bold text-xs text-white">Notebook (Wi-Fi)</span>
+              <code class="text-[10px] text-slate-400 font-mono">192.168.1.4</code>
+              <span id="notebook-conn-status" class="text-[9px] text-emerald-400 font-mono mt-1">Conectado (802.11)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal Log Output -->
+        <div class="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4 font-mono text-xs">
+          <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-200">
+            <span class="text-slate-400 font-bold">Saída do Command Prompt (Simulado):</span>
+            <span id="sim-rtt-info" class="text-indigo-400">RTT médio: --</span>
+          </div>
+          <div id="sim-terminal-log" class="text-slate-700 space-y-1 max-h-36 overflow-y-auto">
+            <span class="text-slate-600">// Dispare um teste para acompanhar o envio de ICMP Echo Request / Reply...</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: PASSO A PASSO PRÁTICO -->
+    <section id="roteiro" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-sm">2</div>
+        <h3 class="text-2xl font-bold text-slate-900">Passo a Passo Prático no Cisco Packet Tracer</h3>
+      </div>
+
+      <!-- Etapa 1 -->
+      <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+        <h4 class="text-base font-bold text-indigo-700 mb-2">1. Preparação da Topologia Cabeada</h4>
+        <p class="text-sm text-slate-700 mb-4">
+          Abra o Packet Tracer e posicione <strong>1 Switch 2960</strong>, <strong>3 PCs</strong> e <strong>1 Access Point (AP-PT)</strong>. Conecte cada dispositivo a uma porta FastEthernet do switch usando cabo direto (Copper Straight-Through).
+        </p>
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 font-mono text-xs text-slate-700 mb-4">
+          <div class="text-indigo-400 font-semibold mb-1">// Mapeamento de Endereçamento IP:</div>
+          <div>• PC0: 192.168.1.1 / 255.255.255.0 (Porta Fa0/1)</div>
+          <div>• PC1: 192.168.1.2 / 255.255.255.0 (Porta Fa0/2)</div>
+          <div>• PC2: 192.168.1.3 / 255.255.255.0 (Porta Fa0/3)</div>
+          <div>• AP-PT: Sem IP L3 (Porta Fa0/4 do Switch)</div>
+        </div>
+      </div>
+
+      <!-- Etapa 2 -->
+      <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+        <h4 class="text-base font-bold text-indigo-700 mb-2">2. Teste de Conectividade e Modo Simulação</h4>
+        <p class="text-sm text-slate-700 mb-4">
+          No PC0, abra <em>Desktop → Command Prompt</em> e execute o comando:
+        </p>
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 font-mono text-xs text-slate-700 flex justify-between items-center mb-4">
+          <code>ping 192.168.1.2</code>
+          <button onclick="copyToClipboard('ping 192.168.1.2')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-700 rounded text-xs transition">Copiar</button>
+        </div>
+        <p class="text-sm text-slate-600">
+          Mude para o modo <strong>Simulation (Shift + S)</strong>, filtre os protocolos apenas para <code>ICMP</code> e <code>ARP</code>, clique na ferramenta de envelope (<em>Add Simple PDU</em>) de PC0 para PC2 e acompanhe passo a passo.
+        </p>
+      </div>
+
+      <!-- Etapa 3 -->
+      <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+        <h4 class="text-base font-bold text-indigo-700 mb-2">3. Troca de Módulo Físico (Notebook e Impressora)</h4>
+        <p class="text-sm text-slate-700 mb-4">
+          No Packet Tracer, laptops vêm com placa de rede cabeada por padrão. Para habilitar Wi-Fi:
+        </p>
+        <ol class="list-decimal pl-5 text-sm text-slate-700 space-y-2">
+          <li>Clique no Notebook e vá até a aba <strong>Physical</strong>.</li>
+          <li><strong>Desligue o botão de energia</strong> na lateral do equipamento.</li>
+          <li>Arraste o módulo cabeado atual (RJ-45) para fora para removê-lo.</li>
+          <li>Arraste o módulo <strong>WMP300N</strong> (antena wireless) para o slot vazio.</li>
+          <li>Ligue o aparelho novamente. Ele se associará automaticamente ao AP!</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- SECTION 4: ARMADILHAS E ERROS CLÁSSICOS -->
+    <section id="armadilhas" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-sm">3</div>
+        <h3 class="text-2xl font-bold text-slate-900">Armadilhas Comuns no Packet Tracer</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-slate-900 border border-red-500/20 rounded-xl p-5">
+          <span class="text-red-400 font-bold text-xs font-mono uppercase block mb-1">❌ Erro Clássico 1:</span>
+          <h4 class="font-bold text-slate-900 text-sm mb-2">Esquecer de desligar o equipamento antes de trocar o módulo</h4>
+          <p class="text-xs text-slate-500">O Packet Tracer simula a física real: ao tentar puxar a placa de rede com o laptop ligado, o simulador emite um alerta de proteção e bloqueia a ação.</p>
+        </div>
+
+        <div class="bg-slate-900 border border-amber-500/20 rounded-xl p-5">
+          <span class="text-amber-400 font-bold text-xs font-mono uppercase block mb-1">⚠️ Erro Clássico 2:</span>
+          <h4 class="font-bold text-slate-900 text-sm mb-2">LED Laranja demorando para ficar verde</h4>
+          <p class="text-xs text-slate-500">Ao conectar o cabo no switch, o LED fica laranja por ~30 segundos. Isso não é defeito: é o protocolo Spanning Tree (STP) verificando a ausência de loops na porta!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: CHECKLIST DE ENTREGA -->
+    <section id="checklist" class="mb-14 scroll-mt-24">
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <span>📋</span> Checklist de Validação para Entrega no Canvas
+        </h3>
+        <div class="space-y-3">
+          <label class="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:border-slate-700 transition">
+            <input type="checkbox" class="mt-1 w-4 h-4 accent-indigo-500 rounded">
+            <span class="text-xs sm:text-sm text-slate-700">Construí a LAN com Switch 2960, 3 PCs, 1 Access Point e 1 Notebook wireless.</span>
+          </label>
+          <label class="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:border-slate-700 transition">
+            <input type="checkbox" class="mt-1 w-4 h-4 accent-indigo-500 rounded">
+            <span class="text-xs sm:text-sm text-slate-700">Validei 100% de taxa de entrega no comando ping entre nós cabeados e nós sem fio.</span>
+          </label>
+          <label class="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:border-slate-700 transition">
+            <input type="checkbox" class="mt-1 w-4 h-4 accent-indigo-500 rounded">
+            <span class="text-xs sm:text-sm text-slate-700">Testei no modo físico a perda de pacotes quando o notebook se afasta da área de cobertura do AP.</span>
+          </label>
+          <label class="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:border-slate-700 transition">
+            <input type="checkbox" class="mt-1 w-4 h-4 accent-indigo-500 rounded">
+            <span class="text-xs sm:text-sm text-slate-700">Gerei o relatório técnico no Overleaf em PDF e fiz o upload do arquivo <code>.pkt</code> e do <code>.pdf</code> na tarefa do Canvas.</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Navigation Footer -->
+    <div class="flex items-center justify-between pt-6 border-t border-slate-200">
+      <a href="../index.html" class="px-4 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-100 shadow-xs transition">
+        ← Voltar ao Cronograma
+      </a>
+      <a href="02-simulacoes-packet-tracer.html" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition shadow-lg shadow-indigo-600/30">
+        Próximo: 02 - Simulações no Packet Tracer →
+      </a>
+    </div>
+
+  </div>
+
+  <script>
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Comando copiado!");
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 2200);
+    }
+
+    let wifiDistance = 15;
+
+    function updateWifiRange(val) {
+      wifiDistance = parseInt(val);
+      const label = document.getElementById('wifi-distance-label');
+      const conn = document.getElementById('notebook-conn-status');
+      const card = document.getElementById('card-node-Notebook');
+
+      if (wifiDistance <= 30) {
+        label.innerText = `${wifiDistance} metros (Sinal Forte • Dentro da Célula)`;
+        label.className = "text-[11px] text-emerald-400 font-mono";
+        conn.innerText = "Conectado (802.11)";
+        conn.className = "text-[9px] text-emerald-400 font-mono mt-1";
+        card.style.opacity = "1";
+      } else {
+        label.innerText = `${wifiDistance} metros (FORA DE ALCANCE • Sem Conexão!)`;
+        label.className = "text-[11px] text-rose-400 font-mono font-bold animate-pulse";
+        conn.innerText = "Sinal Perdido (0%)";
+        conn.className = "text-[9px] text-rose-400 font-mono mt-1";
+        card.style.opacity = "0.45";
+      }
+    }
+
+    function runInteractivePing() {
+      const src = document.getElementById('sim-src-select').value;
+      const dst = document.getElementById('sim-dst-select').value;
+      const log = document.getElementById('sim-terminal-log');
+      const status = document.getElementById('sim-packet-status');
+      const rtt = document.getElementById('sim-rtt-info');
+
+      if (src === dst) {
+        alert("Escolha nós diferentes de origem e destino para simular o tráfego na rede.");
+        return;
+      }
+
+      // Check Wi-Fi distance failure
+      const isWifiInvolved = (src === "Notebook" || dst === "Notebook");
+      const wifiOut = isWifiInvolved && wifiDistance > 30;
+
+      status.innerHTML = `<span class="text-indigo-300 font-bold">Transmitindo quadro ICMP:</span> ${src} ➔ Switch ➔ ${dst}`;
+      status.className = "bg-indigo-950/80 border border-indigo-500/50 px-4 py-1.5 rounded-full text-indigo-200 animate-pulse";
+
+      log.innerHTML = `<div class="text-slate-400 font-bold mt-1">&gt; Disparando ping de ${src} para ${dst}...</div>`;
+
+      setTimeout(() => {
+        if (wifiOut) {
+          status.innerHTML = `<span class="text-rose-400 font-bold">❌ Pacote Perdido:</span> Notebook fora do alcance de rádio do Access Point!`;
+          status.className = "bg-rose-950/80 border border-rose-500/50 px-4 py-1.5 rounded-full text-rose-200";
+          rtt.innerText = "Perda de pacotes: 100%";
+          rtt.className = "text-rose-400 font-bold";
+
+          log.innerHTML += `
+            <div class="text-rose-400 font-mono">Reply from ${src}: Destination host unreachable.</div>
+            <div class="text-rose-400 font-mono">Request timed out.</div>
+            <div class="text-rose-400 font-mono">Request timed out.</div>
+            <div class="text-slate-500 text-[11px] mt-1">Pacotes: Enviados = 4, Recebidos = 0, Perdidos = 4 (100% de perda)</div>
+          `;
+        } else {
+          status.innerHTML = `<span class="text-emerald-400 font-bold">✓ Sucesso (200 OK):</span> Quadro entregue e eco retornado em 2ms!`;
+          status.className = "bg-emerald-950/80 border border-emerald-500/50 px-4 py-1.5 rounded-full text-emerald-200";
+          rtt.innerText = "RTT médio: 2ms • 0% perda";
+          rtt.className = "text-emerald-400 font-bold";
+
+          log.innerHTML += `
+            <div class="text-emerald-400 font-mono">Reply from ${dst}: bytes=32 time=2ms TTL=128</div>
+            <div class="text-emerald-400 font-mono">Reply from ${dst}: bytes=32 time=1ms TTL=128</div>
+            <div class="text-emerald-400 font-mono">Reply from ${dst}: bytes=32 time=2ms TTL=128</div>
+            <div class="text-emerald-400 font-mono">Reply from ${dst}: bytes=32 time=1ms TTL=128</div>
+            <div class="text-slate-400 text-[11px] mt-1">Pacotes: Enviados = 4, Recebidos = 4, Perdidos = 0 (0% de perda)</div>
+          `;
+        }
+      }, 700);
+    }
+
+    function resetInteractiveSim() {
+      document.getElementById('wifi-range-slider').value = 15;
+      updateWifiRange(15);
+      document.getElementById('sim-terminal-log').innerHTML = '<span class="text-slate-600">// Dispare um teste para acompanhar o envio de ICMP Echo Request / Reply...</span>';
+      document.getElementById('sim-packet-status').innerText = 'Pronto para simulação. Selecione nós e clique em "Disparar PING".';
+      document.getElementById('sim-packet-status').className = 'bg-slate-900/80 border border-slate-800 px-4 py-1.5 rounded-full text-slate-400';
+      document.getElementById('sim-rtt-info').innerText = 'RTT médio: --';
+    }
+  </script>
+</body>
+</html>

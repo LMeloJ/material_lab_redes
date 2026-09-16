@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 05: DHCP, DNS & HTTP • Lab de Redes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .pulse-dot { animation: pulseAnim 2s infinite; }
+    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- Toast Notifier -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900 border border-emerald-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md">
+    <span class="text-emerald-400 font-bold">✓</span>
+    <span id="toast-msg" class="text-sm font-medium">Comando copiado com sucesso!</span>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 font-mono font-bold text-lg hover:scale-105 transition">
+          LR
+        </a>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            Lab 05: <span class="text-emerald-400">DHCP, DNS & HTTP</span>
+          </h1>
+          <p class="text-xs text-slate-500">Pilha de aplicação da Internet: ciclo DORA, resolução de nomes e web server</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200 flex items-center gap-1">
+          ← Cronograma
+        </a>
+        <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
+          ↗️ Tela Cheia
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+          02/09/2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Canvas Submission Alert -->
+    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
+        📤
+      </div>
+      <div class="flex-1">
+        <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
+          Submissão Obrigatória no Canvas da Disciplina
+        </h4>
+        <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
+          Ao término da aula prática, envie na tarefa correspondente no <strong>Canvas</strong>:
+        </p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Arquivo .pkt: servidores_dhcp_dns_http_seunome.pkt</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Relatório com respostas às Questões Técnicas (PDF)</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Print do navegador web abrindo 'http://site.com' com sucesso</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Jump Navigation -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
+      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Modelos Mentais</a>
+      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold shadow-xs transition font-medium flex items-center gap-1">
+        ⚡ Simulador Cascata (DORA → DNS → HTTP)
+      </a>
+      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Configuração Prática</a>
+      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Armadilhas Comuns</a>
+      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition font-medium">4. Checklist de Entrega</a>
+    </div>
+
+    <!-- Intro Hero -->
+    <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div class="max-w-3xl">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+          Laboratório 05 • Camada de Aplicação & Serviços de Rede
+        </span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4 tracking-tight">
+          A Tríade Fundamental da Internet: DHCP, DNS & HTTP
+        </h2>
+        <p class="text-slate-700 text-base leading-relaxed mb-6">
+          Quando você liga seu computador e abre uma página da web, uma orquestração de três protocolos invisíveis acontece em segundos: o <strong>DHCP</strong> aluga um endereço IP; o <strong>DNS</strong> traduz o nome legível em um IP de servidor; e o <strong>HTTP</strong> transporta a página web pela porta 80.
+        </p>
+        <div class="flex flex-wrap gap-4 text-xs font-mono">
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">DHCP:</span> <span class="text-amber-400 font-bold">Portas UDP 67/68 (DORA)</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">DNS:</span> <span class="text-cyan-400 font-bold">Porta UDP 53 (A Record)</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">HTTP:</span> <span class="text-emerald-400 font-bold">Porta TCP 80 (200 OK)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: MODELOS MENTAIS -->
+    <section id="analogia" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-emerald-600/20 text-emerald-400 flex items-center justify-center font-bold text-sm">1</div>
+        <h3 class="text-2xl font-bold text-slate-900">Modelos Mentais: Os Três Pilares da Navegação</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-emerald-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 text-xl">📜</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Cartório de Imigração (DHCP)</h4>
+          <span class="text-xs text-amber-400 font-medium mb-1 block">"Ciclo DORA"</span>
+          <p class="text-xs text-slate-500">Você chega na cidade sem nome (IP 0.0.0.0) e grita: "Quem pode me dar um endereço?". O servidor responde com um IP, máscara, gateway e DNS.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-emerald-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-3 text-xl">📖</div>
+          <h4 class="font-bold text-slate-900 text-sm">A Lista Telefônica (DNS)</h4>
+          <span class="text-xs text-cyan-400 font-medium mb-1 block">"Human-Readable to Binary"</span>
+          <p class="text-xs text-slate-500">Seres humanos lembram de nomes ("site.com"), mas roteadores só sabem rotear números binários ("10.0.1.100"). O DNS faz essa ponte instantânea.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-emerald-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 text-xl">🍽️</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Garçom Web (HTTP)</h4>
+          <span class="text-xs text-emerald-400 font-medium mb-1 block">"Request & Response"</span>
+          <p class="text-xs text-slate-500">O cliente entrega uma comanda: <code>GET /index.html HTTP/1.1</code>. O servidor cozinha o HTML e entrega na mesa com o status <code>HTTP/1.1 200 OK</code>.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-emerald-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center mb-3 text-xl">🔄</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Despachante L3 (Helper)</h4>
+          <span class="text-xs text-purple-400 font-medium mb-1 block">"ip helper-address"</span>
+          <p class="text-xs text-slate-500">Roteadores bloqueiam broadcasts por padrão. O comando <code>ip helper-address</code> pega o grito DHCP dos clientes e transforma em unicast para o servidor.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: SIMULADOR INTERATIVO CASCATA -->
+    <section id="simulador" class="mb-14 scroll-mt-24">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">⚡</div>
+          <h3 class="text-2xl font-bold text-slate-900">Simulador Cascata: Ciclo Completo da Web</h3>
+        </div>
+        <span class="text-xs bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full border border-cyan-200 font-medium">
+          Passo a Passo Interativo
+        </span>
+      </div>
+
+      <div class="bg-white border-2 border-slate-200/90 rounded-2xl overflow-hidden shadow-lg">
+        <!-- Control Bar -->
+        <div class="bg-slate-50 p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Fase Atual:</span>
+            <span id="phase-pill" class="px-3 py-1 rounded-lg text-xs font-bold font-mono bg-amber-950 text-amber-300 border border-amber-500/40">1. DHCP DORA</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-next-step" onclick="nextFlowStep()" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow flex items-center gap-1.5">
+              <span>▶</span> Avançar Próxima Etapa
+            </button>
+            <button onclick="resetFlow()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition shadow-xs">
+              ↺ Reiniciar Fluxo
+            </button>
+          </div>
+        </div>
+
+        <!-- Visual Architecture Grid -->
+        <div class="p-6 bg-slate-50 border-b border-slate-200">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+            <!-- Client PC -->
+            <div id="box-pc" class="p-4 rounded-xl bg-slate-900 border-2 border-emerald-500/50 text-center transition">
+              <div class="text-2xl mb-1">🖥️</div>
+              <div class="font-bold text-xs text-white">PC Cliente</div>
+              <div id="pc-ip-label" class="text-[11px] font-mono text-amber-400 font-bold mt-1">IP: 0.0.0.0 (Sem IP)</div>
+              <div id="pc-dns-label" class="text-[10px] font-mono text-slate-500">DNS: 0.0.0.0</div>
+              <span class="inline-block mt-2 px-2 py-0.5 rounded text-[9px] bg-slate-800 text-slate-700">Zona LAN Clientes</span>
+            </div>
+
+            <!-- DHCP Server -->
+            <div id="box-dhcp" class="p-4 rounded-xl bg-slate-900 border border-slate-800 text-center transition">
+              <div class="text-2xl mb-1">📜</div>
+              <div class="font-bold text-xs text-white">SRV-DHCP</div>
+              <div class="text-[11px] font-mono text-amber-400">10.0.1.10</div>
+              <div class="text-[10px] font-mono text-slate-400">Pool: 192.168.1.50-100</div>
+              <span class="inline-block mt-2 px-2 py-0.5 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-500/30">Porta UDP 67</span>
+            </div>
+
+            <!-- DNS Server -->
+            <div id="box-dns" class="p-4 rounded-xl bg-slate-900 border border-slate-800 text-center transition">
+              <div class="text-2xl mb-1">📖</div>
+              <div class="font-bold text-xs text-white">SRV-DNS</div>
+              <div class="text-[11px] font-mono text-cyan-400">10.0.1.20</div>
+              <div class="text-[10px] font-mono text-slate-400">site.com → 10.0.1.100</div>
+              <span class="inline-block mt-2 px-2 py-0.5 rounded text-[9px] bg-cyan-950 text-cyan-300 border border-cyan-500/30">Porta UDP 53</span>
+            </div>
+
+            <!-- HTTP Web Server -->
+            <div id="box-web" class="p-4 rounded-xl bg-slate-900 border border-slate-800 text-center transition">
+              <div class="text-2xl mb-1">🌐</div>
+              <div class="font-bold text-xs text-white">SRV-WEB (HTTP)</div>
+              <div class="text-[11px] font-mono text-emerald-400">10.0.1.100</div>
+              <div class="text-[10px] font-mono text-slate-400">index.html Hospedado</div>
+              <span class="inline-block mt-2 px-2 py-0.5 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-500/30">Porta TCP 80</span>
+            </div>
+          </div>
+
+          <!-- Step Description Banner -->
+          <div class="mt-6 p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs">
+            <div class="flex items-center gap-3">
+              <span id="step-number-tag" class="px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 font-mono font-bold">PASSO 1/5</span>
+              <span id="step-msg" class="text-slate-700">PC liga com IP 0.0.0.0 e envia broadcast DHCP DISCOVER na rede local.</span>
+            </div>
+            <span id="step-packet-tag" class="font-mono text-amber-400 font-bold">DHCP DISCOVER (UDP 67/68)</span>
+          </div>
+        </div>
+
+        <!-- Live Web Browser & Protocol Inspector Window -->
+        <div class="p-5 bg-slate-900 border-t border-slate-200 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Protocol Stack Packet Inspector -->
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs">
+            <div class="text-slate-400 font-bold uppercase tracking-wider mb-2 text-emerald-400">Cabeçalho do Pacote em Trânsito:</div>
+            <div id="packet-details" class="space-y-1.5 text-slate-700">
+              <div class="p-2 rounded bg-slate-900 border border-slate-800 flex justify-between">
+                <span>Camada 4 (Transporte):</span>
+                <span class="text-amber-400 font-bold">UDP: Src Port 68 → Dst Port 67</span>
+              </div>
+              <div class="p-2 rounded bg-slate-900 border border-slate-800 flex justify-between">
+                <span>Camada 3 (Rede IPv4):</span>
+                <span>0.0.0.0 → 255.255.255.255 (Broadcast)</span>
+              </div>
+              <div class="p-2 rounded bg-slate-900 border border-slate-800 flex justify-between">
+                <span>Camada 2 (Enlace MAC):</span>
+                <span>MAC-PC → FF:FF:FF:FF:FF:FF</span>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-2 italic">
+                O cliente não possui endereço IP ainda, portanto usa 0.0.0.0 como origem e difusão total 255.255.255.255 como destino.
+              </p>
+            </div>
+          </div>
+
+          <!-- Browser Preview Window -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 pb-2 mb-3 border-b border-slate-200">
+                <div class="flex gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                </div>
+                <div id="browser-url" class="flex-1 bg-slate-900 px-3 py-1 rounded text-xs font-mono text-slate-400 border border-slate-800">
+                  http://site.com
+                </div>
+              </div>
+              
+              <div id="browser-content" class="min-h-[120px] flex items-center justify-center text-center p-4 bg-slate-900 rounded-lg border border-slate-800">
+                <div class="text-slate-500 text-xs">
+                  <div class="text-2xl mb-1">⏳</div>
+                  Aguardando configuração de IP e resolução DNS...
+                </div>
+              </div>
+            </div>
+
+            <div id="browser-status-bar" class="mt-2 text-[10px] font-mono text-slate-500 flex justify-between">
+              <span>Status: Desconectado</span>
+              <span>Socket: Inativo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: CONFIGURAÇÃO PRÁTICA -->
+    <section id="roteiro" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-emerald-600/20 text-emerald-400 flex items-center justify-center font-bold text-sm">2</div>
+        <h3 class="text-2xl font-bold text-slate-900">Guia de Configuração no Packet Tracer</h3>
+      </div>
+
+      <!-- Step 1: IP Helper Address -->
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>🧭</span> 1. Roteador Cisco: IP Helper-Address (DHCP Relay)
+          </h4>
+          <button onclick="copyCode('code-helper')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1">
+            📋 Copiar Comandos
+          </button>
+        </div>
+        <p class="text-xs text-slate-700 mb-3 leading-relaxed">
+          Como os clientes estão na sub-rede <code>192.168.1.0/24</code> e o servidor DHCP está na sub-rede de servidores <code>10.0.1.0/24</code>, você <strong>deve</strong> habilitar o retransmissor DHCP na interface GigabitEthernet 0/0 do roteador:
+        </p>
+
+        <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+<pre id="code-helper"><code>enable
+configure terminal
+
+! Interface dos Clientes
+interface gigabitEthernet 0/0
+ ip address 192.168.1.254 255.255.255.0
+ ip helper-address 10.0.1.10
+ no shutdown
+exit
+
+! Interface dos Servidores
+interface gigabitEthernet 0/1
+ ip address 10.0.1.254 255.255.255.0
+ no shutdown
+exit</code></pre>
+        </div>
+      </div>
+
+      <!-- Step 2: HTML Template for Web Server -->
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>🌐</span> 2. Código HTML para o Servidor Web (index.html)
+          </h4>
+          <button onclick="copyCode('code-html-srv')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1">
+            📋 Copiar HTML
+          </button>
+        </div>
+        <p class="text-xs text-slate-700 mb-3 leading-relaxed">
+          No <strong>SRV-WEB</strong> → aba <em>Services</em> → <strong>HTTP</strong> → clique em <em>(edit)</em> no arquivo <code>index.html</code> e cole o código estilizado:
+        </p>
+
+        <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+<pre id="code-html-srv"><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;Portal Corporativo • site.com&lt;/title&gt;
+  &lt;style&gt;
+    body { font-family: Arial, sans-serif; background: #0f172a; color: #f8fafc; text-align: center; padding: 30px; }
+    .card { background: #1e293b; border: 2px solid #10b981; border-radius: 12px; max-width: 480px; margin: auto; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    h1 { color: #34d399; margin-bottom: 8px; font-size: 20px; }
+    p { font-size: 13px; color: #94a3b8; }
+    .badge { background: #064e3b; color: #6ee7b7; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 11px; }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class="card"&gt;
+    &lt;span class="badge"&gt;HTTP 200 OK • Servidor Ativo&lt;/span&gt;
+    &lt;h1&gt;Portal Corporativo&lt;/h1&gt;
+    &lt;p&gt;Conex&atilde;o L3, resolu&ccedil;&atilde;o DNS e socket HTTP funcionando com sucesso!&lt;/p&gt;
+    &lt;div style="margin-top: 15px; font-size: 11px; color: #64748b;"&gt;
+      Dom&iacute;nio: &lt;b&gt;site.com&lt;/b&gt; | IP: &lt;b&gt;10.0.1.100&lt;/b&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: ARMADILHAS COMUNS -->
+    <section id="armadilhas" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center font-bold text-sm">3</div>
+        <h3 class="text-2xl font-bold text-slate-900">Armadilhas Comuns em Servidores de Infraestrutura</h3>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 1. Esquecer de Ligar o Serviço (Botão "On")
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            No Packet Tracer, ao configurar DHCP ou DNS em um Server-PT, o serviço vem desligado (<em>Off</em>) por padrão. Se você não clicar em <strong>On</strong>, os pacotes serão descartados.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Sintoma: O PC recebe endereço APIPA 169.254.x.x.
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 2. Esquecer o "ip helper-address"
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            O DHCP Discover é emitido em broadcast. Como o servidor está em outra sub-rede, o roteador descarta a solicitação silenciosamente a menos que o helper esteja configurado na interface dos clientes.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Solução: 'ip helper-address 10.0.1.10' na porta Gi0/0.
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 3. Apontar o DNS para o Próprio Cliente
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            No pool do DHCP, alguns alunos colocam o Default Gateway como Servidor DNS. A menos que o roteador tenha cache DNS ativo, o navegador não resolverá <code>site.com</code>.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            O campo DNS Server no pool deve ser exatamente 10.0.1.20!
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: CHECKLIST DE ENTREGA NO CANVAS -->
+    <section id="checklist" class="mb-14 scroll-mt-24">
+      <div class="bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-xl">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">4</span>
+              <h3 class="text-2xl font-bold text-slate-900">Checklist de Entrega no Canvas</h3>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700 mt-1">
+              Marque os itens conforme concluir. O progresso é salvo localmente.
+            </p>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-black text-emerald-400" id="progress-val">0%</div>
+            <div class="text-xs text-slate-500">Concluído</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-0 transition-all duration-300"></div>
+        </div>
+
+        <!-- Interactive Checkboxes -->
+        <div class="space-y-3 text-sm">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Servidor DHCP Ativo & Helper Configurado:</strong> O pool <code>CLIENTES-POOL</code> entrega IP, máscara, gateway e DNS para os PCs, com <code>ip helper-address</code> ativo no roteador.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Registro DNS Criado:</strong> Registro Tipo A mapeando <code>site.com</code> para <code>10.0.1.100</code> testado com sucesso no prompt via <code>nslookup site.com</code>.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Servidor HTTP Customizado:</strong> Arquivo <code>index.html</code> editado e validado abrindo o navegador do PC com a URL <code>http://site.com</code>.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Captura de Telas Comprobatórias:</strong> Prints do IP Configuration em DHCP, do prompt com <code>nslookup</code> e do Web Browser anexados ao relatório.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Submissão Efetuada no Canvas:</strong> Arquivo <code>servidores_dhcp_dns_http_seunome.pkt</code> e relatório PDF submetidos no Canvas da disciplina.
+            </span>
+          </label>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-200 text-xs text-slate-500">
+          <span>Laboratório de Redes de Computadores • 2026.2</span>
+          <a href="#simulador" class="text-emerald-400 hover:underline">Voltar ao Simulador ↑</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Navigation -->
+    <div class="flex items-center justify-between border-t border-slate-200 pt-6">
+      <a href="04-mac-tables-e-roteamento-estatico.html" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition flex items-center gap-1.5">
+        ← Lab 04: MAC Tables & Roteamento Estático
+      </a>
+      <a href="06-sockets-python.html" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg transition flex items-center gap-1.5">
+        Próximo: Lab 06 - Sockets em Python →
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Interactive JavaScript Flow Engine -->
+  <script>
+    let flowStep = 0;
+
+    const flowData = [
+      {
+        phase: '1. DHCP DORA (Discover)',
+        phaseClass: 'bg-amber-950 text-amber-300 border-amber-500/40',
+        tag: 'PASSO 1/5',
+        msg: 'PC cliente inicializa com IP 0.0.0.0 e envia broadcast DHCP DISCOVER (Portas UDP 68 → 67).',
+        packet: 'DHCP DISCOVER (UDP 67/68)',
+        packetClass: 'text-amber-400',
+        activeBox: 'box-dhcp',
+        l4: 'UDP: Src Port 68 → Dst Port 67',
+        l3: 'IPv4: 0.0.0.0 → 255.255.255.255 (Broadcast)',
+        l2: 'Ethernet: MAC-PC → FF:FF:FF:FF:FF:FF',
+        notes: 'O roteador intercepta o broadcast via `ip helper-address` e encaminha como unicast ao SRV-DHCP.',
+        pcIp: 'IP: 0.0.0.0 (Solicitando...)',
+        pcDns: 'DNS: 0.0.0.0',
+        browserHtml: '<div class="text-slate-500 text-xs"><div class="text-2xl mb-1">⏳</div>Solicitando IP ao servidor DHCP...</div>',
+        browserStatus: 'Status: Aguardando IP | Socket: Inativo'
+      },
+      {
+        phase: '1. DHCP DORA (Offer/Request/Ack)',
+        phaseClass: 'bg-amber-950 text-amber-300 border-amber-500/40',
+        tag: 'PASSO 2/5',
+        msg: 'SRV-DHCP confirma o aluguel: concede o IP 192.168.1.50, Gateway 192.168.1.254 e DNS 10.0.1.20!',
+        packet: 'DHCP ACK (Configuração Confirmada)',
+        packetClass: 'text-amber-400',
+        activeBox: 'box-pc',
+        l4: 'UDP: Src Port 67 → Dst Port 68',
+        l3: 'IPv4: 10.0.1.10 → 192.168.1.50',
+        l2: 'Ethernet: MAC-Router → MAC-PC',
+        notes: 'O cliente agora possui uma identidade de rede válida e já sabe o endereço do servidor DNS!',
+        pcIp: 'IP: 192.168.1.50 /24',
+        pcDns: 'DNS: 10.0.1.20',
+        browserHtml: '<div class="text-slate-400 text-xs"><div class="text-2xl mb-1">🔍</div>IP obtido! Usuário digitou "http://site.com"... Resolvendo DNS...</div>',
+        browserStatus: 'Status: IP Ativo (192.168.1.50) | Resolvendo site.com...'
+      },
+      {
+        phase: '2. Resolução DNS',
+        phaseClass: 'bg-cyan-950 text-cyan-300 border-cyan-500/40',
+        tag: 'PASSO 3/5',
+        msg: 'PC envia consulta DNS Query para 10.0.1.20: "Qual é o IP do registro A para site.com?"',
+        packet: 'DNS QUERY (Porta UDP 53)',
+        packetClass: 'text-cyan-400',
+        activeBox: 'box-dns',
+        l4: 'UDP: Src Port 54123 → Dst Port 53',
+        l3: 'IPv4: 192.168.1.50 → 10.0.1.20',
+        l2: 'Ethernet: Encaminhado via Gateway L3',
+        notes: 'O servidor DNS consulta sua tabela e responde com o registro Tipo A: site.com = 10.0.1.100.',
+        pcIp: 'IP: 192.168.1.50 /24',
+        pcDns: 'DNS: 10.0.1.20',
+        browserHtml: '<div class="text-cyan-300 text-xs"><div class="text-2xl mb-1">📖</div>DNS respondido: site.com = 10.0.1.100! Abrindo socket TCP na porta 80...</div>',
+        browserStatus: 'Status: DNS OK (10.0.1.100) | TCP Handshake...'
+      },
+      {
+        phase: '3. Handshake TCP & HTTP Request',
+        phaseClass: 'bg-emerald-950 text-emerald-300 border-emerald-500/40',
+        tag: 'PASSO 4/5',
+        msg: 'Handshake de 3 vias TCP concluído na porta 80. PC envia o comando: GET /index.html HTTP/1.1.',
+        packet: 'HTTP GET /index.html (Porta TCP 80)',
+        packetClass: 'text-emerald-400',
+        activeBox: 'box-web',
+        l4: 'TCP: Port 49152 → Port 80 [PSH, ACK]',
+        l3: 'IPv4: 192.168.1.50 → 10.0.1.100',
+        l2: 'Ethernet: Frame Unicast comutado',
+        notes: 'O servidor web recebe a requisição HTTP e prepara o conteúdo do index.html para envio.',
+        pcIp: 'IP: 192.168.1.50 /24',
+        pcDns: 'DNS: 10.0.1.20',
+        browserHtml: '<div class="text-emerald-300 text-xs animate-pulse"><div class="text-2xl mb-1">⚡</div>Carregando resposta HTTP 200 OK do servidor...</div>',
+        browserStatus: 'Status: Conectado a 10.0.1.100:80 | Recebendo bytes...'
+      },
+      {
+        phase: '3. Renderização Web (HTTP 200 OK)',
+        phaseClass: 'bg-emerald-950 text-emerald-300 border-emerald-500/40',
+        tag: 'PASSO 5/5',
+        msg: 'Servidor responde HTTP/1.1 200 OK. O navegador renderiza o Portal Corporativo!',
+        packet: 'HTTP/1.1 200 OK (Renderizado)',
+        packetClass: 'text-emerald-400',
+        activeBox: 'box-pc',
+        l4: 'TCP: Port 80 → Port 49152 [FIN, ACK]',
+        l3: 'IPv4: 10.0.1.100 → 192.168.1.50',
+        l2: 'Ethernet: Entrega final na porta do switch',
+        notes: 'Ciclo completo bem-sucedido: DHCP + DNS + HTTP funcionando em perfeita harmonia!',
+        pcIp: 'IP: 192.168.1.50 /24',
+        pcDns: 'DNS: 10.0.1.20',
+        browserHtml: `
+          <div class="p-3 bg-slate-900 border-2 border-emerald-500/80 rounded-xl text-center shadow-lg">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/30">HTTP 200 OK • Servidor Ativo</span>
+            <h5 class="text-sm font-bold text-emerald-400 mt-1">Portal Corporativo</h5>
+            <p class="text-[11px] text-slate-700 mt-0.5">Conexão L3, resolução DNS e socket HTTP funcionando com sucesso!</p>
+            <div class="mt-2 text-[10px] font-mono text-slate-400">Domínio: <strong>site.com</strong> | IP: <strong>10.0.1.100</strong></div>
+          </div>
+        `,
+        browserStatus: 'Status: Concluído (200 OK) • 1.2 KB transferidos'
+      }
+    ];
+
+    function nextFlowStep() {
+      if (flowStep < flowData.length - 1) flowStep++;
+      else flowStep = 0;
+      renderFlow();
+    }
+
+    function resetFlow() {
+      flowStep = 0;
+      renderFlow();
+    }
+
+    function renderFlow() {
+      const d = flowData[flowStep];
+
+      // Pill and banners
+      const pill = document.getElementById('phase-pill');
+      pill.innerText = d.phase;
+      pill.className = 'px-3 py-1 rounded-lg text-xs font-bold font-mono border ' + d.phaseClass;
+
+      document.getElementById('step-number-tag').innerText = d.tag;
+      document.getElementById('step-msg').innerText = d.msg;
+      
+      const pktTag = document.getElementById('step-packet-tag');
+      pktTag.innerText = d.packet;
+      pktTag.className = 'font-mono font-bold ' + d.packetClass;
+
+      // Active box
+      ['box-pc', 'box-dhcp', 'box-dns', 'box-web'].forEach(id => {
+        const el = document.getElementById(id);
+        if (id === d.activeBox) {
+          el.classList.add('ring-2', 'ring-emerald-400', 'bg-slate-850');
+        } else {
+          el.classList.remove('ring-2', 'ring-emerald-400', 'bg-slate-850');
+        }
+      });
+
+      // Labels on PC
+      document.getElementById('pc-ip-label').innerText = d.pcIp;
+      document.getElementById('pc-dns-label').innerText = d.pcDns;
+
+      // Packet details
+      document.getElementById('packet-details').innerHTML = `
+        <div class="p-2 rounded bg-slate-900 border border-slate-800 flex justify-between">
+          <span>Camada 4 (Transporte):</span>
+          <span class="text-amber-400 font-bold">${d.l4}</span>
+        </div>
+        <div class="p-2 rounded bg-slate-900 border border-slate-800 flex justify-between">
+          <span>Camada 3 (Rede IPv4):</span>
+          <span>${d.l3}</span>
+        </div>
+        <div class="p-2 rounded bg-slate-900 border border-slate-800 flex justify-between">
+          <span>Camada 2 (Enlace MAC):</span>
+          <span>${d.l2}</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2 italic">${d.notes}</p>
+      `;
+
+      // Browser box
+      document.getElementById('browser-content').innerHTML = d.browserHtml;
+      document.getElementById('browser-status-bar').innerHTML = `<span>${d.browserStatus}</span><span>Porta 80 TCP</span>`;
+    }
+
+    function copyCode(id) {
+      const code = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(code);
+      showToast('Copiado com sucesso para a área de transferência!');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      t.classList.remove('opacity-0', 'translate-y-20');
+      setTimeout(() => t.classList.add('opacity-0', 'translate-y-20'), 2500);
+    }
+
+    function updateProgress() {
+      const checks = document.querySelectorAll('.lab-check');
+      let done = 0;
+      checks.forEach(c => { if (c.checked) done++; });
+      const pct = Math.round((done / checks.length) * 100);
+      document.getElementById('progress-val').innerText = pct + '%';
+      document.getElementById('progress-bar').style.width = pct + '%';
+      localStorage.setItem('lr_lab05_progress', pct);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderFlow();
+      const saved = localStorage.getItem('lr_lab05_progress');
+      if (saved) {
+        const checks = document.querySelectorAll('.lab-check');
+        const count = Math.round((parseInt(saved) / 100) * checks.length);
+        for (let i = 0; i < count; i++) {
+          if (checks[i]) checks[i].checked = true;
+        }
+        updateProgress();
+      }
+    });
+  </script>
+</body>
+</html>

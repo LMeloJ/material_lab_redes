@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 08: Acesso Remoto SSH & CLI Cisco • Lab de Redes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .pulse-dot { animation: pulseAnim 2s infinite; }
+    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-cyan-500 selection:text-white">
+
+  <!-- Toast Notifier -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900 border border-cyan-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md">
+    <span class="text-emerald-400 font-bold">✓</span>
+    <span id="toast-msg" class="text-sm font-medium">Comando copiado com sucesso!</span>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 font-mono font-bold text-lg hover:scale-105 transition">
+          LR
+        </a>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            Lab 08: <span class="text-cyan-400">Acesso Remoto SSH & CLI Cisco</span>
+          </h1>
+          <p class="text-xs text-slate-500">Criptografia RSA, endurecimento VTY, bloqueio de Telnet e DHCP no ISR 4331</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200 flex items-center gap-1">
+          ← Cronograma
+        </a>
+        <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
+          ↗️ Tela Cheia
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 pulse-dot"></span>
+          23/09/2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Canvas Submission Alert -->
+    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
+        📤
+      </div>
+      <div class="flex-1">
+        <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
+          Submissão Obrigatória no Canvas da Disciplina
+        </h4>
+        <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
+          Ao término do laboratório, envie na respectiva tarefa no <strong>Canvas</strong>:
+        </p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Arquivo .pkt: acesso_ssh_cli_seunome.pkt</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Relatório com prints de 'show ip ssh' no Cisco IOS</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Print da sessão SSH autenticada do PC-Admin</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Jump Navigation -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
+      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Modelos Mentais</a>
+      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold shadow-xs transition font-medium flex items-center gap-1">
+        ⚡ Terminal Interativo Cisco IOS & Sniffer
+      </a>
+      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Guia de Configuração</a>
+      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Armadilhas Comuns</a>
+      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition font-medium">4. Checklist de Entrega</a>
+    </div>
+
+    <!-- Intro Hero -->
+    <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div class="max-w-3xl">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+          Laboratório 08 • Gerenciamento Seguro de Ativos
+        </span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4 tracking-tight">
+          Administração Remota com SSHv2 e Endurecimento da CLI
+        </h2>
+        <p class="text-slate-700 text-base leading-relaxed mb-6">
+          Nenhum engenheiro de redes vai até o data center toda vez que precisa alterar uma rota. O acesso remoto via <strong>SSH (Secure Shell)</strong> sobre a porta 22 TCP permite gerenciar switches e roteadores com criptografia de ponta a ponta. Neste lab, você configurará chaves assimétricas RSA no Cisco ISR 4331, fechará portas inseguras (Telnet) e provisionará o DHCP direto na CLI.
+        </p>
+        <div class="flex flex-wrap gap-4 text-xs font-mono">
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Protocolo Seguro:</span> <span class="text-emerald-400 font-bold">SSHv2 (Porta 22 TCP)</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Chaves Criptográficas:</span> <span class="text-cyan-400 font-bold">RSA 1024/2048 bits</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Linhas VTY:</span> <span class="text-purple-400 font-bold">transport input ssh</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: MODELOS MENTAIS -->
+    <section id="analogia" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">1</div>
+        <h3 class="text-2xl font-bold text-slate-900">Modelos Mentais: Telnet vs SSH e Linhas VTY</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center mb-3 text-xl">📨</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Cartão Postal (Telnet)</h4>
+          <span class="text-xs text-rose-400 font-medium mb-1 block">"Texto Claro / Plaintext"</span>
+          <p class="text-xs text-slate-500">Qualquer um que espione o cabo com Wireshark lê o usuário e a senha como se estivessem escritos num cartão postal aberto.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 text-xl">🔐</div>
+          <h4 class="font-bold text-slate-900 text-sm">A Caixa Blindada (SSH)</h4>
+          <span class="text-xs text-emerald-400 font-medium mb-1 block">"Túnel Criptografado RSA/AES"</span>
+          <p class="text-xs text-slate-500">Mesmo que o atacante capture todos os pacotes, ele só enxergará caracteres aleatórios indecifráveis sem a chave privada do roteador.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center mb-3 text-xl">🎛️</div>
+          <h4 class="font-bold text-slate-900 text-sm">As Linhas Virtuais VTY</h4>
+          <span class="text-xs text-purple-400 font-medium mb-1 block">"line vty 0 4"</span>
+          <p class="text-xs text-slate-500">O roteador não tem 5 portas seriais físicas extras. As VTYs são portas virtuais que aceitam conexões de terminal simultâneas através da rede IP.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 text-xl">🛡️</div>
+          <h4 class="font-bold text-slate-900 text-sm">Gerência Out-of-Band</h4>
+          <span class="text-xs text-amber-400 font-medium mb-1 block">"Isolamento Administrativo"</span>
+          <p class="text-xs text-slate-500">A máquina do administrador (PC-Admin) fica em uma sub-rede isolada (10.0.0.0/24), sem contato direto com o tráfego dos computadores comuns.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: SIMULADOR INTERATIVO -->
+    <section id="simulador" class="mb-14 scroll-mt-24">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-sm">⚡</div>
+          <h3 class="text-2xl font-bold text-slate-900">Simulador: Terminal Cisco IOS & Sniffer de Pacotes</h3>
+        </div>
+        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+          <button id="btn-mode-ssh" onclick="switchCliMode('ssh')" class="px-3 py-1 rounded font-medium bg-cyan-600 text-white transition">Sessão SSHv2 Segura</button>
+          <button id="btn-mode-telnet" onclick="switchCliMode('telnet')" class="px-3 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition">Tentativa Telnet (Inseguro)</button>
+        </div>
+      </div>
+
+      <div class="bg-white border-2 border-slate-200/90 rounded-2xl overflow-hidden shadow-lg">
+        <!-- Interactive Split Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12">
+          
+          <!-- Terminal Side (8 cols) -->
+          <div class="lg:col-span-8 p-5 bg-slate-950 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-800">
+            <div>
+              <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-200">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot"></span>
+                  <span class="font-mono font-bold text-xs text-slate-200">PC-Admin (10.0.0.11) — Command Prompt</span>
+                </div>
+                <span id="proto-tag" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
+                  SSHv2 • Porta 22
+                </span>
+              </div>
+
+              <!-- Terminal Body -->
+              <div id="cli-screen" class="h-64 bg-[#0d1117] p-4 rounded-xl font-mono text-xs text-slate-100 overflow-y-auto space-y-2 border border-slate-800">
+                <div class="text-slate-400">Microsoft Windows [Version 10.0.19045]<br>(c) Microsoft Corporation. Todos os direitos reservados.</div>
+                <div class="text-cyan-400">C:\Users\Admin> ssh -l admin 10.0.0.1</div>
+                <div class="text-slate-300">OpenSSH_8.2p1, OpenSSL 1.1.1f  31 Mar 2020<br>admin@10.0.0.1's password: <span class="text-slate-500">********</span></div>
+                <div class="text-emerald-400">R-LAB#</div>
+              </div>
+            </div>
+
+            <!-- Terminal Interactive Command Buttons -->
+            <div class="mt-4 pt-3 border-t border-slate-200 flex flex-wrap gap-2">
+              <button onclick="execCliCmd('show ip ssh')" class="px-3 py-1 rounded bg-slate-900 hover:bg-slate-850 text-xs font-mono text-cyan-300 border border-slate-700 transition">
+                show ip ssh
+              </button>
+              <button onclick="execCliCmd('show ip dhcp pool')" class="px-3 py-1 rounded bg-slate-900 hover:bg-slate-850 text-xs font-mono text-emerald-300 border border-slate-700 transition">
+                show ip dhcp pool
+              </button>
+              <button onclick="execCliCmd('show ip interface brief')" class="px-3 py-1 rounded bg-slate-900 hover:bg-slate-850 text-xs font-mono text-indigo-300 border border-slate-700 transition">
+                show ip interface brief
+              </button>
+              <button onclick="clearCliScreen()" class="px-3 py-1 rounded bg-slate-900 hover:bg-slate-850 text-xs font-mono text-slate-400 border border-slate-700 transition ml-auto">
+                clear
+              </button>
+            </div>
+          </div>
+
+          <!-- Sniffer & Packet Inspector Side (4 cols) -->
+          <div class="lg:col-span-4 p-5 bg-slate-900 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 pb-2 mb-3 border-b border-slate-200">
+                <span class="text-base">🕵️</span>
+                <span class="text-xs font-bold text-white uppercase tracking-wider font-mono">Sniffer no Cabo (Wireshark)</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-3 leading-relaxed">
+                O que um invasor conectado ao switch intercepta no meio do caminho:
+              </p>
+
+              <div id="sniffer-box" class="p-3 rounded-xl bg-slate-950 border border-emerald-500/40 font-mono text-[11px] space-y-2">
+                <div class="text-emerald-400 font-bold">🔒 DADOS CRIPTOGRAFADOS (SSH):</div>
+                <div class="text-slate-400 break-all text-[10px] bg-slate-900 p-2 rounded border border-slate-850">
+                  7b 4a 9c 1e f3 08 42 aa 91 2b cc 87 19 ff 33 0a e4 71 8d 2c a9 54 b1 70 88 3e ...
+                </div>
+                <p class="text-[10px] text-emerald-300">
+                  ✓ Proteção Total: Credenciais, comandos e respostas são ilegíveis para espionagem.
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-4 p-3 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
+              <span class="text-slate-900 font-bold block mb-1">Status da Chave RSA:</span>
+              <span>1024 bits gerada para <code>R-LAB.labredes.local</code></span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: GUIA DE CONFIGURAÇÃO -->
+    <section id="roteiro" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">2</div>
+        <h3 class="text-2xl font-bold text-slate-900">Guia de Configuração no Cisco IOS</h3>
+      </div>
+
+      <!-- Step 1: Complete IOS Script -->
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>⚙️</span> 1. Script Completo de Endurecimento SSH & Interfaces
+          </h4>
+          <button onclick="copyCode('code-ssh-full')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition flex items-center gap-1">
+            📋 Copiar Bloco SSH
+          </button>
+        </div>
+        <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+<pre id="code-ssh-full"><code>enable
+configure terminal
+hostname R-LAB
+
+! 1. Domínio necessário para gerar a chave RSA
+ip domain-name labredes.local
+
+! 2. Usuário de privilégio máximo com senha protegida
+username admin privilege 15 secret cisco123
+
+! 3. Geração da chave criptográfica assimétrica RSA
+crypto key generate rsa
+1024
+
+! 4. Ativação da versão 2 do SSH
+ip ssh version 2
+
+! 5. Configuração restrita das linhas VTY (bloqueia Telnet)
+line vty 0 4
+ transport input ssh
+ login local
+ exit
+
+! 6. Senha privilegiada de enable
+enable secret cisco123
+
+! 7. Interfaces de Rede (Clientes e Gerência)
+interface GigabitEthernet0/0/0
+ ip address 192.168.1.1 255.255.255.0
+ no shutdown
+exit
+
+interface GigabitEthernet0/0/1
+ ip address 10.0.0.1 255.255.255.0
+ no shutdown
+exit
+
+! 8. Pool DHCP para as estações clientes
+ip dhcp excluded-address 192.168.1.1 192.168.1.10
+ip dhcp pool REDE-CLIENTES
+ network 192.168.1.0 255.255.255.0
+ default-router 192.168.1.1
+ dns-server 8.8.8.8
+exit
+
+do write memory</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: ARMADILHAS COMUNS -->
+    <section id="armadilhas" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center font-bold text-sm">3</div>
+        <h3 class="text-2xl font-bold text-slate-900">Armadilhas Comuns no SSH Cisco IOS</h3>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 1. Esquecer do "ip domain-name"
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            Se você tentar executar <code>crypto key generate rsa</code> sem antes ter definido um <code>hostname</code> diferente do padrão e um <code>ip domain-name</code>, o roteador recusará: <em>"% Please define a domain-name first"</em>.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Sempre defina hostname e ip domain-name antes das chaves!
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 2. Esquecer do "login local"
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            Se nas linhas VTY você esquecer de digitar <code>login local</code>, o roteador não consultará a tabela de usuários locais e rejeitará o login do admin.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Comando essencial: 'login local' sob 'line vty 0 4'.
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 3. Sintaxe do Cliente SSH no Prompt
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            No Packet Tracer, o comando correto é <code>ssh -l &lt;usuario&gt; &lt;ip&gt;</code> (com traço L minúsculo). Digitar <code>ssh admin@ip</code> pode não ser interpretado dependendo da versão do simulador.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Use: ssh -l admin 10.0.0.1
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: CHECKLIST DE ENTREGA NO CANVAS -->
+    <section id="checklist" class="mb-14 scroll-mt-24">
+      <div class="bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-xl">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">4</span>
+              <h3 class="text-2xl font-bold text-slate-900">Checklist de Entrega no Canvas</h3>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700 mt-1">
+              Marque os itens conforme concluir. O progresso é salvo localmente.
+            </p>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-black text-emerald-400" id="progress-val">0%</div>
+            <div class="text-xs text-slate-500">Concluído</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 w-0 transition-all duration-300"></div>
+        </div>
+
+        <!-- Interactive Checkboxes -->
+        <div class="space-y-3 text-sm">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Chaves RSA Geradas:</strong> Executado <code>crypto key generate rsa</code> com 1024 bits e validado com <code>show ip ssh</code> no Cisco IOS.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Linhas VTY Endurecidas:</strong> Aplicado <code>transport input ssh</code> e <code>login local</code> nas linhas <code>0 4</code>, bloqueando Telnet com sucesso.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Sessão SSH Autenticada com Sucesso:</strong> Acesso administrativo efetuado a partir do PC-Admin via <code>ssh -l admin 10.0.0.1</code> com senha secreta.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Servidor DHCP no Roteador Operacional:</strong> Os computadores clientes recebem IPs dinâmicos dentro do pool <code>192.168.1.0/24</code>.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Submissão Efetuada no Canvas:</strong> Arquivo <code>acesso_ssh_cli_seunome.pkt</code> e relatório PDF com as capturas de tela submetidos na tarefa.
+            </span>
+          </label>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-200 text-xs text-slate-500">
+          <span>Laboratório de Redes de Computadores • 2026.2</span>
+          <a href="#simulador" class="text-cyan-400 hover:underline">Voltar ao Simulador ↑</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Navigation -->
+    <div class="flex items-center justify-between border-t border-slate-200 pt-6">
+      <a href="07-projeto-1-sockets-tcp.html" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition flex items-center gap-1.5">
+        ← Lab 07: Projeto 1 Sockets TCP
+      </a>
+      <a href="09-switches-idf-mdf-trunk.html" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg transition flex items-center gap-1.5">
+        Próximo: Lab 09 - Switches IDF & MDF com Trunk →
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Interactive Simulator Engine -->
+  <script>
+    let cliMode = 'ssh';
+
+    function switchCliMode(mode) {
+      cliMode = mode;
+      const bSsh = document.getElementById('btn-mode-ssh');
+      const bTelnet = document.getElementById('btn-mode-telnet');
+      const pTag = document.getElementById('proto-tag');
+      const screen = document.getElementById('cli-screen');
+      const sniffer = document.getElementById('sniffer-box');
+
+      if (mode === 'ssh') {
+        bSsh.className = 'px-3 py-1 rounded font-medium bg-cyan-600 text-white transition';
+        bTelnet.className = 'px-3 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition';
+        pTag.innerText = 'SSHv2 • Porta 22';
+        pTag.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40';
+
+        screen.innerHTML = `
+          <div class="text-slate-400">Microsoft Windows [Version 10.0.19045]<br>(c) Microsoft Corporation. Todos os direitos reservados.</div>
+          <div class="text-cyan-400">C:\\Users\\Admin> ssh -l admin 10.0.0.1</div>
+          <div class="text-slate-300">OpenSSH_8.2p1, OpenSSL 1.1.1f  31 Mar 2020<br>admin@10.0.0.1's password: <span class="text-slate-500">********</span></div>
+          <div class="text-emerald-400">R-LAB#</div>
+        `;
+
+        sniffer.className = 'p-3 rounded-xl bg-slate-950 border border-emerald-500/40 font-mono text-[11px] space-y-2';
+        sniffer.innerHTML = `
+          <div class="text-emerald-400 font-bold">🔒 DADOS CRIPTOGRAFADOS (SSH):</div>
+          <div class="text-slate-400 break-all text-[10px] bg-slate-900 p-2 rounded border border-slate-850">
+            7b 4a 9c 1e f3 08 42 aa 91 2b cc 87 19 ff 33 0a e4 71 8d 2c a9 54 b1 70 88 3e ...
+          </div>
+          <p class="text-[10px] text-emerald-300">
+            ✓ Proteção Total: Credenciais, comandos e respostas são ilegíveis para espionagem.
+          </p>
+        `;
+      } else {
+        bTelnet.className = 'px-3 py-1 rounded font-medium bg-rose-600 text-white transition';
+        bSsh.className = 'px-3 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition';
+        pTag.innerText = 'Telnet • Porta 23 (Recusado)';
+        pTag.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-500/40';
+
+        screen.innerHTML = `
+          <div class="text-slate-400">Microsoft Windows [Version 10.0.19045]<br>(c) Microsoft Corporation. Todos os direitos reservados.</div>
+          <div class="text-rose-400">C:\\Users\\Admin> telnet 10.0.0.1</div>
+          <div class="text-slate-700">Connecting To 10.0.0.1...Could not open connection to the host, on port 23: Connect failed.</div>
+          <div class="text-amber-300 mt-2">[BLOQUEADO] O comando 'transport input ssh' recusou conexões Telnet na porta 23 TCP com sucesso!</div>
+        `;
+
+        sniffer.className = 'p-3 rounded-xl bg-slate-950 border border-rose-500/40 font-mono text-[11px] space-y-2';
+        sniffer.innerHTML = `
+          <div class="text-rose-400 font-bold">⚠️ VULNERABILIDADE TELNET DETECTADA:</div>
+          <div class="text-rose-300 break-all text-[10px] bg-rose-950/40 p-2 rounded border border-rose-500/30">
+            USER: admin<br>PASS: cisco123<br>CMD: enable secret cisco123
+          </div>
+          <p class="text-[10px] text-rose-300">
+            ❌ Perigo: Telnet envia todas as senhas em texto puro! Por isso foi bloqueado pelo hardening.
+          </p>
+        `;
+      }
+    }
+
+    function execCliCmd(cmd) {
+      if (cliMode !== 'ssh') {
+        showToast('Ative a sessão SSH para executar comandos!');
+        return;
+      }
+      const s = document.getElementById('cli-screen');
+      s.innerHTML += `<div class="text-white font-bold mt-2">R-LAB# ${cmd}</div>`;
+
+      if (cmd === 'show ip ssh') {
+        s.innerHTML += `
+          <div class="text-slate-700">
+            SSH Enabled - version 2.0<br>
+            Authentication timeout: 120 secs; Authentication retries: 3<br>
+            RSA key size: 1024 bits
+          </div>
+        `;
+      } else if (cmd === 'show ip dhcp pool') {
+        s.innerHTML += `
+          <div class="text-slate-700">
+            Pool REDE-CLIENTES :<br>
+            &nbsp;Utilization mark (high/low) : 100 / 0<br>
+            &nbsp;Subnet size (Total/Exclude/Usable) : 254 / 10 / 244<br>
+            &nbsp;Lease : 1 days 0 hours 0 mins
+          </div>
+        `;
+      } else if (cmd === 'show ip interface brief') {
+        s.innerHTML += `
+          <div class="text-slate-700">
+            GigabitEthernet0/0/0&nbsp;&nbsp;&nbsp;&nbsp;192.168.1.1&nbsp;&nbsp;&nbsp;&nbsp;YES manual up&nbsp;&nbsp;&nbsp;&nbsp;up<br>
+            GigabitEthernet0/0/1&nbsp;&nbsp;&nbsp;&nbsp;10.0.0.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;YES manual up&nbsp;&nbsp;&nbsp;&nbsp;up
+          </div>
+        `;
+      }
+      s.scrollTop = s.scrollHeight;
+    }
+
+    function clearCliScreen() {
+      document.getElementById('cli-screen').innerHTML = `<div class="text-emerald-400">R-LAB#</div>`;
+    }
+
+    function copyCode(id) {
+      const code = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(code);
+      showToast('Comandos copiados para a área de transferência!');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      t.classList.remove('opacity-0', 'translate-y-20');
+      setTimeout(() => t.classList.add('opacity-0', 'translate-y-20'), 2500);
+    }
+
+    function updateProgress() {
+      const checks = document.querySelectorAll('.lab-check');
+      let done = 0;
+      checks.forEach(c => { if (c.checked) done++; });
+      const pct = Math.round((done / checks.length) * 100);
+      document.getElementById('progress-val').innerText = pct + '%';
+      document.getElementById('progress-bar').style.width = pct + '%';
+      localStorage.setItem('lr_lab08_progress', pct);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('lr_lab08_progress');
+      if (saved) {
+        const checks = document.querySelectorAll('.lab-check');
+        const count = Math.round((parseInt(saved) / 100) * checks.length);
+        for (let i = 0; i < count; i++) {
+          if (checks[i]) checks[i].checked = true;
+        }
+        updateProgress();
+      }
+    });
+  </script>
+</body>
+</html>

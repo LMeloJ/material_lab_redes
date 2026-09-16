@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fechamento de Notas & Auditoria no Canvas • Lab de Redes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .pulse-dot { animation: pulseAnim 2s infinite; }
+    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Toast Notifier -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-white border border-indigo-200 text-slate-800 px-4 py-3 rounded-xl shadow-2xl">
+    <span class="text-emerald-600 font-bold">✓</span>
+    <span id="toast-msg" class="text-sm font-medium">Copiado para a área de transferência!</span>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md font-mono font-bold text-lg hover:scale-105 transition">
+          LR
+        </a>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            Encerramento: <span class="text-indigo-600">Fechamento de Notas & Auditoria no Canvas</span>
+          </h1>
+          <p class="text-xs text-slate-500">Semestre Letivo 2026.2 • Consolidação de Médias e Autoavaliação</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200 flex items-center gap-1">
+          ← Cronograma
+        </a>
+        <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
+          ↗️ Tela Cheia
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+          <span class="w-2 h-2 rounded-full bg-indigo-500 pulse-dot"></span>
+          16/12/2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Canvas Submission Alert -->
+    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
+        📢
+      </div>
+      <div class="flex-1">
+        <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
+          Conferência Obrigatória de Notas no Canvas LMS
+        </h4>
+        <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
+          O período letivo de 2026.2 está sendo encerrado. Acesse a aba <strong>Notas (Grades)</strong> no <strong>Canvas</strong> da disciplina e valide se todos os seus relatórios, trabalhos e checkpoints do projeto possuem avaliação e comentários do professor registrados.
+        </p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">📋 Conferir diário no Canvas</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">💬 Prazo de Recurso: 48h após publicação</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Jump Navigation -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
+      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Retrospectiva do Semestre</a>
+      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold transition flex items-center gap-1">
+        ⚡ Calculadora de Média & Simulador de Aprovação
+      </a>
+      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Composição da Avaliação</a>
+      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Armadilhas Finais</a>
+      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition">4. Checklist de Conferência</a>
+    </div>
+
+    <!-- 1. Retrospective & Mental Models -->
+    <section id="analogia" class="mb-12">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-sm border border-indigo-200">1</span>
+        <h2 class="text-xl font-bold text-slate-900">Retrospectiva: A Jornada Prática de Redes em 20 Semanas</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition">
+          <div class="text-2xl mb-2">🔌</div>
+          <h3 class="font-bold text-indigo-700 text-sm mb-1">Física & Enlace (L1 & L2)</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Do primeiro ping ao cabeamento estruturado de 2 andares, VLANs 802.1Q e alta disponibilidade com Rapid Spanning Tree Protocol.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition">
+          <div class="text-2xl mb-2">🐍</div>
+          <h3 class="font-bold text-indigo-700 text-sm mb-1">Sockets & Programação TCP</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Programação concorrente de baixo nível em Python: servidores multithreaded, broadcast de mensagens e tratamento de exceções de rede.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition">
+          <div class="text-2xl mb-2">🌐</div>
+          <h3 class="font-bold text-indigo-700 text-sm mb-1">Roteamento L3 & Serviços</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            SVIs em Switch L3, DHCP Relay multi-escopo, resolução hierárquica de DNS e saída corporativa para a Internet com NAT Overload.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition">
+          <div class="text-2xl mb-2">🛡️</div>
+          <h3 class="font-bold text-indigo-700 text-sm mb-1">Segurança & VoIP Avançado</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Firewall com ACLs estendidas, isolamento Wi-Fi de visitantes e central telefônica Cisco CallManager Express entre filiais.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Interactive Calculator Simulator -->
+    <section id="simulador" class="mb-12">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-sm border border-indigo-200">2</span>
+          <h2 class="text-xl font-bold text-slate-900">Simulador de Média Final & Auditoria de Desempenho</h2>
+        </div>
+        <span class="text-xs text-indigo-700 font-mono bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full font-semibold">
+          Canvas Grade Calculator
+        </span>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-md">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          
+          <!-- Inputs Column -->
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between text-xs font-semibold text-slate-800 mb-1">
+                <span>Relatórios de Laboratórios Semanais (01 a 13) [Peso 30%]</span>
+                <span id="val-labs" class="text-indigo-600 font-bold font-mono">10.0</span>
+              </div>
+              <input type="range" id="input-labs" min="0" max="10" step="0.5" value="10" oninput="recalcGrade()" class="w-full accent-indigo-600 cursor-pointer">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-semibold text-slate-800 mb-1">
+                <span>Trabalho 01: Sockets TCP Multithreaded [Peso 20%]</span>
+                <span id="val-t1" class="text-purple-600 font-bold font-mono">10.0</span>
+              </div>
+              <input type="range" id="input-t1" min="0" max="10" step="0.5" value="10" oninput="recalcGrade()" class="w-full accent-purple-600 cursor-pointer">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-semibold text-slate-800 mb-1">
+                <span>Trabalho 02: Resolução MST Prim/Kruskal [Peso 15%]</span>
+                <span id="val-t2" class="text-cyan-600 font-bold font-mono">10.0</span>
+              </div>
+              <input type="range" id="input-t2" min="0" max="10" step="0.5" value="10" oninput="recalcGrade()" class="w-full accent-cyan-600 cursor-pointer">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-semibold text-slate-800 mb-1">
+                <span>Projeto Final Integrador (Partes 1, 2 e 3) [Peso 35%]</span>
+                <span id="val-proj" class="text-emerald-600 font-bold font-mono">10.0</span>
+              </div>
+              <input type="range" id="input-proj" min="0" max="10" step="0.5" value="10" oninput="recalcGrade()" class="w-full accent-emerald-600 cursor-pointer">
+            </div>
+          </div>
+
+          <!-- Result Column Card -->
+          <div class="p-6 rounded-2xl bg-slate-50 border-2 border-slate-200 text-center flex flex-col justify-center items-center">
+            <span class="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Média Final Estimada</span>
+            <div id="grade-display" class="text-5xl font-mono font-black text-emerald-600 my-2">10.0</div>
+            
+            <div id="status-display" class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 mb-3">
+              🎉 Aprovado com Louvor!
+            </div>
+
+            <p id="feedback-display" class="text-xs text-slate-600 leading-relaxed max-w-sm">
+              Excelente aproveitamento em todas as etapas práticas e teóricas da disciplina. Parabéns pelo empenho!
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 3. Grade Composition Breakdown -->
+    <section id="roteiro" class="mb-12">
+      <div class="flex items-center gap-2 mb-6">
+        <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-sm border border-indigo-200">3</span>
+        <h2 class="text-xl font-bold text-slate-900">Composição Detalhada das Avaliações no Canvas</h2>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm overflow-x-auto">
+        <table class="w-full text-xs text-left">
+          <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+            <tr>
+              <th class="p-3">Módulo / Avaliação</th>
+              <th class="p-3">Entregáveis Obrigatórios no Canvas</th>
+              <th class="p-3">Peso na Média</th>
+              <th class="p-3">Critério de Avaliação</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-600">
+            <tr>
+              <td class="p-3 font-semibold text-slate-800">Relatórios Semanais de Lab (01 a 13)</td>
+              <td class="p-3 font-mono">Arquivos .pkt + Relatórios em PDF no Overleaf</td>
+              <td class="p-3 font-bold text-indigo-600">30%</td>
+              <td class="p-3">Resolução dos exercícios propostos e fidelidade aos comandos.</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-semibold text-slate-800">Trabalho 01: Sockets TCP em Python</td>
+              <td class="p-3 font-mono">Código .py multithreaded + Vídeo/Print de execução</td>
+              <td class="p-3 font-bold text-purple-600">20%</td>
+              <td class="p-3">Robustez no tratamento de conexões concorrentes e protocolo customizado.</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-semibold text-slate-800">Trabalho 02: Árvores Geradoras Mínimas (MST)</td>
+              <td class="p-3 font-mono">Relatório analítico comparativo Prim vs Kruskal</td>
+              <td class="p-3 font-bold text-cyan-600">15%</td>
+              <td class="p-3">Demonstração da ordem de arestas, custo total e mitigação de loops STP.</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-semibold text-slate-800">Projeto Final Corporativo Integrador</td>
+              <td class="p-3 font-mono">pkt completo 2 andares + Relatório Executivo</td>
+              <td class="p-3 font-bold text-emerald-600">35%</td>
+              <td class="p-3">Conectividade L2/L3, DHCP, NAT, telefonia CME e firewall ACL 101.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. Common Pitfalls -->
+    <section id="armadilhas" class="mb-12">
+      <div class="flex items-center gap-2 mb-6">
+        <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-800 font-bold flex items-center justify-center text-sm border border-amber-200">4</span>
+        <h2 class="text-xl font-bold text-slate-900">Armadilhas de Fim de Semestre</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="p-5 rounded-xl bg-red-50 border border-red-200 shadow-xs hover:border-red-300 transition">
+          <div class="text-xl mb-2">❌ Perda de Prazo</div>
+          <h3 class="font-bold text-red-900 text-sm mb-1">Não Checar o Canvas a Tempo</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Após a consolidação dos diários acadêmicos, os sistemas institucionais fecham para lançamento de notas. Confira todas as suas avaliações dentro do prazo limite estipulado.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-amber-50 border border-amber-200 shadow-xs hover:border-amber-300 transition">
+          <div class="text-xl mb-2">⚠️ Submissão em Branco</div>
+          <h3 class="font-bold text-amber-900 text-sm mb-1">Arquivo Corrompido ou Incompleto</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Sempre faça o download dos arquivos submetidos no Canvas para garantir que o <code>.pkt</code> ou o código <code>.py</code> abre sem erros e contém todas as configurações realizadas.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-sky-50 border border-sky-200 shadow-xs hover:border-sky-300 transition">
+          <div class="text-xl mb-2">💼 Portfólio Profissional</div>
+          <h3 class="font-bold text-sky-900 text-sm mb-1">Não Salvar Cópias no GitHub</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Os projetos de Sockets em Python e as topologias corporativas modeladas no curso são excelentes materiais para seu portfólio no GitHub e para entrevistas técnicas de infraestrutura e redes.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Final Audit Checklist -->
+    <section id="checklist" class="mb-12">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-800 font-bold flex items-center justify-center text-sm border border-emerald-200">5</span>
+          <h2 class="text-xl font-bold text-slate-900">Checklist de Auditoria Final do Aluno no Canvas</h2>
+        </div>
+        <span id="progress-percent" class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+          0% Concluído
+        </span>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <div class="w-full bg-slate-200 rounded-full h-2.5 mb-6 overflow-hidden">
+          <div id="progress-bar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+
+        <div class="space-y-3 text-sm">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-indigo-50/30 hover:border-indigo-200 transition">
+            <input type="checkbox" onchange="updateProgress()" class="mt-1 w-4 h-4 text-emerald-600 bg-white border-slate-300 rounded focus:ring-emerald-500">
+            <div>
+              <div class="font-semibold text-slate-800">Conferência dos Relatórios Semanais de Laboratório (01 a 13)</div>
+              <div class="text-xs text-slate-500">Validou o lançamento de notas e o feedback do professor em todas as práticas no Canvas.</div>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-indigo-50/30 hover:border-indigo-200 transition">
+            <input type="checkbox" onchange="updateProgress()" class="mt-1 w-4 h-4 text-emerald-600 bg-white border-slate-300 rounded focus:ring-emerald-500">
+            <div>
+              <div class="font-semibold text-slate-800">Conferência da Avaliação do Trabalho 01 (Sockets Python)</div>
+              <div class="text-xs text-slate-500">Confirmou a nota do servidor multithreaded e do cliente de chat no Canvas.</div>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-indigo-50/30 hover:border-indigo-200 transition">
+            <input type="checkbox" onchange="updateProgress()" class="mt-1 w-4 h-4 text-emerald-600 bg-white border-slate-300 rounded focus:ring-emerald-500">
+            <div>
+              <div class="font-semibold text-slate-800">Conferência da Avaliação do Trabalho 02 (MST Prim & Kruskal)</div>
+              <div class="text-xs text-slate-500">Confirmou a nota do relatório teórico-prático de Spanning Tree.</div>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-indigo-50/30 hover:border-indigo-200 transition">
+            <input type="checkbox" onchange="updateProgress()" class="mt-1 w-4 h-4 text-emerald-600 bg-white border-slate-300 rounded focus:ring-emerald-500">
+            <div>
+              <div class="font-semibold text-slate-800">Conferência das 3 Etapas do Projeto Final Corporativo</div>
+              <div class="text-xs text-slate-500">Comprovou a entrega e nota das Partes 1 (L2/VLANs), 2 (L3/NAT) e 3 (Wi-Fi/VoIP/ACLs).</div>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-indigo-50/30 hover:border-indigo-200 transition">
+            <input type="checkbox" onchange="updateProgress()" class="mt-1 w-4 h-4 text-emerald-600 bg-white border-slate-300 rounded focus:ring-emerald-500">
+            <div>
+              <div class="font-semibold text-slate-800">Preenchimento da Avaliação da Disciplina e Encerramento Acadêmico</div>
+              <div class="text-xs text-slate-500">Registrou seu feedback anônimo para o aprimoramento contínuo das aulas práticas de redes.</div>
+            </div>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer Navigation -->
+    <footer class="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+      <a href="19-projeto-final-aula-03.html" class="flex items-center gap-2 hover:text-indigo-600 transition">
+        ← Projeto Final P3: Conclusão
+      </a>
+      <span>Laboratório de Redes de Computadores • 2026.2</span>
+      <a href="../index.html" class="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-semibold transition">
+        Voltar ao Cronograma Geral →
+      </a>
+    </footer>
+
+  </div>
+
+  <script>
+    function recalcGrade() {
+      const labs = parseFloat(document.getElementById('input-labs').value);
+      const t1 = parseFloat(document.getElementById('input-t1').value);
+      const t2 = parseFloat(document.getElementById('input-t2').value);
+      const proj = parseFloat(document.getElementById('input-proj').value);
+
+      document.getElementById('val-labs').innerText = labs.toFixed(1);
+      document.getElementById('val-t1').innerText = t1.toFixed(1);
+      document.getElementById('val-t2').innerText = t2.toFixed(1);
+      document.getElementById('val-proj').innerText = proj.toFixed(1);
+
+      // Media ponderada: 0.30 * labs + 0.20 * t1 + 0.15 * t2 + 0.35 * proj
+      const mf = (labs * 0.30) + (t1 * 0.20) + (t2 * 0.15) + (proj * 0.35);
+
+      const gradeDisplay = document.getElementById('grade-display');
+      const statusDisplay = document.getElementById('status-display');
+      const feedbackDisplay = document.getElementById('feedback-display');
+
+      gradeDisplay.innerText = mf.toFixed(1);
+
+      if (mf >= 7.0) {
+        gradeDisplay.className = 'text-5xl font-mono font-black text-emerald-600 my-2';
+        statusDisplay.className = 'inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 mb-3';
+        statusDisplay.innerText = '🎉 Aprovado Direto!';
+        feedbackDisplay.innerText = 'Parabéns! Desempenho sólido em protocolos, topologias Cisco e programação de sockets.';
+      } else if (mf >= 5.0) {
+        gradeDisplay.className = 'text-5xl font-mono font-black text-amber-600 my-2';
+        statusDisplay.className = 'inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold font-mono bg-amber-100 text-amber-800 border border-amber-300 mb-3';
+        statusDisplay.innerText = '⚠️ Elegível para Exame Final (VS)';
+        feedbackDisplay.innerText = 'Média suficiente para recuperação final. Revise os tópicos de roteamento L3 e sockets TCP.';
+      } else {
+        gradeDisplay.className = 'text-5xl font-mono font-black text-red-600 my-2';
+        statusDisplay.className = 'inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold font-mono bg-red-100 text-red-800 border border-red-300 mb-3';
+        statusDisplay.innerText = '❌ Reprovado';
+        feedbackDisplay.innerText = 'A nota acumulada não atingiu o mínimo necessário. Entre em contato com o professor.';
+      }
+    }
+
+    // Checklist Progress
+    function updateProgress() {
+      const checkboxes = document.querySelectorAll('#checklist input[type="checkbox"]');
+      const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
+      const total = checkboxes.length;
+      const percent = Math.round((checked / total) * 100);
+
+      document.getElementById('progress-bar').style.width = percent + '%';
+      document.getElementById('progress-percent').innerText = percent + '% Concluído';
+      localStorage.setItem('lab20_progress', JSON.stringify(Array.from(checkboxes).map(cb => cb.checked)));
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      recalcGrade();
+      const saved = localStorage.getItem('lab20_progress');
+      if (saved) {
+        try {
+          const arr = JSON.parse(saved);
+          const checkboxes = document.querySelectorAll('#checklist input[type="checkbox"]');
+          checkboxes.forEach((cb, idx) => {
+            if (arr[idx]) cb.checked = true;
+          });
+          updateProgress();
+        } catch (e) {}
+      }
+    });
+  </script>
+</body>
+</html>

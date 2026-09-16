@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trabalho: Minimum Spanning Tree (MST) • Lab de Redes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .pulse-dot { animation: pulseAnim 2s infinite; }
+    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-purple-500 selection:text-white">
+
+  <!-- Toast Notifier -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900 border border-purple-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md">
+    <span class="text-emerald-400 font-bold">✓</span>
+    <span id="toast-msg" class="text-sm font-medium">Copiado com sucesso!</span>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/20 font-mono font-bold text-lg hover:scale-105 transition">
+          LR
+        </a>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            Trabalho: <span class="text-purple-400">Minimum Spanning Tree (MST)</span>
+          </h1>
+          <p class="text-xs text-slate-500">Teoria dos Grafos, Kruskal, Prim e comparação com STP (15 Pontos)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200 flex items-center gap-1">
+          ← Cronograma
+        </a>
+        <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
+          ↗️ Tela Cheia
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+          <span class="w-2 h-2 rounded-full bg-purple-400 pulse-dot"></span>
+          28/10/2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Canvas Submission Alert -->
+    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
+        📤
+      </div>
+      <div class="flex-1">
+        <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
+          Submissão Obrigatória no Canvas da Disciplina (Peso: 15 Pontos)
+        </h4>
+        <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
+          Este trabalho tem peso relevante na composição da média. Você deve submeter na tarefa do <strong>Canvas</strong>:
+        </p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Relatório Analítico Completo em PDF</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Resolução passo a passo de Prim e Kruskal para os 6 switches</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Capturas do Visualgo e dissertação comparativa com o STP</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Jump Navigation -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
+      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Modelos Mentais</a>
+      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold shadow-xs transition font-medium flex items-center gap-1">
+        ⚡ Solver Interativo: Prim vs Kruskal
+      </a>
+      <a href="#grafo" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. O Grafo do Trabalho</a>
+      <a href="#dissertacao" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Análise STP vs Prim</a>
+      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition font-medium">4. Checklist de Entrega</a>
+    </div>
+
+    <!-- Intro Hero -->
+    <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div class="max-w-3xl">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30">
+          Trabalho Acadêmico • Fundamentos Teóricos de Redes
+        </span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4 tracking-tight">
+          Árvores Geradoras Mínimas: Da Teoria dos Grafos ao Algoritmo de Radia Perlman
+        </h2>
+        <p class="text-slate-700 text-base leading-relaxed mb-6">
+          Em 1985, a pioneira <strong>Radia Perlman</strong> inventou o Spanning Tree Protocol inspirada nos conceitos clássicos de grafos. Mas como algoritmos gulosos acadêmicos (como <strong>Prim</strong> e <strong>Kruskal</strong>) se comparam à execução real de um protocolo de rede distribuído, onde nenhum equipamento possui o mapa global da Internet?
+        </p>
+        <div class="flex flex-wrap gap-4 text-xs font-mono">
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Simulador Web:</span> <a href="https://visualgo.net/en/mst" target="_blank" rel="noopener" class="text-cyan-400 underline font-bold">visualgo.net/en/mst ↗</a>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Grafo:</span> <span class="text-purple-400 font-bold">6 Vértices (Switches A a F)</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Valor Avaliativo:</span> <span class="text-amber-400 font-bold">15 Pontos</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: MODELOS MENTAIS -->
+    <section id="analogia" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-purple-600/20 text-purple-400 flex items-center justify-center font-bold text-sm">1</div>
+        <h3 class="text-2xl font-bold text-slate-900">Modelos Mentais: Kruskal vs Prim vs STP</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-purple-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center mb-3 text-xl">🛰️</div>
+          <h4 class="font-bold text-slate-900 text-sm">A Visão do Satélite (Kruskal)</h4>
+          <span class="text-xs text-blue-400 font-medium mb-1 block">"Centrado em Arestas / Global"</span>
+          <p class="text-xs text-slate-500">Olha o mapa inteiro lá de cima, ordena todas as estradas do menor para o maior preço, e constrói as pontes mais baratas sem fechar circuitos (Union-Find).</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-purple-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center mb-3 text-xl">🌱</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Fungo que Cresce (Prim)</h4>
+          <span class="text-xs text-purple-400 font-medium mb-1 block">"Centrado em Vértices / Raiz"</span>
+          <p class="text-xs text-slate-500">Escolhe uma cidade sede (Root) e se espalha selecionando sempre o vizinho mais barato conectado à colônia, até englobar todas as cidades.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-purple-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 text-xl">💬</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Telefone Sem Fio (STP)</h4>
+          <span class="text-xs text-amber-400 font-medium mb-1 block">"Distribuído & Assíncrono"</span>
+          <p class="text-xs text-slate-500">Nenhum switch tem a lista de arestas da rede (Kruskal é impossível!). Eles trocam BPDUs apenas com os vizinhos imediatos para eleger o Root e calcular o menor custo até ele.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-purple-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 text-xl">⚖️</div>
+          <h4 class="font-bold text-slate-900 text-sm">A Equação Fundamental</h4>
+          <span class="text-xs text-emerald-400 font-medium mb-1 block">"|E| = |V| - 1"</span>
+          <p class="text-xs text-slate-500">Para qualquer grafo conexo com <code>V</code> vértices, qualquer Spanning Tree terá exatamente <code>V - 1</code> arestas ativas. Para 6 switches, exatamente 5 cabos ficam ativos!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: SOLVER INTERATIVO -->
+    <section id="simulador" class="mb-14 scroll-mt-24">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-sm">⚡</div>
+          <h3 class="text-2xl font-bold text-slate-900">Solver Interativo: Passo a Passo de Kruskal & Prim</h3>
+        </div>
+        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+          <button id="btn-algo-kruskal" onclick="setAlgorithm('kruskal')" class="px-3 py-1 rounded font-medium bg-purple-600 text-white transition">1. Algoritmo de Kruskal</button>
+          <button id="btn-algo-prim" onclick="setAlgorithm('prim')" class="px-3 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition">2. Algoritmo de Prim (Raiz A)</button>
+        </div>
+      </div>
+
+      <div class="bg-white border-2 border-slate-200/90 rounded-2xl overflow-hidden shadow-lg">
+        <!-- Control Bar -->
+        <div class="bg-slate-50 p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3 text-xs font-mono">
+            <span class="text-slate-400">Custo Total da MST:</span>
+            <span id="mst-total-cost" class="text-emerald-400 font-bold text-sm">35 (Ótimo)</span>
+            <span class="text-slate-400 ml-4">Arestas na Árvore:</span>
+            <span id="mst-edges-count" class="text-purple-400 font-bold">5 de 5 (V-1)</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="advanceAlgoStep()" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition shadow flex items-center gap-1.5">
+              <span>▶</span> Avançar Passo do Algoritmo
+            </button>
+            <button onclick="resetAlgo()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition shadow-xs">
+              ↺ Reiniciar
+            </button>
+          </div>
+        </div>
+
+        <!-- Graph Visual Representation -->
+        <div class="p-6 bg-slate-50 border-b border-slate-200">
+          <div class="max-w-3xl mx-auto">
+            
+            <!-- Nodes Grid (2 rows x 3 cols) -->
+            <div class="grid grid-cols-3 gap-y-12 gap-x-8 text-center font-mono">
+              <!-- Switch A -->
+              <div id="node-A" class="p-3 rounded-xl bg-slate-900 border-2 border-purple-500 shadow-lg">
+                <div class="text-lg">🔀</div>
+                <div class="font-bold text-xs text-white">Switch A</div>
+              </div>
+
+              <!-- Switch B -->
+              <div id="node-B" class="p-3 rounded-xl bg-white border-2 border-slate-300 shadow-md">
+                <div class="text-lg">🔀</div>
+                <div class="font-bold text-xs text-slate-900">Switch B</div>
+              </div>
+
+              <!-- Switch D -->
+              <div id="node-D" class="p-3 rounded-xl bg-white border-2 border-slate-300 shadow-md">
+                <div class="text-lg">🔀</div>
+                <div class="font-bold text-xs text-slate-900">Switch D</div>
+              </div>
+
+              <!-- Switch C -->
+              <div id="node-C" class="p-3 rounded-xl bg-white border-2 border-slate-300 shadow-md">
+                <div class="text-lg">🔀</div>
+                <div class="font-bold text-xs text-slate-900">Switch C</div>
+              </div>
+
+              <!-- Switch E -->
+              <div id="node-E" class="p-3 rounded-xl bg-white border-2 border-slate-300 shadow-md">
+                <div class="text-lg">🔀</div>
+                <div class="font-bold text-xs text-slate-900">Switch E</div>
+              </div>
+
+              <!-- Switch F -->
+              <div id="node-F" class="p-3 rounded-xl bg-white border-2 border-slate-300 shadow-md">
+                <div class="text-lg">🔀</div>
+                <div class="font-bold text-xs text-slate-900">Switch F</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Step Description Banner -->
+          <div class="mt-8 p-4 rounded-xl bg-white border border-slate-200 shadow-xs text-xs flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-3">
+              <span id="algo-step-badge" class="px-2.5 py-1 rounded bg-purple-950 text-purple-300 font-mono font-bold">ETAPA 0</span>
+              <span id="algo-step-text" class="text-slate-700">Pronto para iniciar. Clique em "Avançar Passo do Algoritmo".</span>
+            </div>
+            <span id="algo-decision-tag" class="font-mono text-emerald-400 font-bold">Aguardando</span>
+          </div>
+        </div>
+
+        <!-- Algorithm Step Execution Table -->
+        <div class="p-5 bg-slate-50 border-t border-slate-200">
+          <div class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 font-mono flex items-center justify-between">
+            <span id="table-title">Fila de Arestas Ordenadas (Kruskal):</span>
+            <span class="text-slate-400 font-normal">8 arestas no grafo total</span>
+          </div>
+
+          <div class="bg-white p-3 rounded-xl border border-slate-200 font-mono text-xs overflow-x-auto shadow-xs">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="text-slate-500 border-b border-slate-200">
+                  <th class="pb-1">Aresta</th>
+                  <th class="pb-1">Peso (Custo STP)</th>
+                  <th class="pb-1">Tecnologia</th>
+                  <th class="pb-1">Status na MST</th>
+                  <th class="pb-1">Justificativa</th>
+                </tr>
+              </thead>
+              <tbody id="algo-table-body" class="divide-y divide-slate-200 text-slate-800">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: O GRAFO DO TRABALHO -->
+    <section id="grafo" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-purple-600/20 text-purple-400 flex items-center justify-center font-bold text-sm">2</div>
+        <h3 class="text-2xl font-bold text-slate-900">Especificação do Grafo do Trabalho</h3>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <p class="text-xs text-slate-700 mb-4 leading-relaxed">
+          Os custos das arestas refletem os custos padrão do protocolo Spanning Tree (IEEE 802.1D) baseados na largura de banda de cada link físico:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <div class="text-cyan-400 font-bold">Links GigabitEthernet (Custo = 4):</div>
+            <div class="text-slate-700">• Switch A ⟷ Switch B (Peso: 4)</div>
+            <div class="text-slate-700">• Switch B ⟷ Switch C (Peso: 4)</div>
+            <div class="text-slate-700">• Switch D ⟷ Switch E (Peso: 4)</div>
+            <div class="text-slate-700">• Switch E ⟷ Switch F (Peso: 4)</div>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <div class="text-amber-400 font-bold">Links FastEthernet (Custo = 19):</div>
+            <div class="text-slate-700">• Switch A ⟷ Switch C (Peso: 19)</div>
+            <div class="text-slate-700">• Switch B ⟷ Switch D (Peso: 19)</div>
+            <div class="text-slate-700">• Switch C ⟷ Switch E (Peso: 19)</div>
+            <div class="text-slate-700">• Switch D ⟷ Switch F (Peso: 19)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: ANÁLISE COMPARATIVA -->
+    <section id="dissertacao" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-purple-600/20 text-purple-400 flex items-center justify-center font-bold text-sm">3</div>
+        <h3 class="text-2xl font-bold text-slate-900">Guia para a Dissertação: Qual Algoritmo o STP Espelha?</h3>
+      </div>
+
+      <div class="bg-gradient-to-br from-purple-50 via-white to-purple-50/60 border-2 border-purple-200 rounded-2xl p-6 shadow-md space-y-4 text-xs leading-relaxed text-slate-700">
+        <h4 class="text-sm font-bold text-slate-900">Tópicos Obrigatórios para sua Resposta no Relatório:</h4>
+        <p>
+          <strong>1. Por que Kruskal é impossível em switches reais?</strong><br>
+          O algoritmo de Kruskal é centralizado: exige que um único computador tenha uma lista completa e globalmente ordenada de todas as arestas da rede inteira antes de tomar a primeira decisão. Em switches de rede locais, nenhum switch tem visibilidade da topologia global da empresa.
+        </p>
+        <p>
+          <strong>2. A relação direta entre Prim e o STP:</strong><br>
+          O Spanning Tree Protocol (STP) é conceitualmente análogo ao algoritmo de <strong>Prim</strong>. O STP elege uma <strong>Ponte Raiz (Root Bridge)</strong>, que funciona como o nó inicial de Prim. A partir dela, a árvore mínima é expandida escolhendo o caminho de menor custo acumulado de cada switch até a raiz através da troca hop-by-hop de mensagens <strong>BPDUs</strong>.
+        </p>
+        <p>
+          <strong>3. A diferença crucial (Distribuído vs Centralizado):</strong><br>
+          Enquanto o Prim clássico roda de forma síncrona com memória central compartilhada, o STP opera de forma <strong>distribuída e assíncrona</strong>: cada switch toma decisões com base estrita nas BPDUs recebidas de seus vizinhos diretos, convergindo para uma topologia sem loops.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION 5: CHECKLIST DE ENTREGA NO CANVAS -->
+    <section id="checklist" class="mb-14 scroll-mt-24">
+      <div class="bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-xl">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">4</span>
+              <h3 class="text-2xl font-bold text-slate-900">Checklist de Avaliação no Canvas (15 Pontos)</h3>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700 mt-1">
+              Critérios obrigatórios para garantir a nota integral do trabalho.
+            </p>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-black text-emerald-400" id="progress-val">0%</div>
+            <div class="text-xs text-slate-500">Concluído</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-purple-500 to-emerald-400 w-0 transition-all duration-300"></div>
+        </div>
+
+        <!-- Interactive Checkboxes -->
+        <div class="space-y-3 text-sm">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Kruskal Resolvido Passo a Passo:</strong> Lista de todas as arestas ordenada por peso com tabela indicando quais foram aceitas e quais foram rejeitadas por formarem ciclo.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Prim Resolvido Passo a Passo:</strong> Expansão da árvore demonstrada a partir do Switch A como raiz, comprovando convergência para o custo total de 35.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Simulação no Visualgo Comprovada:</strong> Captura de telas da simulação no Visualgo com a árvore destacada anexada ao documento.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Dissertação Técnica STP vs Prim:</strong> Texto comparando a natureza centralizada de Prim com o cálculo assíncrono distribuído via BPDUs no STP.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Submissão Formal Efetuada no Canvas:</strong> Relatório em PDF gerado no Overleaf ou Word submetido na tarefa oficial do Canvas antes do encerramento do prazo.
+            </span>
+          </label>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-200 text-xs text-slate-500">
+          <span>Laboratório de Redes de Computadores • 2026.2</span>
+          <a href="#simulador" class="text-purple-400 hover:underline">Voltar ao Simulador ↑</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Navigation -->
+    <div class="flex items-center justify-between border-t border-slate-200 pt-6">
+      <a href="12-spanning-tree-protocol.html" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition flex items-center gap-1.5">
+        ← Lab 12: Spanning Tree Protocol
+      </a>
+      <a href="14-projeto-final-aula-01.html" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg transition flex items-center gap-1.5">
+        Próximo: Lab 14 - Projeto Final: Aula 01 →
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Interactive JavaScript Engine -->
+  <script>
+    let activeAlgo = 'kruskal';
+    let stepIndex = 0;
+
+    const kruskalEdges = [
+      { u: 'A', v: 'B', w: 4, type: 'Gigabit', status: 'ACEITA', reason: 'Menor aresta disponível. Conecta {A} e {B}.' },
+      { u: 'B', v: 'C', w: 4, type: 'Gigabit', status: 'ACEITA', reason: 'Conecta componente {A,B} ao vértice {C}.' },
+      { u: 'D', v: 'E', w: 4, type: 'Gigabit', status: 'ACEITA', reason: 'Conecta componentes disjuntos {D} e {E}.' },
+      { u: 'E', v: 'F', w: 4, type: 'Gigabit', status: 'ACEITA', reason: 'Conecta componente {D,E} ao vértice {F}.' },
+      { u: 'A', v: 'C', w: 19, type: 'FastEth', status: 'REJEITADA', reason: 'FORMA CICLO! Vértices A e C já estão conectados via B.' },
+      { u: 'B', v: 'D', w: 19, type: 'FastEth', status: 'ACEITA', reason: 'UNE AS DUAS FLORESTAS! Conecta {A,B,C} com {D,E,F}. MST CONCLUÍDA!' },
+      { u: 'C', v: 'E', w: 19, type: 'FastEth', status: 'REJEITADA', reason: 'FORMA CICLO! Componentes já totalmente integrados.' },
+      { u: 'D', v: 'F', w: 19, type: 'FastEth', status: 'REJEITADA', reason: 'FORMA CICLO! D e F já conectados via E.' }
+    ];
+
+    function setAlgorithm(algo) {
+      activeAlgo = algo;
+      stepIndex = 0;
+      const bK = document.getElementById('btn-algo-kruskal');
+      const bP = document.getElementById('btn-algo-prim');
+      const t = document.getElementById('table-title');
+
+      if (algo === 'kruskal') {
+        bK.className = 'px-3 py-1 rounded font-medium bg-purple-600 text-white transition';
+        bP.className = 'px-3 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition';
+        t.innerText = 'Fila de Arestas Ordenadas (Kruskal):';
+      } else {
+        bP.className = 'px-3 py-1 rounded font-medium bg-purple-600 text-white transition';
+        bK.className = 'px-3 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition';
+        t.innerText = 'Expansão de Vértices a partir da Raiz A (Prim):';
+      }
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('algo-table-body');
+      tbody.innerHTML = kruskalEdges.map((e, idx) => {
+        const isCurrent = idx === stepIndex - 1;
+        const isPast = idx < stepIndex;
+        let badge = `<span class="text-slate-500">Pendente</span>`;
+        if (isPast) {
+          badge = e.status === 'ACEITA'
+            ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ ACEITA NA MST</span>`
+            : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-500/40">✗ REJEITADA (CICLO)</span>`;
+        }
+
+        return `
+          <tr class="${isCurrent ? 'bg-purple-950/40 ring-1 ring-purple-500' : ''}">
+            <td class="py-2 text-white font-bold">${e.u} ⟷ ${e.v}</td>
+            <td class="py-2 text-cyan-400 font-bold">${e.w}</td>
+            <td class="py-2 text-slate-400">${e.type}</td>
+            <td class="py-2">${badge}</td>
+            <td class="py-2 text-slate-400 text-[11px]">${isPast ? e.reason : 'Aguardando avaliação...'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function advanceAlgoStep() {
+      if (stepIndex < kruskalEdges.length) {
+        stepIndex++;
+        const e = kruskalEdges[stepIndex - 1];
+        document.getElementById('algo-step-badge').innerText = `ETAPA ${stepIndex} / 8`;
+        document.getElementById('algo-step-text').innerHTML = `Avaliando aresta <strong>${e.u} ⟷ ${e.v}</strong> (Peso ${e.w}): ${e.reason}`;
+        document.getElementById('algo-decision-tag').innerText = e.status;
+        document.getElementById('algo-decision-tag').className = e.status === 'ACEITA' ? 'font-mono text-emerald-400 font-bold' : 'font-mono text-rose-400 font-bold';
+
+        // Highlight nodes
+        ['node-A', 'node-B', 'node-C', 'node-D', 'node-E', 'node-F'].forEach(id => {
+          document.getElementById(id).classList.remove('ring-2', 'ring-emerald-400');
+        });
+        document.getElementById('node-' + e.u).classList.add('ring-2', 'ring-emerald-400');
+        document.getElementById('node-' + e.v).classList.add('ring-2', 'ring-emerald-400');
+
+        renderTable();
+      } else {
+        stepIndex = 0;
+        advanceAlgoStep();
+      }
+    }
+
+    function resetAlgo() {
+      stepIndex = 0;
+      document.getElementById('algo-step-badge').innerText = 'ETAPA 0';
+      document.getElementById('algo-step-text').innerText = 'Pronto para iniciar. Clique em "Avançar Passo do Algoritmo".';
+      document.getElementById('algo-decision-tag').innerText = 'Aguardando';
+      document.getElementById('algo-decision-tag').className = 'font-mono text-emerald-400 font-bold';
+      renderTable();
+    }
+
+    function updateProgress() {
+      const checks = document.querySelectorAll('.lab-check');
+      let done = 0;
+      checks.forEach(c => { if (c.checked) done++; });
+      const pct = Math.round((done / checks.length) * 100);
+      document.getElementById('progress-val').innerText = pct + '%';
+      document.getElementById('progress-bar').style.width = pct + '%';
+      localStorage.setItem('lr_lab13_progress', pct);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTable();
+      const saved = localStorage.getItem('lr_lab13_progress');
+      if (saved) {
+        const checks = document.querySelectorAll('.lab-check');
+        const count = Math.round((parseInt(saved) / 100) * checks.length);
+        for (let i = 0; i < count; i++) {
+          if (checks[i]) checks[i].checked = true;
+        }
+        updateProgress();
+      }
+    });
+  </script>
+</body>
+</html>

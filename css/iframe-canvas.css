@@ -1,0 +1,44 @@
+/* Estilos otimizados para exibição embutida no Canvas LMS via Iframe */
+
+/* Detectado via classe .is-iframe adicionada dinamicamente pelo JavaScript */
+body.is-iframe {
+  background-color: var(--bg-primary);
+  padding: 0;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+body.is-iframe .navbar {
+  padding: 0.5rem 1rem;
+}
+
+body.is-iframe .site-footer {
+  padding: 1rem;
+  font-size: 0.75rem;
+}
+
+/* Floating Banner no topo do Iframe para permitir abrir em tela cheia */
+.iframe-top-banner {
+  display: none;
+  background: linear-gradient(90deg, #4f46e5, #7c3aed);
+  color: #ffffff;
+  padding: 0.4rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.iframe-top-banner a {
+  color: #ffffff;
+  text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.iframe-top-banner a:hover {
+  color: #fef08a;
+}

@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 10: Telefonia IP (VoIP CME) • Lab de Redes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .pulse-dot { animation: pulseAnim 2s infinite; }
+    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+    .ring-anim { animation: ringing 0.8s infinite alternate; }
+    @keyframes ringing { 0% { transform: rotate(-5deg); } 100% { transform: rotate(5deg); } }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-cyan-500 selection:text-white">
+
+  <!-- Toast Notifier -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900 border border-cyan-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md">
+    <span class="text-emerald-400 font-bold">✓</span>
+    <span id="toast-msg" class="text-sm font-medium">Comando copiado com sucesso!</span>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 font-mono font-bold text-lg hover:scale-105 transition">
+          LR
+        </a>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            Lab 10: <span class="text-cyan-400">Telefonia IP (VoIP CME)</span>
+          </h1>
+          <p class="text-xs text-slate-500">Cisco CallManager Express, Voice VLAN, Option 150 e discagem entre ramais</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200 flex items-center gap-1">
+          ← Cronograma
+        </a>
+        <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
+          ↗️ Tela Cheia
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 pulse-dot"></span>
+          07/10/2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Canvas Submission Alert -->
+    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
+        📤
+      </div>
+      <div class="flex-1">
+        <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
+          Submissão Obrigatória no Canvas da Disciplina
+        </h4>
+        <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
+          Ao término do laboratório, envie na tarefa correspondente no <strong>Canvas</strong>:
+        </p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Arquivo .pkt: voip_cme_seunome.pkt</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Print da tela do IP Phone em chamada "Connected"</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Saída de 'show ephone' e 'show ephone-dn'</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Jump Navigation -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
+      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Modelos Mentais</a>
+      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold shadow-xs transition font-medium flex items-center gap-1">
+        ⚡ Simulador de IP Phone 7960 & CME
+      </a>
+      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Comandos Cisco IOS</a>
+      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Armadilhas Comuns</a>
+      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition font-medium">4. Checklist de Entrega</a>
+    </div>
+
+    <!-- Intro Hero -->
+    <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div class="max-w-3xl">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+          Laboratório 10 • Voz sobre IP & Telefonia Corporativa
+        </span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4 tracking-tight">
+          Convergência de Redes: Telefonia IP com Cisco CallManager Express
+        </h2>
+        <p class="text-slate-700 text-base leading-relaxed mb-6">
+          Historicamente, empresas mantinham duas redes separadas: uma para telefonia tradicional e outra para dados. A <strong>Telefonia IP (VoIP)</strong> unifica voz e dados no mesmo cabo Ethernet. Neste laboratório, você configurará <strong>Voice VLANs</strong> com prioridade QoS, provisionará o servidor DHCP com a opção especial <strong>Option 150 (TFTP)</strong> e transformará um Roteador Cisco 2811 em uma central telefônica PBX completa com discagem entre ramais.
+        </p>
+        <div class="flex flex-wrap gap-4 text-xs font-mono">
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">PBX Central:</span> <span class="text-cyan-400 font-bold">Cisco 2811 CME (Porta 2000 SCCP)</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Telefones IP:</span> <span class="text-indigo-400 font-bold">Cisco 7960 (Ramais 1001 e 1002)</span>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+            <span class="text-slate-400">DHCP Crucial:</span> <span class="text-amber-400 font-bold">option 150 ip 192.168.10.1</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: MODELOS MENTAIS -->
+    <section id="analogia" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">1</div>
+        <h3 class="text-2xl font-bold text-slate-900">Modelos Mentais: A Magia da Convergência de Voz</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-3 text-xl">☎️</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Telefone com Switch Embutido</h4>
+          <span class="text-xs text-cyan-400 font-medium mb-1 block">"Mini-Switch 3 Portas"</span>
+          <p class="text-xs text-slate-500">O telefone IP tem porta SW (para a tomada da parede) e porta PC (para o computador da mesa). Um único ponto de rede alimenta ambos os dispositivos!</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-3 text-xl">🏎️</div>
+          <h4 class="font-bold text-slate-900 text-sm">A Faixa Exclusiva do Ônibus</h4>
+          <span class="text-xs text-indigo-400 font-medium mb-1 block">"Voice VLAN & QoS CoS 5"</span>
+          <p class="text-xs text-slate-500">Voz não tolera atraso nem jitter. A Voice VLAN coloca os pacotes de áudio numa fila prioritária com tag 802.1p para que downloads no PC não travem a ligação.</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 text-xl">🎟️</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Cartão de Embarque</h4>
+          <span class="text-xs text-amber-400 font-medium mb-1 block">"Option 150 (TFTP IP)"</span>
+          <p class="text-xs text-slate-500">O telefone liga sem saber qual é seu ramal. O DHCP entrega a Option 150: "Fale com o servidor TFTP no IP do roteador para baixar seu arquivo de configuração XML".</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 text-xl">🎼</div>
+          <h4 class="font-bold text-slate-900 text-sm">O Maestro da Central (CME)</h4>
+          <span class="text-xs text-emerald-400 font-medium mb-1 block">"Skinny (SCCP) & RTP"</span>
+          <p class="text-xs text-slate-500">O roteador controla a discagem e o toque na porta 2000. Mas após atender, o áudio (RTP) viaja diretamente de telefone para telefone!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: SIMULADOR INTERATIVO -->
+    <section id="simulador" class="mb-14 scroll-mt-24">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-sm">⚡</div>
+          <h3 class="text-2xl font-bold text-slate-900">Simulador Interativo: Telefones IP 7960 & Central CME</h3>
+        </div>
+        <span class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200 font-medium font-mono">
+          Cisco 2811 PBX
+        </span>
+      </div>
+
+      <div class="bg-white border-2 border-slate-200/90 rounded-2xl overflow-hidden shadow-lg">
+        <!-- Dashboard Top Bar -->
+        <div class="bg-slate-50 p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-4 text-xs font-mono">
+            <div>
+              <span class="text-slate-400">Central CME:</span>
+              <span class="text-emerald-400 font-bold">192.168.10.1:2000 (SCCP Ativo)</span>
+            </div>
+            <div>
+              <span class="text-slate-400">Ramais Ativos:</span>
+              <span class="text-cyan-400 font-bold">1001 (ephone 1) & 1002 (ephone 2)</span>
+            </div>
+          </div>
+
+          <button onclick="resetVoipSim()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition shadow-xs">
+            ↺ Reiniciar Central
+          </button>
+        </div>
+
+        <!-- Two Interactive Phones Side by Side -->
+        <div class="p-6 bg-slate-50 border-b border-slate-200">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            
+            <!-- Phone 1 (Ramal 1001) -->
+            <div id="phone-card-1" class="bg-slate-900 border-2 border-slate-800 rounded-2xl p-5 shadow-xl transition">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">☎️</span>
+                  <span class="font-bold text-xs text-white">Cisco IP Phone 7960 (Bancada 1)</span>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/30">
+                  RAMAL 1001
+                </span>
+              </div>
+
+              <!-- LCD Display Simulation -->
+              <div class="bg-emerald-950/40 border-2 border-emerald-500/40 rounded-xl p-4 font-mono text-center mb-4 min-h-[90px] flex flex-col justify-center">
+                <div id="lcd-1-title" class="text-xs text-emerald-400 font-bold">CISCO SYSTEMS IP PHONE</div>
+                <div id="lcd-1-status" class="text-sm text-white font-bold my-1">1001 (Pronto)</div>
+                <div id="lcd-1-sub" class="text-[10px] text-emerald-300/70">Tire o fone para discar</div>
+              </div>
+
+              <!-- Handset and Controls -->
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <button id="btn-handset-1" onclick="toggleHandset(1)" class="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-700 border border-slate-700 transition flex items-center justify-center gap-2">
+                  <span id="handset-icon-1">📞</span>
+                  <span id="handset-label-1">Tirar do Gancho (Off Hook)</span>
+                </button>
+              </div>
+
+              <!-- Keypad -->
+              <div class="grid grid-cols-3 gap-2 text-center max-w-[200px] mx-auto font-mono text-xs">
+                <button onclick="pressDigit(1, '1')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">1</button>
+                <button onclick="pressDigit(1, '2')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">2</button>
+                <button onclick="pressDigit(1, '3')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">3</button>
+                <button onclick="pressDigit(1, '4')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">4</button>
+                <button onclick="pressDigit(1, '5')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">5</button>
+                <button onclick="pressDigit(1, '6')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">6</button>
+                <button onclick="pressDigit(1, '7')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">7</button>
+                <button onclick="pressDigit(1, '8')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">8</button>
+                <button onclick="pressDigit(1, '9')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">9</button>
+                <button onclick="pressDigit(1, '*')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400">*</button>
+                <button onclick="pressDigit(1, '0')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">0</button>
+                <button onclick="pressDigit(1, '#')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400">#</button>
+              </div>
+            </div>
+
+            <!-- Phone 2 (Ramal 1002) -->
+            <div id="phone-card-2" class="bg-slate-900 border-2 border-slate-800 rounded-2xl p-5 shadow-xl transition">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">☎️</span>
+                  <span class="font-bold text-xs text-white">Cisco IP Phone 7960 (Bancada 2)</span>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/30">
+                  RAMAL 1002
+                </span>
+              </div>
+
+              <!-- LCD Display Simulation -->
+              <div class="bg-emerald-950/40 border-2 border-emerald-500/40 rounded-xl p-4 font-mono text-center mb-4 min-h-[90px] flex flex-col justify-center">
+                <div id="lcd-2-title" class="text-xs text-emerald-400 font-bold">CISCO SYSTEMS IP PHONE</div>
+                <div id="lcd-2-status" class="text-sm text-white font-bold my-1">1002 (Pronto)</div>
+                <div id="lcd-2-sub" class="text-[10px] text-emerald-300/70">Aguardando chamada...</div>
+              </div>
+
+              <!-- Handset and Controls -->
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <button id="btn-handset-2" onclick="toggleHandset(2)" class="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-700 border border-slate-700 transition flex items-center justify-center gap-2">
+                  <span id="handset-icon-2">📞</span>
+                  <span id="handset-label-2">Tirar do Gancho / Atender</span>
+                </button>
+              </div>
+
+              <!-- Keypad -->
+              <div class="grid grid-cols-3 gap-2 text-center max-w-[200px] mx-auto font-mono text-xs">
+                <button onclick="pressDigit(2, '1')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">1</button>
+                <button onclick="pressDigit(2, '2')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">2</button>
+                <button onclick="pressDigit(2, '3')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">3</button>
+                <button onclick="pressDigit(2, '4')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">4</button>
+                <button onclick="pressDigit(2, '5')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">5</button>
+                <button onclick="pressDigit(2, '6')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">6</button>
+                <button onclick="pressDigit(2, '7')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">7</button>
+                <button onclick="pressDigit(2, '8')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">8</button>
+                <button onclick="pressDigit(2, '9')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">9</button>
+                <button onclick="pressDigit(2, '*')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400">*</button>
+                <button onclick="pressDigit(2, '0')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white">0</button>
+                <button onclick="pressDigit(2, '#')" class="p-2 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400">#</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Protocol & Signaling Inspector Console -->
+        <div class="p-5 bg-slate-50 border-t border-slate-200">
+          <div class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 font-mono flex items-center justify-between">
+            <span>📡 Sinalização de Chamada (Skinny SCCP & Áudio RTP):</span>
+            <span id="call-state-pill" class="text-emerald-400">Estado: Em Espera</span>
+          </div>
+          <div id="voip-console" class="bg-[#0d1117] p-3 rounded-xl border border-slate-800 font-mono text-xs text-slate-100 space-y-1 h-24 overflow-y-auto">
+            <div class="text-slate-500">CME PBX ativo. Telefones registrados via SCCP (Porta 2000 TCP).</div>
+            <div class="text-slate-500">Clique em "Tirar do Gancho" no Telefone 1 e digite "1002" para iniciar a chamada!</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: GUIA DE COMANDOS -->
+    <section id="roteiro" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">2</div>
+        <h3 class="text-2xl font-bold text-slate-900">Guia de Configuração Cisco IOS</h3>
+      </div>
+
+      <!-- Switch Voice VLAN -->
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>🔀</span> 1. Switch 2960: Criação da Voice VLAN
+          </h4>
+          <button onclick="copyCode('code-sw-voip')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition flex items-center gap-1">
+            📋 Copiar Switch
+          </button>
+        </div>
+        <p class="text-xs text-slate-700 mb-3 leading-relaxed">
+          Configura as portas de acesso para transportar dados comuns sem tag e voz na VLAN 10 com tag e prioridade 802.1p:
+        </p>
+        <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+<pre id="code-sw-voip"><code>enable
+configure terminal
+
+! 1. Cria a VLAN de Voz
+vlan 10
+ name VOIP
+exit
+
+! 2. Porta Trunk para o Roteador CME
+interface fastEthernet 0/1
+ switchport mode trunk
+exit
+
+! 3. Portas dos Telefones IP (com PC pendurado atrás)
+interface range fastEthernet 0/2-5
+ switchport mode access
+ switchport access vlan 1
+ switchport voice vlan 10
+exit</code></pre>
+        </div>
+      </div>
+
+      <!-- Router 2811 CME -->
+      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>🧭</span> 2. Roteador 2811: CME, Option 150 & Ramais
+          </h4>
+          <button onclick="copyCode('code-r-cme')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1">
+            📋 Copiar Roteador CME
+          </button>
+        </div>
+        <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+<pre id="code-r-cme"><code>enable
+configure terminal
+hostname CME-ROUTER
+
+! 1. Sub-interface de Voz L3 (Gateway)
+interface fastEthernet 0/0
+ no shutdown
+exit
+
+interface fastEthernet 0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+exit
+
+! 2. DHCP Pool com a crucial Option 150 (TFTP)
+ip dhcp pool POOL-VOIP
+ network 192.168.10.0 255.255.255.0
+ default-router 192.168.10.1
+ option 150 ip 192.168.10.1
+exit
+
+! 3. Central PBX Telefônica (CallManager Express)
+telephony-service
+ max-ephones 5
+ max-dn 5
+ ip source-address 192.168.10.1 port 2000
+ auto assign 1 to 5
+exit
+
+! 4. Criação dos Ramais Telefônicos
+ephone-dn 1
+ number 1001
+exit
+
+ephone-dn 2
+ number 1002
+exit</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: ARMADILHAS COMUNS -->
+    <section id="armadilhas" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center font-bold text-sm">3</div>
+        <h3 class="text-2xl font-bold text-slate-900">Armadilhas Comuns em Telefonia IP</h3>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 1. Esquecer da Fonte de Alimentação
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            No Packet Tracer, os telefones IP 7960 vêm sem energia elétrica conectada por padrão. Se você não arrastar a fonte de alimentação na aba Physical, o telefone não liga e fica com tela preta.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Aba Physical do Telefone IP → Conectar cabo de força na tomada!
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 2. Esquecer a Option 150 no DHCP
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            O telefone IP pega endereço IP normalmente, mas trava para sempre na tela <em>"Configuring IP..."</em>. Sem a <code>option 150</code>, ele não descobre onde baixar o firmware e dialplan.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Comando: option 150 ip 192.168.10.1 no pool DHCP.
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
+          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 3. Esquecer do "auto assign"
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed mb-3">
+            Sem o comando <code>auto assign 1 to 5</code> sob <code>telephony-service</code>, o CME não associa automaticamente o primeiro telefone que registra ao ramal 1001.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            Sempre inclua 'auto assign 1 to 5' no telephony-service.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: CHECKLIST DE ENTREGA NO CANVAS -->
+    <section id="checklist" class="mb-14 scroll-mt-24">
+      <div class="bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-xl">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">4</span>
+              <h3 class="text-2xl font-bold text-slate-900">Checklist de Entrega no Canvas</h3>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-700 mt-1">
+              Marque os itens conforme concluir. O progresso é salvo localmente.
+            </p>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-black text-emerald-400" id="progress-val">0%</div>
+            <div class="text-xs text-slate-500">Concluído</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 w-0 transition-all duration-300"></div>
+        </div>
+
+        <!-- Checkboxes -->
+        <div class="space-y-3 text-sm">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Telefones Alimentados e Conectados:</strong> Fonte de alimentação ligada e cabos conectados entre Switch (Fa0/2 e Fa0/3) e PCs.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Voice VLAN 10 Configurada no Switch:</strong> Comando <code>switchport voice vlan 10</code> aplicado nas portas das bancadas.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>DHCP Option 150 & CME Ativo:</strong> Pool <code>POOL-VOIP</code> entrega IP e TFTP <code>192.168.10.1</code> aos aparelhos.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Chamada Entre Ramais 1001 e 1002 Realizada:</strong> Ligação completada com sucesso e visualização da mensagem <em>"Connected"</em>.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
+            <span class="text-slate-700 text-xs sm:text-sm">
+              <strong>Submissão Concluída no Canvas:</strong> Arquivo <code>voip_cme_seunome.pkt</code> e relatório PDF com os prints das chamadas e saídas de comandos submetidos na tarefa.
+            </span>
+          </label>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-200 text-xs text-slate-500">
+          <span>Laboratório de Redes de Computadores • 2026.2</span>
+          <a href="#simulador" class="text-cyan-400 hover:underline">Voltar ao Simulador ↑</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Navigation -->
+    <div class="flex items-center justify-between border-t border-slate-200 pt-6">
+      <a href="09-switches-idf-mdf-trunk.html" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition flex items-center gap-1.5">
+        ← Lab 09: Switches IDF & MDF com Trunk
+      </a>
+      <a href="11-nat-e-hierarquia-dns.html" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-lg transition flex items-center gap-1.5">
+        Próximo: Lab 11 - NAT & Hierarquia DNS →
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Interactive JavaScript Engine -->
+  <script>
+    let phone1OffHook = false;
+    let phone2OffHook = false;
+    let dialedNumber = '';
+    let callState = 'idle'; // idle, dialing, ringing, connected
+
+    function toggleHandset(num) {
+      const consoleLog = document.getElementById('voip-console');
+      if (num === 1) {
+        phone1OffHook = !phone1OffHook;
+        const btn = document.getElementById('btn-handset-1');
+        const icon = document.getElementById('handset-icon-1');
+        const label = document.getElementById('handset-label-1');
+
+        if (phone1OffHook) {
+          btn.className = 'flex-1 py-2 rounded-xl text-xs font-bold bg-amber-600 text-white transition flex items-center justify-center gap-2';
+          label.innerText = 'Colocar no Gancho (On Hook)';
+          if (callState === 'idle') {
+            callState = 'dialing';
+            dialedNumber = '';
+            document.getElementById('lcd-1-status').innerText = 'Discando...';
+            document.getElementById('lcd-1-sub').innerText = 'Digite o ramal (ex: 1002)';
+            consoleLog.innerHTML += `<div class="text-cyan-400">[SCCP] Ramal 1001 Off-Hook. Tom de discagem ativo.</div>`;
+          }
+        } else {
+          // Hang up
+          btn.className = 'flex-1 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-700 border border-slate-700 transition flex items-center justify-center gap-2';
+          label.innerText = 'Tirar do Gancho (Off Hook)';
+          endCall();
+        }
+      } else {
+        // Phone 2
+        phone2OffHook = !phone2OffHook;
+        const btn = document.getElementById('btn-handset-2');
+        const label = document.getElementById('handset-label-2');
+
+        if (phone2OffHook) {
+          btn.className = 'flex-1 py-2 rounded-xl text-xs font-bold bg-amber-600 text-white transition flex items-center justify-center gap-2';
+          label.innerText = 'Colocar no Gancho';
+
+          if (callState === 'ringing') {
+            // Answer!
+            callState = 'connected';
+            document.getElementById('phone-card-2').classList.remove('ring-anim', 'ring-2', 'ring-amber-400');
+            document.getElementById('lcd-1-status').innerText = 'Connected (1002)';
+            document.getElementById('lcd-1-sub').innerText = 'Áudio RTP G.711 Bidirecional';
+            document.getElementById('lcd-2-status').innerText = 'Connected (1001)';
+            document.getElementById('lcd-2-sub').innerText = 'Áudio RTP G.711 Bidirecional';
+            document.getElementById('call-state-pill').innerText = 'Estado: CHAMADA CONECTADA (RTP)';
+            document.getElementById('call-state-pill').className = 'text-emerald-400 font-bold';
+
+            consoleLog.innerHTML += `<div class="text-emerald-400 font-bold">[RTP STREAM] Chamada atendida! Fluxo UDP de voz estabelecido entre 192.168.10.51:16384 e 192.168.10.52:16384!</div>`;
+          }
+        } else {
+          btn.className = 'flex-1 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-700 border border-slate-700 transition flex items-center justify-center gap-2';
+          label.innerText = 'Tirar do Gancho / Atender';
+          endCall();
+        }
+      }
+      consoleLog.scrollTop = consoleLog.scrollHeight;
+    }
+
+    function pressDigit(phone, digit) {
+      if (phone === 1 && phone1OffHook && (callState === 'dialing' || callState === 'idle')) {
+        dialedNumber += digit;
+        document.getElementById('lcd-1-status').innerText = dialedNumber;
+
+        if (dialedNumber === '1002') {
+          // Trigger Ringing
+          callState = 'ringing';
+          document.getElementById('lcd-1-sub').innerText = 'Chamando 1002... (Ring Out)';
+          document.getElementById('lcd-2-status').innerText = 'LIGANDO DE 1001...';
+          document.getElementById('lcd-2-sub').innerText = 'Toque de chamada! Clique em "Atender"';
+          document.getElementById('phone-card-2').classList.add('ring-anim', 'ring-2', 'ring-amber-400');
+          document.getElementById('call-state-pill').innerText = 'Estado: TOCANDO RAMAL 1002...';
+          document.getElementById('call-state-pill').className = 'text-amber-400 font-bold';
+
+          const consoleLog = document.getElementById('voip-console');
+          consoleLog.innerHTML += `<div class="text-amber-300">[SCCP] CME roteou chamada de 1001 para 1002. Enviando sinal de Ringing...</div>`;
+          consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+      }
+    }
+
+    function endCall() {
+      callState = 'idle';
+      dialedNumber = '';
+      phone1OffHook = false;
+      phone2OffHook = false;
+
+      document.getElementById('phone-card-2').classList.remove('ring-anim', 'ring-2', 'ring-amber-400');
+      document.getElementById('lcd-1-status').innerText = '1001 (Pronto)';
+      document.getElementById('lcd-1-sub').innerText = 'Tire o fone para discar';
+      document.getElementById('lcd-2-status').innerText = '1002 (Pronto)';
+      document.getElementById('lcd-2-sub').innerText = 'Aguardando chamada...';
+
+      document.getElementById('btn-handset-1').className = 'flex-1 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-700 border border-slate-700 transition flex items-center justify-center gap-2';
+      document.getElementById('handset-label-1').innerText = 'Tirar do Gancho (Off Hook)';
+      document.getElementById('btn-handset-2').className = 'flex-1 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-700 border border-slate-700 transition flex items-center justify-center gap-2';
+      document.getElementById('handset-label-2').innerText = 'Tirar do Gancho / Atender';
+
+      document.getElementById('call-state-pill').innerText = 'Estado: Em Espera';
+      document.getElementById('call-state-pill').className = 'text-emerald-400';
+
+      const consoleLog = document.getElementById('voip-console');
+      consoleLog.innerHTML += `<div class="text-slate-400">[SCCP] Chamada encerrada (On-Hook). Sockets RTP liberados.</div>`;
+      consoleLog.scrollTop = consoleLog.scrollHeight;
+    }
+
+    function resetVoipSim() {
+      endCall();
+      document.getElementById('voip-console').innerHTML = `
+        <div class="text-slate-500">CME PBX ativo. Telefones registrados via SCCP (Porta 2000 TCP).</div>
+        <div class="text-slate-500">Clique em "Tirar do Gancho" no Telefone 1 e digite "1002" para iniciar a chamada!</div>
+      `;
+    }
+
+    function copyCode(id) {
+      const code = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(code);
+      showToast('Comandos copiados para a área de transferência!');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      t.classList.remove('opacity-0', 'translate-y-20');
+      setTimeout(() => t.classList.add('opacity-0', 'translate-y-20'), 2500);
+    }
+
+    function updateProgress() {
+      const checks = document.querySelectorAll('.lab-check');
+      let done = 0;
+      checks.forEach(c => { if (c.checked) done++; });
+      const pct = Math.round((done / checks.length) * 100);
+      document.getElementById('progress-val').innerText = pct + '%';
+      document.getElementById('progress-bar').style.width = pct + '%';
+      localStorage.setItem('lr_lab10_progress', pct);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('lr_lab10_progress');
+      if (saved) {
+        const checks = document.querySelectorAll('.lab-check');
+        const count = Math.round((parseInt(saved) / 100) * checks.length);
+        for (let i = 0; i < count; i++) {
+          if (checks[i]) checks[i].checked = true;
+        }
+        updateProgress();
+      }
+    });
+  </script>
+</body>
+</html>

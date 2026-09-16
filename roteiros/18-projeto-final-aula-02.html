@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeto Final • Aula 02: Roteamento L3, DHCP & NAT • Lab de Redes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .pulse-dot { animation: pulseAnim 2s infinite; }
+    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Toast Notifier -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-white border border-indigo-200 text-slate-800 px-4 py-3 rounded-xl shadow-2xl">
+    <span class="text-emerald-600 font-bold">✓</span>
+    <span id="toast-msg" class="text-sm font-medium">Copiado para a área de transferência!</span>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md font-mono font-bold text-lg hover:scale-105 transition">
+          LR
+        </a>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            Projeto Final • P2: <span class="text-indigo-600">Roteamento L3, DHCP & NAT</span>
+          </h1>
+          <p class="text-xs text-slate-500">SVIs no Switch Core L3, DHCP Relay com Helper-Address e Saída Internet</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200 flex items-center gap-1">
+          ← Cronograma
+        </a>
+        <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
+          ↗️ Tela Cheia
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+          <span class="w-2 h-2 rounded-full bg-indigo-500 pulse-dot"></span>
+          02/12/2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Canvas Submission Alert -->
+    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
+        📤
+      </div>
+      <div class="flex-1">
+        <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
+          Submissão Obrigatória da Parte 2 no Canvas da Disciplina (Peso: 10 Pontos)
+        </h4>
+        <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
+          Esta entrega avalia a conectividade Inter-VLAN e a saída dos hosts para a Internet. Envie na respectiva tarefa no <strong>Canvas</strong>:
+        </p>
+        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Arquivo projeto_parte2_seunome.pkt</span>
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Prints: show ip route, DHCP recebido & Navegação Web</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Jump Navigation -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
+      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Modelos Mentais</a>
+      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold transition flex items-center gap-1">
+        ⚡ Simulador Interativo: L3 SVI, DHCP Relay & NAT
+      </a>
+      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Comandos Cisco IOS</a>
+      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Armadilhas Comuns</a>
+      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition">4. Checklist de Entrega</a>
+    </div>
+
+    <!-- 1. Mental Models Section -->
+    <section id="analogia" class="mb-12">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-sm border border-indigo-200">1</span>
+        <h2 class="text-xl font-bold text-slate-900">Modelos Mentais: Do Isolamento L2 ao Roteamento L3 & Internet</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition">
+          <div class="text-2xl mb-2">⚡</div>
+          <h3 class="font-bold text-indigo-700 text-sm mb-1">O Comando 'ip routing'</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            No Cisco Catalyst 3560/3650, o switch nasce operando apenas em Camada 2. O comando global <code>ip routing</code> é a chave que liga a tabela de rotas e o motor de comutação L3 por hardware (CEF).
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition">
+          <div class="text-2xl mb-2">🚪</div>
+          <h3 class="font-bold text-indigo-700 text-sm mb-1">SVI (Switch Virtual Interface)</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            <code>interface Vlan 10</code> cria uma porta lógica no Core que atua como o Default Gateway (ex: 192.168.10.1) para todas as máquinas daquela VLAN nos andares.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition">
+          <div class="text-2xl mb-2">📡</div>
+          <h3 class="font-bold text-indigo-700 text-sm mb-1">ip helper-address (DHCP Relay)</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Como broadcasts DHCP não cruzam roteadores, o switch core intercepta o Discover na SVI e o reencaminha como Unicast direto para o servidor SRV-NET na DMZ (192.168.30.40).
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition">
+          <div class="text-2xl mb-2">🌐</div>
+          <h3 class="font-bold text-indigo-700 text-sm mb-1">NAT Overload (PAT) na Borda</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            O roteador R-EDGE traduz todos os IPs privados das VLANs (192.168.x.x) para o único IP público da WAN da operadora através de portas TCP/UDP dinâmicas.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Interactive Simulator Section -->
+    <section id="simulador" class="mb-12">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-sm border border-indigo-200">2</span>
+          <h2 class="text-xl font-bold text-slate-900">Simulador Interativo: SVI Inter-VLAN, DHCP Relay e NAT de Borda</h2>
+        </div>
+        <span class="text-xs text-indigo-700 font-mono bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full font-semibold">
+          L3 Core & WAN Engine
+        </span>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-md">
+        
+        <!-- Live Action Buttons -->
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-200">
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="simulateDhcpRelay()" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm flex items-center gap-1.5">
+              🔄 1. Solicitar IP via DHCP Relay (PC ➔ SVI ➔ SRV-NET)
+            </button>
+            <button onclick="simulateInterVlanPing()" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition shadow-sm flex items-center gap-1.5">
+              🚀 2. Roteamento Inter-VLAN (PC-ADM .10 ➔ SRV-WEB .30)
+            </button>
+            <button onclick="simulateNatInternet()" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm flex items-center gap-1.5">
+              🌐 3. Acessar Internet Pública via NAT (PC ➔ R-EDGE ➔ WAN)
+            </button>
+          </div>
+
+          <button onclick="resetL3Simulation()" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 transition">
+            Limpar Console
+          </button>
+        </div>
+
+        <!-- 4-Stage Architectural Flow Cards -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
+          
+          <!-- Station -->
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+            <div class="text-2xl mb-1">💻</div>
+            <div class="font-bold text-slate-900">PC-ADM-01 (2º Andar)</div>
+            <div id="sim-pc-ip" class="text-slate-500 mt-1">IP: 0.0.0.0 (DHCP)</div>
+            <div class="text-[10px] text-indigo-600 mt-0.5">VLAN 10 • Porta Fa0/1</div>
+          </div>
+
+          <!-- SVI Core L3 -->
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+            <div class="text-2xl mb-1">⚙️</div>
+            <div class="font-bold text-slate-900">SW-CORE-MDF (3560)</div>
+            <div class="text-slate-500 mt-1">SVI Vlan 10: .10.1</div>
+            <div class="text-[10px] text-purple-600 mt-0.5">helper: 192.168.30.40</div>
+          </div>
+
+          <!-- DMZ DHCP Server -->
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+            <div class="text-2xl mb-1">🖥️</div>
+            <div class="font-bold text-slate-900">SRV-NET (DMZ Data Center)</div>
+            <div class="text-slate-500 mt-1">IP Fixo: 192.168.30.40</div>
+            <div class="text-[10px] text-cyan-600 mt-0.5">DHCP Pools: ADM, VOIP, GUEST</div>
+          </div>
+
+          <!-- R-EDGE Internet NAT Router -->
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+            <div class="text-2xl mb-1">🌐</div>
+            <div class="font-bold text-slate-900">R-EDGE (Roteador Borda)</div>
+            <div class="text-slate-500 mt-1">WAN: 200.19.1.2/30</div>
+            <div class="text-[10px] text-emerald-600 mt-0.5">ip nat overload ativo</div>
+          </div>
+        </div>
+
+        <!-- CLI Console Log Box -->
+        <div class="mt-6 p-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 font-mono text-xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-800 mb-2">
+            <span class="text-indigo-400 font-bold flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Console de Depuração L3, DHCP Relay & NAT
+            </span>
+            <span id="l3-status-tag" class="text-slate-400">Pronto</span>
+          </div>
+          <div id="l3-log" class="space-y-1 h-32 overflow-y-auto text-[11px] text-slate-300">
+            <div>[CORE-L3] CEF ativado (ip routing). 5 SVIs diretamente conectadas na tabela de rotas.</div>
+            <div>[NAT] R-EDGE sincronizado com a operadora WAN (200.19.1.0/30).</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Practical Walkthrough Section -->
+    <section id="roteiro" class="mb-12">
+      <div class="flex items-center gap-2 mb-6">
+        <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-sm border border-indigo-200">3</span>
+        <h2 class="text-xl font-bold text-slate-900">Guia de Comandos Cisco IOS: Roteamento Core e NAT</h2>
+      </div>
+
+      <!-- Step 1 Core SVI -->
+      <div class="mb-6 p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+        <h3 class="text-base font-bold text-indigo-700 mb-2">1. Ativação do Roteamento L3 e Criação das SVIs no SW-CORE-MDF</h3>
+        <p class="text-xs text-slate-600 mb-3">
+          No Switch Core 3560, ligamos o motor de roteamento e configuramos cada SVI com seu IP de gateway e o helper-address:
+        </p>
+
+        <div class="relative bg-slate-900 rounded-xl p-4 border border-slate-800 font-mono text-xs text-slate-200 overflow-x-auto">
+          <button onclick="copyCode('code-svi')" class="absolute top-3 right-3 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] transition">Copiar</button>
+          <pre id="code-svi">enable
+configure terminal
+hostname SW-CORE-MDF
+
+! 1. Ligar o Roteamento L3 por Hardware
+ip routing
+
+! 2. Gateway da VLAN 10 (ADM) com DHCP Relay para a DMZ
+interface Vlan10
+ description GATEWAY-ADM
+ ip address 192.168.10.1 255.255.255.0
+ ip helper-address 192.168.30.40
+ no shutdown
+exit
+
+! 3. Gateway da VLAN 20 (VOIP)
+interface Vlan20
+ description GATEWAY-VOIP
+ ip address 192.168.20.1 255.255.255.0
+ ip helper-address 192.168.30.40
+ no shutdown
+exit
+
+! 4. Gateway da VLAN 30 (DMZ Servidores)
+interface Vlan30
+ description GATEWAY-DMZ-DATACENTER
+ ip address 192.168.30.1 255.255.255.0
+ no shutdown
+exit
+
+! 5. Gateway da VLAN 40 (GUEST Wi-Fi)
+interface Vlan40
+ description GATEWAY-GUEST
+ ip address 192.168.40.1 255.255.255.0
+ ip helper-address 192.168.30.40
+ no shutdown
+exit
+
+! 6. Rota Padrão Estática apontando para o Roteador de Borda R-EDGE
+ip route 0.0.0.0 0.0.0.0 10.0.0.2</pre>
+        </div>
+      </div>
+
+      <!-- Step 2 R-EDGE NAT -->
+      <div class="mb-6 p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+        <h3 class="text-base font-bold text-indigo-700 mb-2">2. Configuração de NAT/PAT Overload no Roteador de Borda R-EDGE</h3>
+        <p class="text-xs text-slate-600 mb-3">
+          No roteador de borda conectado à operadora, configuramos a tradução de todos os blocos internos para o IP da interface WAN:
+        </p>
+
+        <div class="relative bg-slate-900 rounded-xl p-4 border border-slate-800 font-mono text-xs text-slate-200 overflow-x-auto">
+          <button onclick="copyCode('code-nat')" class="absolute top-3 right-3 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] transition">Copiar</button>
+          <pre id="code-nat">enable
+configure terminal
+hostname R-EDGE
+
+! Interface Interna (voltada para o SW-CORE-MDF)
+interface GigabitEthernet0/0
+ ip address 10.0.0.2 255.255.255.252
+ ip nat inside
+ no shutdown
+exit
+
+! Interface Externa (WAN conectada à Nuvem/ISP)
+interface GigabitEthernet0/1
+ ip address 200.19.1.2 255.255.255.252
+ ip nat outside
+ no shutdown
+exit
+
+! ACL permitindo a tradução de todas as redes corporativas
+access-list 1 permit 192.168.0.0 0.0.255.255
+
+! Ativação do NAT Overload (PAT) na interface de saída WAN
+ip nat inside source list 1 interface GigabitEthernet0/1 overload
+
+! Rota de volta para o Core das sub-redes internas
+ip route 192.168.0.0 255.255.0.0 10.0.0.1
+
+! Rota padrão para a Internet da operadora
+ip route 0.0.0.0 0.0.0.0 200.19.1.1</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Common Pitfalls -->
+    <section id="armadilhas" class="mb-12">
+      <div class="flex items-center gap-2 mb-6">
+        <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-800 font-bold flex items-center justify-center text-sm border border-amber-200">4</span>
+        <h2 class="text-xl font-bold text-slate-900">Armadilhas Comuns no Roteamento e NAT</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="p-5 rounded-xl bg-red-50 border border-red-200 shadow-xs hover:border-red-300 transition">
+          <div class="text-xl mb-2">❌ Esquecer o 'ip routing'</div>
+          <h3 class="font-bold text-red-900 text-sm mb-1">Switch L3 não Roteia</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Se você criar todas as SVIs mas esquecer de digitar <code>ip routing</code> no modo de configuração global, os hosts pingarão seu próprio gateway mas NUNCA alcançarão nenhuma outra VLAN ou servidor.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-amber-50 border border-amber-200 shadow-xs hover:border-amber-300 transition">
+          <div class="text-xl mb-2">⚠️ Helper-Address Faltante</div>
+          <h3 class="font-bold text-amber-900 text-sm mb-1">PC preso em 169.254.x.x (APIPA)</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Se o PC de um andar não receber IP do SRV-NET, certifique-se de que a SVI daquela VLAN possui <code>ip helper-address 192.168.30.40</code> apontado para o IP exato do servidor DHCP na DMZ.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-sky-50 border border-sky-200 shadow-xs hover:border-sky-300 transition">
+          <div class="text-xl mb-2">🌐 Rota Reversa no R-EDGE</div>
+          <h3 class="font-bold text-sky-900 text-sm mb-1">Esquecer rota interna no NAT</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            O roteador de borda sabe entregar pacotes na Internet, mas precisa de uma rota estática <code>ip route 192.168.0.0 255.255.0.0 10.0.0.1</code> para saber onde devolver os pacotes quando chegam ao switch Core.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Canvas Submission Checklist -->
+    <section id="checklist" class="mb-12">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-800 font-bold flex items-center justify-center text-sm border border-emerald-200">5</span>
+          <h2 class="text-xl font-bold text-slate-900">Checklist de Submissão no Canvas (Checkpoint 2)</h2>
+        </div>
+        <span id="progress-percent" class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+          0% Concluído
+        </span>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <div class="w-full bg-slate-200 rounded-full h-2.5 mb-6 overflow-hidden">
+          <div id="progress-bar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+
+        <div class="space-y-3 text-sm">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-indigo-50/30 hover:border-indigo-200 transition">
+            <input type="checkbox" onchange="updateProgress()" class="mt-1 w-4 h-4 text-emerald-600 bg-white border-slate-300 rounded focus:ring-emerald-500">
+            <div>
+              <div class="font-semibold text-slate-800">Roteamento L3 Ativo no Switch Core 3560 (ip routing)</div>
+              <div class="text-xs text-slate-500">Configurou todas as SVIs (10, 20, 30, 40) e verificou o <code>show ip route</code> com rotas conectadas (C).</div>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-indigo-50/30 hover:border-indigo-200 transition">
+            <input type="checkbox" onchange="updateProgress()" class="mt-1 w-4 h-4 text-emerald-600 bg-white border-slate-300 rounded focus:ring-emerald-500">
+            <div>
+              <div class="font-semibold text-slate-800">Servidor DHCP Centralizado (SRV-NET) com ip helper-address</div>
+              <div class="text-xs text-slate-500">Estações dos dois pavimentos recebem IP, gateway e DNS automaticamente nos pools corretos.</div>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-indigo-50/30 hover:border-indigo-200 transition">
+            <input type="checkbox" onchange="updateProgress()" class="mt-1 w-4 h-4 text-emerald-600 bg-white border-slate-300 rounded focus:ring-emerald-500">
+            <div>
+              <div class="font-semibold text-slate-800">Conectividade Inter-VLAN Validada com Ping e Acesso Web Interno</div>
+              <div class="text-xs text-slate-500">PC-ADM-01 da VLAN 10 consegue abrir a página web corporativa em <code>http://192.168.30.20</code> (SRV-WEB).</div>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-indigo-50/30 hover:border-indigo-200 transition">
+            <input type="checkbox" onchange="updateProgress()" class="mt-1 w-4 h-4 text-emerald-600 bg-white border-slate-300 rounded focus:ring-emerald-500">
+            <div>
+              <div class="font-semibold text-slate-800">NAT/PAT Operacional no R-EDGE com Acesso à Internet</div>
+              <div class="text-xs text-slate-500">Comprovou tradução de pacotes com <code>show ip nat translations</code> e navegação externa.</div>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-indigo-50/30 hover:border-indigo-200 transition">
+            <input type="checkbox" onchange="updateProgress()" class="mt-1 w-4 h-4 text-emerald-600 bg-white border-slate-300 rounded focus:ring-emerald-500">
+            <div>
+              <div class="font-semibold text-slate-800">Submissão dos Arquivos no Canvas da Disciplina</div>
+              <div class="text-xs text-slate-500">Enviou <code>projeto_parte2_seunome.pkt</code> e o PDF contendo as evidências de roteamento e NAT.</div>
+            </div>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer Navigation -->
+    <footer class="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+      <a href="17-projeto-final-revisao-l2.html" class="flex items-center gap-2 hover:text-indigo-600 transition">
+        ← Projeto Final: Revisão L2
+      </a>
+      <span>Laboratório de Redes de Computadores • 2026.2</span>
+      <a href="19-projeto-final-aula-03.html" class="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-semibold transition">
+        Projeto Final P3: Conclusão & ACLs →
+      </a>
+    </footer>
+
+  </div>
+
+  <script>
+    function logL3(msg) {
+      const consoleEl = document.getElementById('l3-log');
+      const time = new Date().toTimeString().split(' ')[0];
+      const div = document.createElement('div');
+      div.innerHTML = `<span class="text-slate-400">[${time}]</span> ${msg}`;
+      consoleEl.appendChild(div);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function simulateDhcpRelay() {
+      const statusTag = document.getElementById('l3-status-tag');
+      const pcIp = document.getElementById('sim-pc-ip');
+
+      statusTag.innerText = 'Executando DHCP Relay...';
+      statusTag.className = 'text-indigo-400 font-bold';
+
+      logL3('<span class="text-cyan-300">PC-ADM-01:</span> Enviando DHCP Discover em broadcast (255.255.255.255:67)...');
+      logL3('<span class="text-purple-300">SW-CORE-MDF (SVI Vlan10):</span> Broadcast interceptado. Convertendo para UNICAST via ip helper-address.');
+      logL3('Encaminhando DHCP Packet para 192.168.30.40 (SRV-NET na DMZ).');
+      logL3('<span class="text-emerald-400">SRV-NET:</span> Pool ADM localizado. Oferta DHCP ACK gerada!');
+      logL3('<span class="text-emerald-400 font-bold">SUCESSO:</span> PC-ADM-01 configurado com IP 192.168.10.15, Mask 255.255.255.0, Gateway 192.168.10.1, DNS 192.168.30.30.');
+
+      pcIp.innerText = 'IP: 192.168.10.15 (DHCP)';
+      pcIp.className = 'text-emerald-600 font-bold mt-1';
+    }
+
+    function simulateInterVlanPing() {
+      const statusTag = document.getElementById('l3-status-tag');
+      statusTag.innerText = 'Roteamento Inter-VLAN em Hardware (CEF)...';
+      statusTag.className = 'text-purple-400 font-bold';
+
+      logL3('<span class="text-cyan-300">PC-ADM-01 (.10.15):</span> Enviando HTTP GET para Servidor Web da Intranet (192.168.30.20:80)...');
+      logL3('Destino fora da sub-rede local. Pacote enviado para default gateway 192.168.10.1 (SVI Vlan10 no Core).');
+      logL3('<span class="text-purple-300">SW-CORE-MDF (FIB):</span> Rota encontrada: 192.168.30.0/24 diretamente conectada na interface Vlan30.');
+      logL3('Comutação L3 realizada em velocidade de fio (wire-speed).');
+      logL3('<span class="text-emerald-400 font-bold">RESPOSTA SRV-WEB:</span> HTTP/1.1 200 OK (Portal Intranet Corporativo carregado com sucesso!).');
+    }
+
+    function simulateNatInternet() {
+      const statusTag = document.getElementById('l3-status-tag');
+      statusTag.innerText = 'Tradução NAT Overload na Borda...';
+      statusTag.className = 'text-emerald-400 font-bold';
+
+      logL3('<span class="text-cyan-300">PC-ADM-01:</span> Acessando servidor externo na Internet (http://200.100.50.10)...');
+      logL3('Core Switch encaminha via rota default (0.0.0.0/0 -> 10.0.0.2 no R-EDGE).');
+      logL3('<span class="text-emerald-300">R-EDGE (NAT Engine):</span> Tabela NAT consultada. Criando nova entrada de tradução:');
+      logL3('<code>Inside Global: 200.19.1.2:54120  &lt;---&gt;  Inside Local: 192.168.10.15:49810</code>');
+      logL3('Pacote roteado pela interface Gi0/1 (WAN) com IP público corporativo.');
+      logL3('<span class="text-emerald-400 font-bold">RETORNO:</span> Pacote devolvido pela Internet, revertido pelo NAT e entregue no PC-ADM-01.');
+    }
+
+    function resetL3Simulation() {
+      document.getElementById('l3-log').innerHTML = '<div>[CORE-L3] CEF ativado (ip routing). 5 SVIs diretamente conectadas na tabela de rotas.</div><div>[NAT] R-EDGE sincronizado com a operadora WAN (200.19.1.0/30).</div>';
+      document.getElementById('l3-status-tag').innerText = 'Pronto';
+      document.getElementById('l3-status-tag').className = 'text-slate-400';
+    }
+
+    // Code copy helper
+    function copyCode(id) {
+      const code = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast('Comandos Cisco IOS copiados!');
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      toast.classList.remove('opacity-0', 'translate-y-20');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-20');
+      }, 2500);
+    }
+
+    // Checklist Progress
+    function updateProgress() {
+      const checkboxes = document.querySelectorAll('#checklist input[type="checkbox"]');
+      const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
+      const total = checkboxes.length;
+      const percent = Math.round((checked / total) * 100);
+
+      document.getElementById('progress-bar').style.width = percent + '%';
+      document.getElementById('progress-percent').innerText = percent + '% Concluído';
+      localStorage.setItem('lab18_progress', JSON.stringify(Array.from(checkboxes).map(cb => cb.checked)));
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('lab18_progress');
+      if (saved) {
+        try {
+          const arr = JSON.parse(saved);
+          const checkboxes = document.querySelectorAll('#checklist input[type="checkbox"]');
+          checkboxes.forEach((cb, idx) => {
+            if (arr[idx]) cb.checked = true;
+          });
+          updateProgress();
+        } catch (e) {}
+      }
+    });
+  </script>
+</body>
+</html>
