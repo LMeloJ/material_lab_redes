@@ -3,582 +3,1306 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lab 08: Acesso Remoto SSH & CLI Cisco • Lab de Redes</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Lab 08: Acesso Remoto SSH &amp; CLI Cisco â€¢ Lab de Redes</title>
+  <script src="https://cdn.tailwindcss.com"></script>`n  <link rel="stylesheet" href="../css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
-          }
-        }
-      }
+      theme: { extend: { fontFamily: { sans: ['Inter','sans-serif'], mono: ['JetBrains Mono','monospace'] } } }
     }
   </script>
   <style>
     .pulse-dot { animation: pulseAnim 2s infinite; }
-    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+    @keyframes pulseAnim { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.4;transform:scale(1.15);} }
+    .step-card { transition: box-shadow .2s, border-color .2s; }
+    .step-card:hover { box-shadow: 0 4px 24px 0 rgba(6,182,212,.08); }
+    .ios-row:hover td { background: #f0f9ff; }
+    .step-num { width:2rem;height:2rem;border-radius:.5rem;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0; }
+    .why-box  { border-left:3px solid #818cf8; background:#f5f3ff; }
+    .warn-box { border-left:3px solid #f59e0b; background:#fffbeb; }
+    .ok-box   { border-left:3px solid #10b981; background:#f0fdf4; }
+    .reflect-box { background: linear-gradient(135deg,#1e1b4b 0%,#312e81 100%); }
+
+    /* Garante texto legÃ­vel em todos os blocos de cÃ³digo escuros */
+    pre, pre code { color: #cbd5e1; background: transparent; }
+    .bg-\[#0d1117\] pre,
+    .bg-\[#0d1117\] code,
+    .bg-\[#0d1117\] span { color: inherit; }
+    .bg-\[#0d1117\] { color: #cbd5e1; }
+    #term-output, #term-output div, #term-output span { color: inherit; }
+
+    /* ── Seções colapsáveis ─────────────────────── */
+    .sec-header {
+      cursor: pointer;
+      user-select: none;
+      border-radius: .75rem;
+      padding: .4rem .75rem;
+      margin: -.4rem -.75rem;
+      transition: background .15s, border-color .15s, box-shadow .15s;
+      /* Affordance permanente: fundo + borda indicam que é clicável */
+      background: rgba(248,250,252,1);
+      border: 1.5px solid #e2e8f0;
+      box-shadow: 0 1px 3px 0 rgba(0,0,0,.04);
+    }
+    .sec-header:hover {
+      background: rgba(238,242,255,.7);
+      border-color: #c7d2fe;
+      box-shadow: 0 2px 8px 0 rgba(99,102,241,.08);
+    }
+    .sec-chevron {
+      margin-left: auto;
+      flex-shrink: 0;
+      color: #818cf8; /* sempre visível com cor indigo suave */
+      transition: transform .35s cubic-bezier(.4,0,.2,1), color .2s;
+    }
+    .sec-header:hover .sec-chevron { color: #4f46e5; }
+    .sec-collapsed .sec-chevron { transform: rotate(-90deg); }
+    .sec-body { overflow: hidden; transition: height .38s cubic-bezier(.4,0,.2,1); }
+    .sec-body > div { padding-top: 1.5rem; } /* gap entre cabeçalho e conteúdo */
+    .sec-collapsed .sec-badge { display: inline-flex !important; }
+    .sec-badge { display: none; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-cyan-500 selection:text-white">
 
-  <!-- Toast Notifier -->
-  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900 border border-cyan-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md">
-    <span class="text-emerald-400 font-bold">✓</span>
-    <span id="toast-msg" class="text-sm font-medium">Comando copiado com sucesso!</span>
-  </div>
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900 border border-cyan-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl">
+  <span class="text-emerald-400 font-bold">&#10003;</span>
+  <span id="toast-msg" class="text-sm font-medium">Copiado!</span>
+</div>
 
-  <!-- Header Navigation -->
-  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-xs">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 font-mono font-bold text-lg hover:scale-105 transition">
-          LR
-        </a>
-        <div>
-          <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
-            Lab 08: <span class="text-cyan-400">Acesso Remoto SSH & CLI Cisco</span>
-          </h1>
-          <p class="text-xs text-slate-500">Criptografia RSA, endurecimento VTY, bloqueio de Telnet e DHCP no ISR 4331</p>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200 flex items-center gap-1">
-          ← Cronograma
-        </a>
-        <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
-          ↗️ Tela Cheia
-        </button>
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-          <span class="w-2 h-2 rounded-full bg-cyan-400 pulse-dot"></span>
-          23/09/2026
-        </span>
+<!-- Header -->
+<header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="../index.html" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white font-mono font-bold text-lg hover:scale-105 transition">LR</a>
+      <div>
+        <h1 class="text-base font-bold text-slate-900">Lab 08: <span class="text-cyan-600">Acesso Remoto SSH &amp; CLI Cisco</span></h1>
+        <p class="text-xs text-slate-500">Modos do IOS, IPs, DHCP, RSA, SSH e ger&ecirc;ncia remota no ISR 4331</p>
       </div>
     </div>
-  </header>
+    <div class="flex items-center gap-3">
+      <a href="../index.html" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200">&larr; Cronograma</a>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-600 border border-cyan-500/20">
+        <span class="w-2 h-2 rounded-full bg-cyan-500 pulse-dot"></span> 23/09/2026
+      </span>
+    </div>
+  </div>
+</header>
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-    <!-- Canvas Submission Alert -->
-    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
-      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
-        📤
+  <!-- Canvas Alert -->
+  <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50/40 border-2 border-amber-300 flex items-start gap-4">
+    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0">&#128228;</div>
+    <div class="flex-1">
+      <h4 class="text-base font-bold text-amber-950">Submiss&atilde;o Obrigat&oacute;ria no Canvas</h4>
+      <p class="text-xs sm:text-sm text-slate-700 mt-1">Ao t&eacute;rmino, envie na tarefa do <strong>Canvas</strong>:</p>
+      <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
+        <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">&#9989; acesso_ssh_cli_seunome.pkt</span>
+        <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">&#9989; Print: show ip ssh (SSHv2)</span>
+        <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">&#9989; Print da sess&atilde;o SSH autenticada</span>
       </div>
-      <div class="flex-1">
-        <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
-          Submissão Obrigatória no Canvas da Disciplina
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm">
+    <a href="#modos"    class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 transition">0. Modos do IOS</a>
+    <a href="#topologia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 transition">1. Topologia</a>
+    <a href="#exp1"     class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 transition">2. Console &amp; IP</a>
+    <a href="#exp2"     class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 transition">3. DHCP</a>
+    <a href="#exp3"     class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 transition">4. SSH &amp; RSA</a>
+    <a href="#terminal" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 font-semibold">&#9889; Terminal</a>
+    <a href="#exp4"     class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 transition">5. Acesso Remoto</a>
+    <a href="#exp5"     class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-purple-50 border border-purple-200 text-purple-700 font-semibold hover:border-purple-400 hover:bg-purple-100 transition">&#128279; 6. Switch SSH &amp; SVI</a>
+    <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold">7. Checklist</a>
+  </div>
+
+  <!-- Hero -->
+  <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+    <div class="max-w-3xl">
+      <span class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-600 border border-cyan-500/30">Laborat&oacute;rio 08 &bull; Gerenciamento Seguro de Ativos</span>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4">CLI Cisco, SSH e Administra&ccedil;&atilde;o Remota</h2>
+      <p class="text-slate-700 text-base leading-relaxed mb-4">
+        Nenhum engenheiro de redes vai ao data center toda vez que precisa alterar uma configura&ccedil;&atilde;o. O acesso remoto via <strong>SSH</strong> (porta 22 TCP) permite gerenciar switches e roteadores de qualquer lugar, com criptografia de ponta a ponta.
+      </p>
+      <p class="text-slate-700 text-base leading-relaxed mb-6">
+        Neste laborat&oacute;rio voc&ecirc; vai dominar os <strong>modos de opera&ccedil;&atilde;o do Cisco IOS</strong>, configurar interfaces, montar um servidor DHCP, gerar chaves RSA e finalmente acessar o roteador remotamente &mdash; tudo pela linha de comando.
+      </p>
+      <div class="flex flex-wrap gap-3 text-xs font-mono">
+        <div class="bg-slate-800 px-3 py-2 rounded-lg border border-slate-700"><span class="text-slate-400">Obj 1:</span> <span class="text-emerald-400 font-bold">Navegar pelos modos do IOS</span></div>
+        <div class="bg-slate-800 px-3 py-2 rounded-lg border border-slate-700"><span class="text-slate-400">Obj 2:</span> <span class="text-cyan-400 font-bold">Configurar IPs e DHCP via CLI</span></div>
+        <div class="bg-slate-800 px-3 py-2 rounded-lg border border-slate-700"><span class="text-slate-400">Obj 3:</span> <span class="text-purple-400 font-bold">Habilitar SSHv2 com RSA 1024 bits</span></div>
+        <div class="bg-slate-800 px-3 py-2 rounded-lg border border-slate-700"><span class="text-slate-400">Obj 4:</span> <span class="text-amber-400 font-bold">Gerenciar roteador remotamente</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 0. MODOS DO IOS -->
+  <section id="modos" class="mb-14 scroll-mt-24">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="step-num bg-slate-200 text-slate-700">0</div>
+      <h3 class="text-2xl font-bold text-slate-900">Os Modos de Opera&ccedil;&atilde;o do Cisco IOS</h3>
+    </div>
+    <p class="text-slate-600 mb-5 text-sm leading-relaxed max-w-3xl">
+      O IOS &eacute; hier&aacute;rquico. Cada modo tem um <strong>prompt diferente</strong> e comandos distintos.
+      Voc&ecirc; sobe com comandos de transi&ccedil;&atilde;o e desce com <code class="bg-slate-100 px-1 rounded text-xs">exit</code> ou <code class="bg-slate-100 px-1 rounded text-xs">end</code>.
+    </p>
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-6">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200">
+            <th class="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Prompt</th>
+            <th class="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Modo</th>
+            <th class="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Como entrar</th>
+            <th class="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">O que voc&ecirc; pode fazer</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <tr class="ios-row">
+            <td class="px-4 py-3 font-mono text-sm text-slate-500 font-bold">Router&gt;</td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs font-semibold">User EXEC</span></td>
+            <td class="px-4 py-3 text-xs text-slate-500">Ao conectar via Console ou SSH</td>
+            <td class="px-4 py-3 text-xs text-slate-600"><code>ping</code>, <code>traceroute</code>. N&atilde;o altera configura&ccedil;&otilde;es.</td>
+          </tr>
+          <tr class="ios-row">
+            <td class="px-4 py-3 font-mono text-sm text-cyan-700 font-bold">R-LAB#</td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-cyan-50 text-cyan-700 text-xs font-semibold">Privileged EXEC</span></td>
+            <td class="px-4 py-3 text-xs text-slate-500"><code class="bg-slate-100 px-1 rounded">enable</code></td>
+            <td class="px-4 py-3 text-xs text-slate-600">Todos os <code>show</code>, <code>debug</code>, <code>write memory</code>, recarregar.</td>
+          </tr>
+          <tr class="ios-row">
+            <td class="px-4 py-3 font-mono text-sm text-indigo-700 font-bold">R-LAB(config)#</td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-xs font-semibold">Global Config</span></td>
+            <td class="px-4 py-3 text-xs text-slate-500"><code class="bg-slate-100 px-1 rounded">configure terminal</code></td>
+            <td class="px-4 py-3 text-xs text-slate-600">Hostname, usu&aacute;rios, DHCP, SSH, dom&iacute;nio, rotas.</td>
+          </tr>
+          <tr class="ios-row">
+            <td class="px-4 py-3 font-mono text-sm text-purple-700 font-bold">R-LAB(config-if)#</td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-purple-50 text-purple-700 text-xs font-semibold">Interface Config</span></td>
+            <td class="px-4 py-3 text-xs text-slate-500"><code class="bg-slate-100 px-1 rounded">interface gigabitethernet 0/0/0</code></td>
+            <td class="px-4 py-3 text-xs text-slate-600">IP, m&aacute;scara, encapsulamento, <code>no shutdown</code>.</td>
+          </tr>
+          <tr class="ios-row">
+            <td class="px-4 py-3 font-mono text-sm text-rose-700 font-bold">R-LAB(config-line)#</td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-rose-50 text-rose-700 text-xs font-semibold">Line Config</span></td>
+            <td class="px-4 py-3 text-xs text-slate-500"><code class="bg-slate-100 px-1 rounded">line vty 0 4</code></td>
+            <td class="px-4 py-3 text-xs text-slate-600"><code>transport input ssh</code>, <code>login local</code>.</td>
+          </tr>
+          <tr class="ios-row">
+            <td class="px-4 py-3 font-mono text-sm text-amber-700 font-bold">R-LAB(config-dhcp)#</td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-amber-50 text-amber-700 text-xs font-semibold">DHCP Pool</span></td>
+            <td class="px-4 py-3 text-xs text-slate-500"><code class="bg-slate-100 px-1 rounded">ip dhcp pool NOME</code></td>
+            <td class="px-4 py-3 text-xs text-slate-600"><code>network</code>, <code>default-router</code>, <code>dns-server</code>, <code>lease</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="bg-slate-900 rounded-2xl p-5 border border-slate-700 mb-4">
+      <p class="text-xs text-slate-400 mb-3 font-mono">Navega&ccedil;&atilde;o entre modos &mdash; reproduza no Packet Tracer:</p>
+      <pre class="font-mono text-xs leading-relaxed"><code><span style="color:#64748b">Router&gt;</span>              <span style="color:#6b7280;font-style:italic">&#x2190; User EXEC</span>
+<span style="color:#64748b">Router&gt;</span> <span style="color:#93c5fd">enable</span>
+<span style="color:#22d3ee">Router#</span>              <span style="color:#6b7280;font-style:italic">&#x2190; Privileged EXEC</span>
+<span style="color:#22d3ee">Router#</span> <span style="color:#93c5fd">configure terminal</span>
+<span style="color:#818cf8">Router(config)#</span>     <span style="color:#6b7280;font-style:italic">&#x2190; Global Config</span>
+<span style="color:#818cf8">Router(config)#</span> <span style="color:#93c5fd">interface gigabitethernet 0/0/0</span>
+<span style="color:#c084fc">Router(config-if)#</span>  <span style="color:#6b7280;font-style:italic">&#x2190; Interface Config</span>
+<span style="color:#c084fc">Router(config-if)#</span> <span style="color:#93c5fd">exit</span>   <span style="color:#6b7280;font-style:italic">&#x2190; volta um n&#237;vel</span>
+<span style="color:#818cf8">Router(config)#</span> <span style="color:#93c5fd">end</span>    <span style="color:#6b7280;font-style:italic">&#x2190; vai direto ao Privileged</span>
+<span style="color:#22d3ee">Router#</span></code></pre>
+    </div>
+    <div class="warn-box rounded-xl p-4 text-sm text-slate-700">
+      <strong class="text-amber-700">&#9888;&#65039; Atalhos:</strong> <code>en</code> = <code>enable</code>, <code>conf t</code> = <code>configure terminal</code>, <code>int gi0/0/0</code> = <code>interface gigabitethernet 0/0/0</code>. Use <code>?</code> para ver comandos dispon&iacute;veis no modo atual.
+    </div>
+  </section>
+
+  <!-- 1. TOPOLOGIA -->
+  <section id="topologia" class="mb-14 scroll-mt-24">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="step-num bg-slate-200 text-slate-700">1</div>
+      <h3 class="text-2xl font-bold text-slate-900">Topologia do Laborat&oacute;rio</h3>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-5 py-3 bg-slate-50 border-b border-slate-200"><h4 class="font-bold text-sm text-slate-700">&#128203; Tabela de Endere&ccedil;amento</h4></div>
+        <table class="w-full text-xs">
+          <thead><tr class="border-b border-slate-100">
+            <th class="text-left px-4 py-2 font-semibold text-slate-500">Dispositivo</th>
+            <th class="text-left px-4 py-2 font-semibold text-slate-500">Interface</th>
+            <th class="text-left px-4 py-2 font-semibold text-slate-500">IP / M&aacute;scara</th>
+            <th class="text-left px-4 py-2 font-semibold text-slate-500">Fun&ccedil;&atilde;o</th>
+          </tr></thead>
+          <tbody class="divide-y divide-slate-50">
+            <tr><td class="px-4 py-2.5 font-bold font-mono text-indigo-700">R-LAB</td><td class="px-4 py-2.5 font-mono text-slate-600">Gi0/0/0</td><td class="px-4 py-2.5 font-mono text-emerald-700 font-bold">192.168.1.1 /24</td><td class="px-4 py-2.5 text-slate-500">Gateway clientes (DHCP)</td></tr>
+            <tr><td class="px-4 py-2.5 font-bold font-mono text-indigo-700">R-LAB</td><td class="px-4 py-2.5 font-mono text-slate-600">Gi0/0/1</td><td class="px-4 py-2.5 font-mono text-cyan-700 font-bold">10.0.0.1 /24</td><td class="px-4 py-2.5 text-slate-500">Gateway gerenciamento (SSH)</td></tr>
+            <tr><td class="px-4 py-2.5 font-bold font-mono text-amber-700">PC-Admin</td><td class="px-4 py-2.5 font-mono text-slate-600">Ethernet</td><td class="px-4 py-2.5 font-mono text-cyan-700 font-bold">10.0.0.11 /24</td><td class="px-4 py-2.5 text-slate-500">Administrador &mdash; IP est&aacute;tico</td></tr>
+            <tr><td class="px-4 py-2.5 font-bold font-mono text-purple-700">SW-Admin</td><td class="px-4 py-2.5 font-mono text-slate-600">Vlan 1</td><td class="px-4 py-2.5 font-mono text-cyan-700 font-bold">10.0.0.2 /24</td><td class="px-4 py-2.5 text-slate-500">Gerenciamento SSH do switch (Desafio)</td></tr>
+            <tr><td class="px-4 py-2.5 font-bold font-mono text-slate-600">PC-A, PC-B</td><td class="px-4 py-2.5 font-mono text-slate-600">Ethernet</td><td class="px-4 py-2.5 font-mono text-emerald-700">DHCP autom&aacute;tico</td><td class="px-4 py-2.5 text-slate-500">Clientes</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="bg-slate-900 rounded-2xl border border-slate-700 p-5 font-mono text-xs text-slate-300 leading-loose">
+        <div class="text-slate-500 text-[10px] mb-2">DIAGRAMA DE TOPOLOGIA</div>
+<pre>
+[PC-A] -+                    +- [PC-Admin] (10.0.0.11/24)
+[PC-B] -+                    |
+        |                    |
+  [SW-Clientes]         [<span style="color:#c084fc">SW-Admin</span>] (10.0.0.2/24 &bull; Desafio)
+        | Gi0/0/0   Gi0/0/1 |
+        +------[<span style="color:#818cf8">R-LAB</span>]------+
+           192.168.1.1  10.0.0.1
+
+&lt;-- Rede Clientes --&gt;  &lt;-- Rede Admin --&gt;
+  192.168.1.0/24         10.0.0.0/24
+     (DHCP)                 (SSH)
+</pre>
+      </div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+      <h4 class="font-bold text-sm text-slate-800 mb-4">&#128295; Montagem no Packet Tracer</h4>
+      <ol class="space-y-3 text-sm text-slate-600">
+        <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span><span>Adicione: <strong>Cisco ISR 4331</strong> (R-LAB), 2&times; Generic Switch (SW-Clientes, SW-Admin), 3&times; PC (PC-A, PC-B, PC-Admin).</span></li>
+        <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span><span>Conecte PC-A e PC-B ao SW-Clientes (cabo direto).</span></li>
+        <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span><span>Conecte SW-Clientes &agrave; interface <strong>Gi0/0/0</strong> do R-LAB.</span></li>
+        <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">4</span><span>Conecte PC-Admin ao SW-Admin e SW-Admin &agrave; interface <strong>Gi0/0/1</strong> do R-LAB.</span></li>
+        <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">5</span><span>Use cabo <strong>Console</strong> (azul) para conectar um PC &agrave; porta Console do R-LAB &mdash; configura&ccedil;&atilde;o inicial &eacute; sempre por aqui.</span></li>
+        <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">6</span><span>No PC-Admin: Desktop &rarr; IP Configuration &rarr; <strong>Static</strong> &rarr; IP: <code>10.0.0.11</code>, M&aacute;scara: <code>255.255.255.0</code>, GW: <code>10.0.0.1</code>.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 2. EXPERIMENTO 1: CONSOLE & IP -->
+  <section id="exp1" class="mb-14 scroll-mt-24">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="step-num bg-cyan-600 text-white">2</div>
+      <div>
+        <h3 class="text-2xl font-bold text-slate-900">Experimento 1: Acesso por Console e Configura&ccedil;&atilde;o de IPs</h3>
+        <p class="text-sm text-slate-500 mt-0.5">Primeiro acesso ao roteador &mdash; sempre pelo cabo Console, nunca pela rede.</p>
+      </div>
+    </div>
+    <div class="why-box rounded-xl p-4 mb-6 text-sm text-slate-700">
+      <strong class="text-indigo-700">Por que Console primeiro?</strong> O roteador sai de f&aacute;brica sem IP configurado. Sem IP n&atilde;o tem SSH. O cabo Console &eacute; a conex&atilde;o <em>out-of-band</em> que n&atilde;o depende da rede.
+    </div>
+    <div class="space-y-6">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm step-card">
+        <h4 class="font-bold text-sm text-slate-800 mb-3">&#128187; Passo 1 &mdash; Abrir o Terminal via Console</h4>
+        <ol class="space-y-2 text-sm text-slate-600">
+          <li class="flex gap-2"><span class="text-slate-400 text-xs mt-0.5">a)</span><span>Clique no PC conectado ao console do R-LAB &rarr; aba <strong>Desktop</strong> &rarr; <strong>Terminal</strong>.</span></li>
+          <li class="flex gap-2"><span class="text-slate-400 text-xs mt-0.5">b)</span><span>Clique em <strong>OK</strong>. Se aparecer "Would you like to enter the initial configuration dialog?" &rarr; responda <strong>no</strong>.</span></li>
+          <li class="flex gap-2"><span class="text-slate-400 text-xs mt-0.5">c)</span><span>Voc&ecirc; ver&aacute;: <code class="font-mono bg-slate-100 px-1 rounded">Router&gt;</code> &mdash; modo User EXEC.</span></li>
+        </ol>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm step-card">
+        <h4 class="font-bold text-sm text-slate-800 mb-3">&#127991;&#65039; Passo 2 &mdash; Enable e Hostname</h4>
+        <div class="bg-[#0d1117] rounded-xl p-4 font-mono text-xs overflow-x-auto mb-3">
+<pre><code><span style="color:#64748b">Router&gt;</span> <span style="color:#93c5fd">enable</span>
+<span style="color:#22d3ee">Router#</span> <span style="color:#93c5fd">configure terminal</span>
+<span style="color:#818cf8">Router(config)#</span> <span style="color:#93c5fd">hostname R-LAB</span>
+<span style="color:#818cf8">R-LAB(config)#</span>   <span style="color:#6b7280;font-style:italic">&#x2190; prompt muda imediatamente!</span></code></pre>
+        </div>
+        <div class="why-box rounded-lg p-3 text-xs text-slate-700">
+          <strong class="text-indigo-700">Por que o hostname importa?</strong> O IOS usa o hostname para compor o nome da chave RSA (<code>R-LAB.labredes.local</code>). Sem hostname personalizado, o <code>crypto key generate rsa</code> vai falhar.
+        </div>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm step-card">
+        <h4 class="font-bold text-sm text-slate-800 mb-3 flex items-center justify-between flex-wrap gap-2">
+          <span>&#128268; Passo 3 &mdash; Configurar Interface Gi0/0/0 (Clientes)</span>
+          <button onclick="copyCode('code-gi0')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition">&#128203; Copiar</button>
         </h4>
-        <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
-          Ao término do laboratório, envie na respectiva tarefa no <strong>Canvas</strong>:
-        </p>
-        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
-          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Arquivo .pkt: acesso_ssh_cli_seunome.pkt</span>
-          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Relatório com prints de 'show ip ssh' no Cisco IOS</span>
-          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Print da sessão SSH autenticada do PC-Admin</span>
+        <div class="bg-[#0d1117] rounded-xl p-4 font-mono text-xs overflow-x-auto mb-3">
+<pre id="code-gi0"><code><span style="color:#818cf8">R-LAB(config)#</span> <span style="color:#93c5fd">interface gigabitethernet 0/0/0</span>
+<span style="color:#c084fc">R-LAB(config-if)#</span> <span style="color:#93c5fd">ip address 192.168.1.1 255.255.255.0</span>
+<span style="color:#c084fc">R-LAB(config-if)#</span> <span style="color:#93c5fd">no shutdown</span>
+<span style="color:#6b7280;font-style:italic">! Saída: %LINK-5-CHANGED: Interface GigabitEthernet0/0/0, changed state to up</span>
+<span style="color:#c084fc">R-LAB(config-if)#</span> <span style="color:#93c5fd">exit</span></code></pre>
         </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="why-box rounded-lg p-3 text-xs text-slate-700"><strong class="text-indigo-700">Por que <code>no shutdown</code>?</strong> Por padr&atilde;o, interfaces Cisco v&ecirc;m administrativamente desligadas. O <code>no shutdown</code> as ativa.</div>
+          <div class="ok-box rounded-lg p-3 text-xs text-slate-700"><strong class="text-emerald-700">&#10003; Verifica&ccedil;&atilde;o:</strong> <code>do show ip interface brief</code>. Gi0/0/0 deve aparecer <strong>up/up</strong>.</div>
+        </div>
+      </div>
+      <div class="reflect-box rounded-2xl p-5 text-white">
+        <div class="flex items-center gap-2 mb-3"><span class="text-xl">&#129300;</span><span class="font-bold text-sm text-indigo-200">Reflex&atilde;o &mdash; Pense antes de continuar</span></div>
+        <p class="text-sm text-indigo-100 leading-relaxed">Voc&ecirc; configurou um IP na Gi0/0/0. Neste momento, o PC-A conseguiria fazer <code>ping 192.168.1.1</code>? E o que ainda falta para ele receber um IP automaticamente?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. EXPERIMENTO 2: DHCP -->
+  <section id="exp2" class="mb-14 scroll-mt-24">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="step-num bg-emerald-600 text-white">3</div>
+      <div>
+        <h3 class="text-2xl font-bold text-slate-900">Experimento 2: Servidor DHCP no Roteador</h3>
+        <p class="text-sm text-slate-500 mt-0.5">O roteador distribui IPs para os clientes automaticamente.</p>
+      </div>
+    </div>
+    <div class="why-box rounded-xl p-4 mb-6 text-sm text-slate-700">
+      <strong class="text-indigo-700">Como funciona?</strong> Primeiro exclu&iacute;mos endere&ccedil;os est&aacute;ticos (para evitar conflito), depois criamos um <em>pool</em> com a faixa, o gateway e o DNS.
+    </div>
+    <div class="space-y-6">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm step-card">
+        <h4 class="font-bold text-sm text-slate-800 mb-3 flex items-center justify-between flex-wrap gap-2">
+          <span>&#128230; Configurar o Pool DHCP</span>
+          <button onclick="copyCode('code-dhcp')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition">&#128203; Copiar</button>
+        </h4>
+        <div class="bg-[#0d1117] rounded-xl p-4 font-mono text-xs overflow-x-auto mb-3">
+<pre id="code-dhcp"><code><span style="color:#6b7280;font-style:italic">! Exclui endere&#231;os est&#225;ticos do pool (n&#227;o ser&#227;o distribu&#237;dos)</span>
+<span style="color:#818cf8">R-LAB(config)#</span> <span style="color:#93c5fd">ip dhcp excluded-address 192.168.1.1 192.168.1.10</span>
+
+<span style="color:#6b7280;font-style:italic">! Cria o pool de endere&#231;os DHCP</span>
+<span style="color:#818cf8">R-LAB(config)#</span> <span style="color:#93c5fd">ip dhcp pool POOL_CLIENTES</span>
+<span style="color:#fbbf24">R-LAB(config-dhcp)#</span> <span style="color:#93c5fd">network 192.168.1.0 255.255.255.0</span>
+<span style="color:#fbbf24">R-LAB(config-dhcp)#</span> <span style="color:#93c5fd">default-router 192.168.1.1</span>
+<span style="color:#fbbf24">R-LAB(config-dhcp)#</span> <span style="color:#93c5fd">dns-server 8.8.8.8</span>
+<span style="color:#fbbf24">R-LAB(config-dhcp)#</span> <span style="color:#93c5fd">exit</span></code></pre>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+          <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs"><div class="font-bold text-slate-700 mb-1"><code>excluded-address</code></div><p class="text-slate-500">Reserva .1 a .10. Clientes recebem .11 em diante.</p></div>
+          <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs"><div class="font-bold text-slate-700 mb-1"><code>network</code></div><p class="text-slate-500">Define a rede do pool.</p></div>
+          <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs"><div class="font-bold text-slate-700 mb-1"><code>default-router</code></div><p class="text-slate-500">Informa o gateway ao cliente no DHCP Offer.</p></div>
+        </div>
+        <div class="bg-[#0d1117] rounded-xl p-3 font-mono text-xs overflow-x-auto">
+<pre><code><span style="color:#6b7280;font-style:italic">! Configure DHCP no PC-A (Desktop &gt; IP Config &gt; DHCP), depois verifique:</span>
+<span style="color:#22d3ee">R-LAB#</span> <span style="color:#93c5fd">show ip dhcp binding</span>
+<span style="color:#cbd5e1">IP address       Hardware Addr         Type
+192.168.1.11     00D0.97A8.XXXX        Automatic</span></code></pre>
+        </div>
+      </div>
+      <div class="reflect-box rounded-2xl p-5 text-white">
+        <div class="flex items-center gap-2 mb-3"><span class="text-xl">&#129300;</span><span class="font-bold text-sm text-indigo-200">Reflex&atilde;o</span></div>
+        <p class="text-sm text-indigo-100 leading-relaxed mb-2">O PC-A recebeu IP via DHCP. Ele consegue fazer <code>ping 10.0.0.1</code> (rede de gerenciamento)? Por qu&ecirc;?</p>
+        <p class="text-sm text-indigo-100 leading-relaxed">O que aconteceria se voc&ecirc; esquecesse o <code>excluded-address 192.168.1.1</code>?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. EXPERIMENTO 3: SSH & RSA -->
+  <section id="exp3" class="mb-14 scroll-mt-24">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="step-num bg-purple-600 text-white">4</div>
+      <div>
+        <h3 class="text-2xl font-bold text-slate-900">Experimento 3: Habilitando SSHv2 com Chaves RSA</h3>
+        <p class="text-sm text-slate-500 mt-0.5">A criptografia RSA &eacute; a base do SSH.</p>
+      </div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm mb-6">
+      <h4 class="font-bold text-sm text-slate-800 mb-4">&#128279; Seq&uuml;&ecirc;ncia obrigat&oacute;ria para o SSH funcionar</h4>
+      <div class="flex flex-wrap gap-3 items-center mb-3">
+        <div class="flex flex-col items-center text-center"><div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm font-bold">1</div><div class="text-xs text-slate-600 mt-1 font-mono">hostname</div></div>
+        <div class="text-slate-300 font-bold text-lg">&rarr;</div>
+        <div class="flex flex-col items-center text-center"><div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm font-bold">2</div><div class="text-xs text-slate-600 mt-1 font-mono">ip domain-name</div></div>
+        <div class="text-slate-300 font-bold text-lg">&rarr;</div>
+        <div class="flex flex-col items-center text-center"><div class="w-10 h-10 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-sm font-bold">3</div><div class="text-xs text-slate-600 mt-1 font-mono">crypto key rsa</div></div>
+        <div class="text-slate-300 font-bold text-lg">&rarr;</div>
+        <div class="flex flex-col items-center text-center"><div class="w-10 h-10 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center text-sm font-bold">4</div><div class="text-xs text-slate-600 mt-1 font-mono">ip ssh version 2</div></div>
+        <div class="text-slate-300 font-bold text-lg">&rarr;</div>
+        <div class="flex flex-col items-center text-center"><div class="w-10 h-10 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center text-sm font-bold">5</div><div class="text-xs text-slate-600 mt-1 font-mono">line vty + transport</div></div>
+      </div>
+      <p class="text-xs text-slate-400">Pular qualquer etapa resulta em erro. O hostname e o dom&iacute;nio comp&otilde;em o nome da chave RSA.</p>
+    </div>
+    <div class="space-y-6">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm step-card">
+        <h4 class="font-bold text-sm text-slate-800 mb-3 flex items-center justify-between flex-wrap gap-2">
+          <span>&#128272; Configura&ccedil;&atilde;o SSH Completa</span>
+          <button onclick="copyCode('code-ssh')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition">&#128203; Copiar</button>
+        </h4>
+        <div class="bg-[#0d1117] rounded-xl p-4 font-mono text-xs overflow-x-auto mb-4">
+<pre id="code-ssh"><code><span style="color:#6b7280;font-style:italic">! 1. Dom&#237;nio &#8212; necess&#225;rio para a chave RSA</span>
+<span style="color:#818cf8">R-LAB(config)#</span> <span style="color:#93c5fd">ip domain-name labredes.local</span>
+
+<span style="color:#6b7280;font-style:italic">! 2. Usu&#225;rio admin com privil&#233;gio m&#225;ximo (15)</span>
+<span style="color:#818cf8">R-LAB(config)#</span> <span style="color:#93c5fd">username admin privilege 15 secret cisco123</span>
+
+<span style="color:#6b7280;font-style:italic">! 3. Gera o par de chaves RSA &#8212; escolha 1024 quando perguntar</span>
+<span style="color:#818cf8">R-LAB(config)#</span> <span style="color:#93c5fd">crypto key generate rsa</span>
+<span style="color:#cbd5e1">The name for the keys will be: R-LAB.labredes.local
+How many bits in the modulus [512]:</span> <span style="color:#fcd34d">1024</span>
+<span style="color:#cbd5e1">% Generating 1024 bit RSA keys, keys will be non-exportable...[OK]</span>
+
+<span style="color:#6b7280;font-style:italic">! 4. Ativa SSHv2 explicitamente</span>
+<span style="color:#818cf8">R-LAB(config)#</span> <span style="color:#93c5fd">ip ssh version 2</span>
+
+<span style="color:#6b7280;font-style:italic">! 5. VTY: somente SSH + autentica&#231;&#227;o local</span>
+<span style="color:#818cf8">R-LAB(config)#</span> <span style="color:#93c5fd">line vty 0 4</span>
+<span style="color:#f87171">R-LAB(config-line)#</span> <span style="color:#93c5fd">transport input ssh</span>
+<span style="color:#f87171">R-LAB(config-line)#</span> <span style="color:#93c5fd">login local</span>
+<span style="color:#f87171">R-LAB(config-line)#</span> <span style="color:#93c5fd">exit</span>
+<span style="color:#818cf8">R-LAB(config)#</span> <span style="color:#93c5fd">end</span>
+<span style="color:#22d3ee">R-LAB#</span> <span style="color:#93c5fd">write memory</span>
+<span style="color:#cbd5e1">Building configuration...[OK]</span></code></pre>
+        </div>
+        <div class="overflow-x-auto mb-4">
+          <table class="w-full text-xs border border-slate-100 rounded-lg overflow-hidden">
+            <thead><tr class="bg-slate-50 border-b border-slate-100">
+              <th class="text-left px-3 py-2 font-semibold text-slate-500">Comando</th>
+              <th class="text-left px-3 py-2 font-semibold text-slate-500">Para que serve</th>
+              <th class="text-left px-3 py-2 font-semibold text-slate-500">Se omitir...</th>
+            </tr></thead>
+            <tbody class="divide-y divide-slate-50">
+              <tr><td class="px-3 py-2 font-mono text-indigo-700">ip domain-name</td><td class="px-3 py-2 text-slate-600">Forma o FQDN da chave RSA</td><td class="px-3 py-2 text-rose-600">Erro: "% Please define a domain-name first"</td></tr>
+              <tr><td class="px-3 py-2 font-mono text-indigo-700">username ... secret</td><td class="px-3 py-2 text-slate-600">Cria usu&aacute;rio local com senha hash</td><td class="px-3 py-2 text-rose-600">SSH n&atilde;o tem com quem autenticar</td></tr>
+              <tr><td class="px-3 py-2 font-mono text-indigo-700">crypto key generate rsa</td><td class="px-3 py-2 text-slate-600">Gera o par de chaves RSA</td><td class="px-3 py-2 text-rose-600">SSH n&atilde;o funciona</td></tr>
+              <tr><td class="px-3 py-2 font-mono text-indigo-700">ip ssh version 2</td><td class="px-3 py-2 text-slate-600">For&ccedil;a SSHv2</td><td class="px-3 py-2 text-amber-600">Usa SSHv1 (vulner&aacute;vel)</td></tr>
+              <tr><td class="px-3 py-2 font-mono text-indigo-700">transport input ssh</td><td class="px-3 py-2 text-slate-600">Somente SSH nas VTYs</td><td class="px-3 py-2 text-amber-600">Telnet tamb&eacute;m seria aceito</td></tr>
+              <tr><td class="px-3 py-2 font-mono text-indigo-700">login local</td><td class="px-3 py-2 text-slate-600">Usa banco de dados local</td><td class="px-3 py-2 text-rose-600">Login rejeitado</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="bg-[#0d1117] rounded-xl p-3 font-mono text-xs overflow-x-auto mb-4">
+<pre><code><span style="color:#22d3ee">R-LAB#</span> <span style="color:#93c5fd">show ip ssh</span>
+<span style="color:#cbd5e1">SSH Enabled - version 2.0
+Authentication timeout: 120 secs; Authentication retries: 3
+RSA key size: 1024 bits</span></code></pre>
+        </div>
+
+        <!-- Conceito: O que são Linhas VTY vs Console -->
+        <div class="p-5 rounded-2xl bg-indigo-50/70 border border-indigo-200">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-xl">&#128225;</span>
+            <h5 class="font-bold text-sm text-indigo-950">Conceito Chave: O que s&atilde;o Linhas VTY? (Console F&iacute;sica vs Terminal Virtual)</h5>
+          </div>
+          <p class="text-xs text-slate-700 leading-relaxed mb-4">
+            No Cisco IOS, o termo <strong>"line"</strong> refere-se a portas de entrada para sess&otilde;es de terminal de comando (CLI). Existem dois tipos fundamentais que voc&ecirc; precisa diferenciar:
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-2xs">
+              <div class="font-bold text-slate-800 flex items-center justify-between mb-2">
+                <span>&#128268; Console F&iacute;sica (<code>line con 0</code>)</span>
+                <span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-mono">Porta F&iacute;sica</span>
+              </div>
+              <ul class="space-y-1.5 text-slate-600">
+                <li>&bull; Porta serial f&iacute;sica RJ-45 azul no chassi do equipamento.</li>
+                <li>&bull; Usada para a <strong>instala&ccedil;&atilde;o inicial</strong> ou quando a rede IP est&aacute; fora do ar.</li>
+                <li>&bull; N&atilde;o usa endere&ccedil;o IP nem depende de interfaces de rede ativas.</li>
+                <li>&bull; Permite apenas <strong>1 &uacute;nica conex&atilde;o f&iacute;sica simult&acirc;nea</strong> (linha <code>0</code>).</li>
+              </ul>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-2xs">
+              <div class="font-bold text-slate-800 flex items-center justify-between mb-2">
+                <span>&#127760; Terminal Virtual (<code>line vty 0 4</code>)</span>
+                <span class="px-2 py-0.5 rounded text-[10px] bg-indigo-100 text-indigo-700 font-mono">Porta L&oacute;gica (Rede)</span>
+              </div>
+              <ul class="space-y-1.5 text-slate-600">
+                <li>&bull; <strong>VTY = Virtual TeleTYpewriter</strong> (terminais virtuais em mem&oacute;ria).</li>
+                <li>&bull; Usada para <strong>gerenciamento remoto via rede</strong> (SSH / Telnet).</li>
+                <li>&bull; Depende de interface de rede com IP configurado e pilha TCP/IP ativa.</li>
+                <li>&bull; Os n&uacute;meros <code>0 4</code> indicam <strong>5 sess&otilde;es simult&acirc;neas</strong> (0, 1, 2, 3 e 4). Em switches Cisco geralmente s&atilde;o 16 (<code>0 15</code>).</li>
+              </ul>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-indigo-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] text-slate-600">
+            <div>
+              <strong class="text-indigo-900 font-mono">transport input ssh:</strong> Bloqueia Telnet (porta 23 em texto claro) e for&ccedil;a uso exclusivo do SSH criptografado (porta 22) nas VTYs.
+            </div>
+            <div>
+              <strong class="text-indigo-900 font-mono">login local:</strong> Ordena ao roteador que autentique quem conecta usando a tabela interna de usu&aacute;rios (<code>username admin secret ...</code>) em vez de uma senha gen&eacute;rica de linha.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-rose-50 border border-rose-200 rounded-xl p-4">
+          <h4 class="font-bold text-rose-700 text-sm mb-2">&#128228; Telnet &mdash; Texto Claro (EVITE!)</h4>
+          <div class="bg-rose-950/20 rounded-lg p-3 font-mono text-xs text-rose-300 mb-2">USER: admin<br>PASS: cisco123</div>
+          <p class="text-xs text-rose-700">Qualquer um com Wireshark l&ecirc; suas credenciais em claro.</p>
+        </div>
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+          <h4 class="font-bold text-emerald-700 text-sm mb-2">&#128272; SSH &mdash; Criptografado (CORRETO)</h4>
+          <div class="bg-slate-950 rounded-lg p-3 font-mono text-xs text-slate-400 mb-2 break-all">7b 4a 9c 1e f3 08 42 aa 91 2b cc 87 ...</div>
+          <p class="text-xs text-emerald-700">Indecifr&aacute;veis sem a chave privada do roteador.</p>
+        </div>
+      </div>
+      <div class="reflect-box rounded-2xl p-5 text-white">
+        <div class="flex items-center gap-2 mb-3"><span class="text-xl">&#129300;</span><span class="font-bold text-sm text-indigo-200">Reflex&atilde;o</span></div>
+        <p class="text-sm text-indigo-100 leading-relaxed mb-2">Por que o tamanho da chave RSA importa? O que acontece com 512 bits vs 2048 bits?</p>
+        <p class="text-sm text-indigo-100 leading-relaxed">O <code>transport input ssh</code> bloqueia Telnet nas VTYs. A porta Console tamb&eacute;m fica protegida pelo SSH?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TERMINAL INTERATIVO -->
+  <section id="terminal" class="mb-14 scroll-mt-24">
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
+      <div class="flex items-center gap-3">
+        <div class="step-num bg-cyan-500 text-white">&#9889;</div>
+        <h3 class="text-2xl font-bold text-slate-900">Terminal Interativo &mdash; Pratique os Comandos</h3>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="resetTerm()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200">&#8617; Resetar</button>
+        <span class="px-2 py-1 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">Cisco IOS Simulado</span>
+      </div>
+    </div>
+    <div class="bg-white border-2 border-slate-200 rounded-2xl overflow-hidden shadow-lg mb-4">
+      <div class="bg-slate-950 px-4 py-2 border-b border-slate-800 flex items-center gap-3">
+        <div class="flex gap-1.5">
+          <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+          <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+          <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+        </div>
+        <span class="text-slate-400 font-mono text-xs">Terminal &mdash; Cisco IOS Simulator (R-LAB)</span>
+      </div>
+      <div id="term-output" class="bg-[#0d1117] p-4 h-72 overflow-y-auto font-mono text-xs text-slate-200 space-y-0.5" onclick="focusTerm()">
+        <div style="color:#64748b">Cisco IOS Simulator &mdash; Lab de Redes 2026.2</div>
+        <div style="color:#4b5563">Digite um comando ou clique nos atalhos. Use "?" para ajuda.</div>
+        <div class="h-2"></div>
+      </div>
+      <div class="bg-[#0d1117] px-4 pb-3 border-t border-slate-800 flex items-center gap-2">
+        <span id="term-prompt-label" class="font-mono text-xs text-purple-400 whitespace-nowrap select-none">Router&gt;</span>
+        <input id="term-input" type="text"
+               class="flex-1 bg-transparent font-mono text-xs text-emerald-300 outline-none border-none placeholder-slate-600"
+               placeholder="Digite um comando e pressione Enter..."
+               onkeydown="handleTermKey(event)"
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-4">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Atalhos de Comandos</p>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="injectCmd('enable')"                                    class="px-3 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200 text-cyan-700 font-mono text-xs hover:bg-cyan-100 transition">enable</button>
+        <button onclick="injectCmd('configure terminal')"                        class="px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono text-xs hover:bg-indigo-100 transition">configure terminal</button>
+        <button onclick="injectCmd('hostname R-LAB')"                            class="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 font-mono text-xs hover:bg-slate-100 transition">hostname R-LAB</button>
+        <button onclick="injectCmd('interface gigabitethernet 0/0/0')"           class="px-3 py-1.5 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 font-mono text-xs hover:bg-purple-100 transition">interface gi0/0/0</button>
+        <button onclick="injectCmd('ip address 192.168.1.1 255.255.255.0')"     class="px-3 py-1.5 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 font-mono text-xs hover:bg-purple-100 transition">ip address 192.168.1.1</button>
+        <button onclick="injectCmd('no shutdown')"                               class="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono text-xs hover:bg-emerald-100 transition">no shutdown</button>
+        <button onclick="injectCmd('exit')"                                      class="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 font-mono text-xs hover:bg-slate-100 transition">exit</button>
+        <button onclick="injectCmd('ip dhcp excluded-address 192.168.1.1 192.168.1.10')" class="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono text-xs hover:bg-emerald-100 transition">ip dhcp excluded-address</button>
+        <button onclick="injectCmd('ip dhcp pool POOL_CLIENTES')"                class="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono text-xs hover:bg-emerald-100 transition">ip dhcp pool</button>
+        <button onclick="injectCmd('network 192.168.1.0 255.255.255.0')"        class="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono text-xs hover:bg-emerald-100 transition">network</button>
+        <button onclick="injectCmd('default-router 192.168.1.1')"               class="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono text-xs hover:bg-emerald-100 transition">default-router</button>
+        <button onclick="injectCmd('ip domain-name labredes.local')"            class="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 font-mono text-xs hover:bg-amber-100 transition">ip domain-name</button>
+        <button onclick="injectCmd('username admin privilege 15 secret cisco123')" class="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 font-mono text-xs hover:bg-amber-100 transition">username admin</button>
+        <button onclick="injectCmd('crypto key generate rsa')"                  class="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-mono text-xs hover:bg-rose-100 transition">crypto key generate rsa</button>
+        <button onclick="injectCmd('ip ssh version 2')"                         class="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-mono text-xs hover:bg-rose-100 transition">ip ssh version 2</button>
+        <button onclick="injectCmd('line vty 0 4')"                             class="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-mono text-xs hover:bg-rose-100 transition">line vty 0 4</button>
+        <button onclick="injectCmd('transport input ssh')"                      class="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-mono text-xs hover:bg-rose-100 transition">transport input ssh</button>
+        <button onclick="injectCmd('login local')"                              class="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-mono text-xs hover:bg-rose-100 transition">login local</button>
+        <button onclick="injectCmd('show ip ssh')"                              class="px-3 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200 text-cyan-700 font-mono text-xs hover:bg-cyan-100 transition">show ip ssh</button>
+        <button onclick="injectCmd('show ip interface brief')"                  class="px-3 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200 text-cyan-700 font-mono text-xs hover:bg-cyan-100 transition">show ip interface brief</button>
+        <button onclick="injectCmd('show ip dhcp binding')"                     class="px-3 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200 text-cyan-700 font-mono text-xs hover:bg-cyan-100 transition">show ip dhcp binding</button>
+        <button onclick="injectCmd('show ip dhcp pool')"                        class="px-3 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200 text-cyan-700 font-mono text-xs hover:bg-cyan-100 transition">show ip dhcp pool</button>
+        <button onclick="injectCmd('show users')"                               class="px-3 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200 text-cyan-700 font-mono text-xs hover:bg-cyan-100 transition">show users</button>
+        <button onclick="injectCmd('end')"                                      class="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 font-mono text-xs hover:bg-slate-100 transition">end</button>
+        <button onclick="injectCmd('write memory')"                             class="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono text-xs hover:bg-emerald-100 transition">write memory</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. EXPERIMENTO 4: ACESSO REMOTO -->
+  <section id="exp4" class="mb-14 scroll-mt-24">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="step-num bg-amber-600 text-white">5</div>
+      <div>
+        <h3 class="text-2xl font-bold text-slate-900">Experimento 4: Configura&ccedil;&atilde;o Remota via SSH</h3>
+        <p class="text-sm text-slate-500 mt-0.5">Com SSH habilitado, configuramos a segunda interface completamente pela rede.</p>
+      </div>
+    </div>
+    <div class="space-y-6">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm step-card">
+        <h4 class="font-bold text-sm text-slate-800 mb-3">&#127760; Passo 1 &mdash; Conectar via SSH do PC-Admin</h4>
+        <p class="text-xs text-slate-500 mb-3">No <strong>PC-Admin</strong> (Desktop &rarr; Command Prompt):</p>
+        <div class="bg-[#0d1117] rounded-xl p-4 font-mono text-xs overflow-x-auto mb-3">
+<pre><code><span style="color:#64748b">C:\Users\Admin&gt;</span> <span style="color:#93c5fd">ssh -l admin 10.0.0.1</span>
+<span style="color:#cbd5e1">Password:</span> <span style="color:#64748b">cisco123</span>
+<span style="color:#6b7280;font-style:italic">! Login bem-sucedido &#8212; voc&#234; est&#225; dentro do roteador remotamente!</span>
+<span style="color:#22d3ee">R-LAB#</span></code></pre>
+        </div>
+        <div class="warn-box rounded-lg p-3 text-xs text-slate-700">
+          <strong class="text-amber-700">&#9888;&#65039; Sintaxe correta no Packet Tracer:</strong> Use <code>ssh -l admin 10.0.0.1</code> (tra&ccedil;o-L min&uacute;sculo). N&atilde;o use <code>ssh admin@10.0.0.1</code>.
+        </div>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm step-card">
+        <h4 class="font-bold text-sm text-slate-800 mb-3 flex items-center justify-between flex-wrap gap-2">
+          <span>&#9881;&#65039; Passo 2 &mdash; Configurar Gi0/0/1 Remotamente</span>
+          <button onclick="copyCode('code-gi1')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white transition">&#128203; Copiar</button>
+        </h4>
+        <div class="bg-[#0d1117] rounded-xl p-4 font-mono text-xs overflow-x-auto mb-3">
+<pre id="code-gi1"><code><span style="color:#22d3ee">R-LAB#</span> <span style="color:#93c5fd">configure terminal</span>
+<span style="color:#818cf8">R-LAB(config)#</span> <span style="color:#93c5fd">interface gigabitethernet 0/0/1</span>
+<span style="color:#c084fc">R-LAB(config-if)#</span> <span style="color:#93c5fd">ip address 10.0.0.1 255.255.255.0</span>
+<span style="color:#c084fc">R-LAB(config-if)#</span> <span style="color:#93c5fd">no shutdown</span>
+<span style="color:#c084fc">R-LAB(config-if)#</span> <span style="color:#93c5fd">exit</span>
+<span style="color:#818cf8">R-LAB(config)#</span> <span style="color:#93c5fd">end</span>
+<span style="color:#22d3ee">R-LAB#</span> <span style="color:#93c5fd">copy running-config startup-config</span>
+<span style="color:#cbd5e1">Destination filename [startup-config]? [Enter]
+Building configuration...[OK]</span></code></pre>
+        </div>
+        <div class="why-box rounded-lg p-3 text-xs text-slate-700">
+          <strong class="text-indigo-700">Por que isso &eacute; poderoso?</strong> Voc&ecirc; acabou de configurar uma interface sem tocar fisicamente no roteador. Em um data center com centenas de dispositivos, o SSH &eacute; o que torna a administra&ccedil;&atilde;o vi&aacute;vel.
+        </div>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm step-card">
+        <h4 class="font-bold text-sm text-slate-800 mb-3">&#128269; Verifica&ccedil;&atilde;o Final &mdash; Comandos Show</h4>
+        <div class="bg-[#0d1117] rounded-xl p-4 font-mono text-xs overflow-x-auto">
+<pre><code><span style="color:#22d3ee">R-LAB#</span> <span style="color:#93c5fd">show ip interface brief</span>
+<span style="color:#cbd5e1">Interface              IP-Address      OK? Method Status   Protocol
+GigabitEthernet0/0/0  192.168.1.1     YES manual up       up
+GigabitEthernet0/0/1  10.0.0.1        YES manual up       up</span>
+
+<span style="color:#22d3ee">R-LAB#</span> <span style="color:#93c5fd">show ip ssh</span>
+<span style="color:#cbd5e1">SSH Enabled - version 2.0
+Authentication timeout: 120 secs; Authentication retries: 3</span>
+
+<span style="color:#22d3ee">R-LAB#</span> <span style="color:#93c5fd">show users</span>
+<span style="color:#cbd5e1">    Line       User       Idle       Location
+*  2 vty 0    admin      00:00:02   10.0.0.11</span></code></pre>
+        </div>
+      </div>
+      <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+        <h4 class="font-bold text-amber-800 text-sm mb-4">&#9888;&#65039; Armadilhas Comuns</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white rounded-xl p-4 border border-amber-100"><div class="font-bold text-slate-800 text-xs mb-1">1. Esqueceu <code>ip domain-name</code></div><p class="text-xs text-slate-500 mb-2"><em>"% Please define a domain-name first"</em></p><div class="bg-slate-950 rounded p-2 font-mono text-[10px] text-amber-300">Configure antes do crypto key</div></div>
+          <div class="bg-white rounded-xl p-4 border border-amber-100"><div class="font-bold text-slate-800 text-xs mb-1">2. Esqueceu <code>login local</code></div><p class="text-xs text-slate-500 mb-2">Erro de autentica&ccedil;&atilde;o mesmo com senha correta.</p><div class="bg-slate-950 rounded p-2 font-mono text-[10px] text-amber-300">Obrigat&oacute;rio sob line vty 0 4</div></div>
+          <div class="bg-white rounded-xl p-4 border border-amber-100"><div class="font-bold text-slate-800 text-xs mb-1">3. PC-Admin sem IP est&aacute;tico</div><p class="text-xs text-slate-500 mb-2">Ping para 10.0.0.1 falha.</p><div class="bg-slate-950 rounded p-2 font-mono text-[10px] text-amber-300">Desktop &rarr; Static: 10.0.0.11</div></div>
+        </div>
+      </div>
+      <div class="reflect-box rounded-2xl p-5 text-white">
+        <div class="flex items-center gap-2 mb-3"><span class="text-xl">&#129300;</span><span class="font-bold text-sm text-indigo-200">Reflex&atilde;o Final</span></div>
+        <p class="text-sm text-indigo-100 leading-relaxed mb-2">Se amanh&atilde; voc&ecirc; precisasse adicionar uma rota est&aacute;tica ao R-LAB, seria necess&aacute;rio ir fisicamente ao local?</p>
+        <p class="text-sm text-indigo-100 leading-relaxed">Que cuidados de seguran&ccedil;a voc&ecirc; tomaria al&eacute;m do SSH? (ACLs, timeout de sess&atilde;o, n&uacute;mero m&aacute;ximo de tentativas...)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. EXPERIMENTO 5: GERENCIAMENTO SEGURO DE SWITCH L2 -->
+  <section id="exp5" class="mb-14 scroll-mt-24">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="step-num bg-purple-600 text-white">6</div>
+      <div>
+        <h3 class="text-2xl font-bold text-slate-900">Experimento 5: Gerenciamento Seguro de Switch L2 (SVI &amp; SSH)</h3>
+        <p class="text-sm text-slate-500 mt-0.5">Aprenda passo a passo a configurar a interface virtual SVI, o gateway padr&atilde;o e o SSH nas 16 linhas VTY do switch corporativo.</p>
       </div>
     </div>
 
-    <!-- Quick Jump Navigation -->
-    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
-      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Modelos Mentais</a>
-      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold shadow-xs transition font-medium flex items-center gap-1">
-        ⚡ Terminal Interativo Cisco IOS & Sniffer
-      </a>
-      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Guia de Configuração</a>
-      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Armadilhas Comuns</a>
-      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition font-medium">4. Checklist de Entrega</a>
-    </div>
-
-    <!-- Intro Hero -->
-    <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
-      <div class="max-w-3xl">
-        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-          Laboratório 08 • Gerenciamento Seguro de Ativos
-        </span>
-        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4 tracking-tight">
-          Administração Remota com SSHv2 e Endurecimento da CLI
-        </h2>
-        <p class="text-slate-700 text-base leading-relaxed mb-6">
-          Nenhum engenheiro de redes vai até o data center toda vez que precisa alterar uma rota. O acesso remoto via <strong>SSH (Secure Shell)</strong> sobre a porta 22 TCP permite gerenciar switches e roteadores com criptografia de ponta a ponta. Neste lab, você configurará chaves assimétricas RSA no Cisco ISR 4331, fechará portas inseguras (Telnet) e provisionará o DHCP direto na CLI.
+    <!-- 1. FUNDAMENTAÇÃO TEÓRICA APROFUNDADA -->
+    <div class="space-y-6 mb-8">
+      <!-- Card: Data Plane vs Management Plane -->
+      <div class="bg-gradient-to-br from-purple-50/80 via-white to-indigo-50/60 border-2 border-purple-200 rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center gap-2.5 mb-3">
+          <span class="text-2xl">&#129504;</span>
+          <h4 class="font-bold text-base text-purple-950">Fundamento Te&oacute;rico 1: Se o Switch &eacute; de Camada 2, por que ele precisa de IP?</h4>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-700 leading-relaxed mb-4">
+          Um switch tradicional de acesso (como o <strong>Cisco Catalyst 2960</strong>) opera na <strong>Camada 2 (Enlace)</strong>: ele l&ecirc; cabe&ccedil;alhos Ethernet, armazena endere&ccedil;os MAC em sua tabela CAM e comuta quadros em alta velocidade entre suas portas f&iacute;sicas. Para que os computadores conversem entre si ou acessem a internet, <strong>o switch n&atilde;o precisa de nenhum endere&ccedil;o IP</strong>. Ele &eacute; totalmente transparente aos dados dos usu&aacute;rios.
         </p>
-        <div class="flex flex-wrap gap-4 text-xs font-mono">
-          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
-            <span class="text-slate-400">Protocolo Seguro:</span> <span class="text-emerald-400 font-bold">SSHv2 (Porta 22 TCP)</span>
-          </div>
-          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
-            <span class="text-slate-400">Chaves Criptográficas:</span> <span class="text-cyan-400 font-bold">RSA 1024/2048 bits</span>
-          </div>
-          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
-            <span class="text-slate-400">Linhas VTY:</span> <span class="text-purple-400 font-bold">transport input ssh</span>
-          </div>
-        </div>
-      </div>
-    </section>
+        <p class="text-xs sm:text-sm text-slate-700 leading-relaxed mb-4">
+          A chave para entender isso &eacute; a distin&ccedil;&atilde;o entre os <strong>dois planos de opera&ccedil;&atilde;o</strong> de um equipamento de rede:
+        </p>
 
-    <!-- SECTION 1: MODELOS MENTAIS -->
-    <section id="analogia" class="mb-14 scroll-mt-24">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">1</div>
-        <h3 class="text-2xl font-bold text-slate-900">Modelos Mentais: Telnet vs SSH e Linhas VTY</h3>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
-          <div class="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center mb-3 text-xl">📨</div>
-          <h4 class="font-bold text-slate-900 text-sm">O Cartão Postal (Telnet)</h4>
-          <span class="text-xs text-rose-400 font-medium mb-1 block">"Texto Claro / Plaintext"</span>
-          <p class="text-xs text-slate-500">Qualquer um que espione o cabo com Wireshark lê o usuário e a senha como se estivessem escritos num cartão postal aberto.</p>
-        </div>
-
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
-          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 text-xl">🔐</div>
-          <h4 class="font-bold text-slate-900 text-sm">A Caixa Blindada (SSH)</h4>
-          <span class="text-xs text-emerald-400 font-medium mb-1 block">"Túnel Criptografado RSA/AES"</span>
-          <p class="text-xs text-slate-500">Mesmo que o atacante capture todos os pacotes, ele só enxergará caracteres aleatórios indecifráveis sem a chave privada do roteador.</p>
-        </div>
-
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
-          <div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center mb-3 text-xl">🎛️</div>
-          <h4 class="font-bold text-slate-900 text-sm">As Linhas Virtuais VTY</h4>
-          <span class="text-xs text-purple-400 font-medium mb-1 block">"line vty 0 4"</span>
-          <p class="text-xs text-slate-500">O roteador não tem 5 portas seriais físicas extras. As VTYs são portas virtuais que aceitam conexões de terminal simultâneas através da rede IP.</p>
-        </div>
-
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
-          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 text-xl">🛡️</div>
-          <h4 class="font-bold text-slate-900 text-sm">Gerência Out-of-Band</h4>
-          <span class="text-xs text-amber-400 font-medium mb-1 block">"Isolamento Administrativo"</span>
-          <p class="text-xs text-slate-500">A máquina do administrador (PC-Admin) fica em uma sub-rede isolada (10.0.0.0/24), sem contato direto com o tráfego dos computadores comuns.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 2: SIMULADOR INTERATIVO -->
-    <section id="simulador" class="mb-14 scroll-mt-24">
-      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-sm">⚡</div>
-          <h3 class="text-2xl font-bold text-slate-900">Simulador: Terminal Cisco IOS & Sniffer de Pacotes</h3>
-        </div>
-        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
-          <button id="btn-mode-ssh" onclick="switchCliMode('ssh')" class="px-3 py-1 rounded font-medium bg-cyan-600 text-white transition">Sessão SSHv2 Segura</button>
-          <button id="btn-mode-telnet" onclick="switchCliMode('telnet')" class="px-3 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition">Tentativa Telnet (Inseguro)</button>
-        </div>
-      </div>
-
-      <div class="bg-white border-2 border-slate-200/90 rounded-2xl overflow-hidden shadow-lg">
-        <!-- Interactive Split Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-12">
-          
-          <!-- Terminal Side (8 cols) -->
-          <div class="lg:col-span-8 p-5 bg-slate-950 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-800">
-            <div>
-              <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-200">
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot"></span>
-                  <span class="font-mono font-bold text-xs text-slate-200">PC-Admin (10.0.0.11) — Command Prompt</span>
-                </div>
-                <span id="proto-tag" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-                  SSHv2 • Porta 22
-                </span>
-              </div>
-
-              <!-- Terminal Body -->
-              <div id="cli-screen" class="h-64 bg-[#0d1117] p-4 rounded-xl font-mono text-xs text-slate-100 overflow-y-auto space-y-2 border border-slate-800">
-                <div class="text-slate-400">Microsoft Windows [Version 10.0.19045]<br>(c) Microsoft Corporation. Todos os direitos reservados.</div>
-                <div class="text-cyan-400">C:\Users\Admin> ssh -l admin 10.0.0.1</div>
-                <div class="text-slate-300">OpenSSH_8.2p1, OpenSSL 1.1.1f  31 Mar 2020<br>admin@10.0.0.1's password: <span class="text-slate-500">********</span></div>
-                <div class="text-emerald-400">R-LAB#</div>
-              </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Plano de Dados -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-bold text-xs text-slate-900 flex items-center gap-1.5">&#128640; Plano de Dados (Data Plane)</span>
+              <span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600 font-mono font-semibold">Sem IP</span>
             </div>
-
-            <!-- Terminal Interactive Command Buttons -->
-            <div class="mt-4 pt-3 border-t border-slate-200 flex flex-wrap gap-2">
-              <button onclick="execCliCmd('show ip ssh')" class="px-3 py-1 rounded bg-slate-900 hover:bg-slate-850 text-xs font-mono text-cyan-300 border border-slate-700 transition">
-                show ip ssh
-              </button>
-              <button onclick="execCliCmd('show ip dhcp pool')" class="px-3 py-1 rounded bg-slate-900 hover:bg-slate-850 text-xs font-mono text-emerald-300 border border-slate-700 transition">
-                show ip dhcp pool
-              </button>
-              <button onclick="execCliCmd('show ip interface brief')" class="px-3 py-1 rounded bg-slate-900 hover:bg-slate-850 text-xs font-mono text-indigo-300 border border-slate-700 transition">
-                show ip interface brief
-              </button>
-              <button onclick="clearCliScreen()" class="px-3 py-1 rounded bg-slate-900 hover:bg-slate-850 text-xs font-mono text-slate-400 border border-slate-700 transition ml-auto">
-                clear
-              </button>
-            </div>
-          </div>
-
-          <!-- Sniffer & Packet Inspector Side (4 cols) -->
-          <div class="lg:col-span-4 p-5 bg-slate-900 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center gap-2 pb-2 mb-3 border-b border-slate-200">
-                <span class="text-base">🕵️</span>
-                <span class="text-xs font-bold text-white uppercase tracking-wider font-mono">Sniffer no Cabo (Wireshark)</span>
-              </div>
-              <p class="text-[11px] text-slate-400 mb-3 leading-relaxed">
-                O que um invasor conectado ao switch intercepta no meio do caminho:
-              </p>
-
-              <div id="sniffer-box" class="p-3 rounded-xl bg-slate-950 border border-emerald-500/40 font-mono text-[11px] space-y-2">
-                <div class="text-emerald-400 font-bold">🔒 DADOS CRIPTOGRAFADOS (SSH):</div>
-                <div class="text-slate-400 break-all text-[10px] bg-slate-900 p-2 rounded border border-slate-850">
-                  7b 4a 9c 1e f3 08 42 aa 91 2b cc 87 19 ff 33 0a e4 71 8d 2c a9 54 b1 70 88 3e ...
-                </div>
-                <p class="text-[10px] text-emerald-300">
-                  ✓ Proteção Total: Credenciais, comandos e respostas são ilegíveis para espionagem.
-                </p>
-              </div>
-            </div>
-
-            <div class="mt-4 p-3 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
-              <span class="text-slate-900 font-bold block mb-1">Status da Chave RSA:</span>
-              <span>1024 bits gerada para <code>R-LAB.labredes.local</code></span>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 3: GUIA DE CONFIGURAÇÃO -->
-    <section id="roteiro" class="mb-14 scroll-mt-24">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">2</div>
-        <h3 class="text-2xl font-bold text-slate-900">Guia de Configuração no Cisco IOS</h3>
-      </div>
-
-      <!-- Step 1: Complete IOS Script -->
-      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
-        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
-            <span>⚙️</span> 1. Script Completo de Endurecimento SSH & Interfaces
-          </h4>
-          <button onclick="copyCode('code-ssh-full')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition flex items-center gap-1">
-            📋 Copiar Bloco SSH
-          </button>
-        </div>
-        <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
-<pre id="code-ssh-full"><code>enable
-configure terminal
-hostname R-LAB
-
-! 1. Domínio necessário para gerar a chave RSA
-ip domain-name labredes.local
-
-! 2. Usuário de privilégio máximo com senha protegida
-username admin privilege 15 secret cisco123
-
-! 3. Geração da chave criptográfica assimétrica RSA
-crypto key generate rsa
-1024
-
-! 4. Ativação da versão 2 do SSH
-ip ssh version 2
-
-! 5. Configuração restrita das linhas VTY (bloqueia Telnet)
-line vty 0 4
- transport input ssh
- login local
- exit
-
-! 6. Senha privilegiada de enable
-enable secret cisco123
-
-! 7. Interfaces de Rede (Clientes e Gerência)
-interface GigabitEthernet0/0/0
- ip address 192.168.1.1 255.255.255.0
- no shutdown
-exit
-
-interface GigabitEthernet0/0/1
- ip address 10.0.0.1 255.255.255.0
- no shutdown
-exit
-
-! 8. Pool DHCP para as estações clientes
-ip dhcp excluded-address 192.168.1.1 192.168.1.10
-ip dhcp pool REDE-CLIENTES
- network 192.168.1.0 255.255.255.0
- default-router 192.168.1.1
- dns-server 8.8.8.8
-exit
-
-do write memory</code></pre>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 4: ARMADILHAS COMUNS -->
-    <section id="armadilhas" class="mb-14 scroll-mt-24">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center font-bold text-sm">3</div>
-        <h3 class="text-2xl font-bold text-slate-900">Armadilhas Comuns no SSH Cisco IOS</h3>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
-          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
-            <span>⚠️</span> 1. Esquecer do "ip domain-name"
-          </div>
-          <p class="text-xs text-slate-500 leading-relaxed mb-3">
-            Se você tentar executar <code>crypto key generate rsa</code> sem antes ter definido um <code>hostname</code> diferente do padrão e um <code>ip domain-name</code>, o roteador recusará: <em>"% Please define a domain-name first"</em>.
-          </p>
-          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
-            Sempre defina hostname e ip domain-name antes das chaves!
-          </div>
-        </div>
-
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
-          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
-            <span>⚠️</span> 2. Esquecer do "login local"
-          </div>
-          <p class="text-xs text-slate-500 leading-relaxed mb-3">
-            Se nas linhas VTY você esquecer de digitar <code>login local</code>, o roteador não consultará a tabela de usuários locais e rejeitará o login do admin.
-          </p>
-          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
-            Comando essencial: 'login local' sob 'line vty 0 4'.
-          </div>
-        </div>
-
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
-          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
-            <span>⚠️</span> 3. Sintaxe do Cliente SSH no Prompt
-          </div>
-          <p class="text-xs text-slate-500 leading-relaxed mb-3">
-            No Packet Tracer, o comando correto é <code>ssh -l &lt;usuario&gt; &lt;ip&gt;</code> (com traço L minúsculo). Digitar <code>ssh admin@ip</code> pode não ser interpretado dependendo da versão do simulador.
-          </p>
-          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
-            Use: ssh -l admin 10.0.0.1
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 5: CHECKLIST DE ENTREGA NO CANVAS -->
-    <section id="checklist" class="mb-14 scroll-mt-24">
-      <div class="bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-xl">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">4</span>
-              <h3 class="text-2xl font-bold text-slate-900">Checklist de Entrega no Canvas</h3>
-            </div>
-            <p class="text-xs sm:text-sm text-slate-700 mt-1">
-              Marque os itens conforme concluir. O progresso é salvo localmente.
+            <p class="text-xs text-slate-600 leading-relaxed mb-3">
+              Tr&aacute;fego que <strong>atravessa o switch</strong>: computadores conversando entre si ou trafegando rumo ao roteador.
             </p>
+            <div class="p-2.5 rounded bg-slate-50 border border-slate-100 font-mono text-[11px] text-slate-600 leading-relaxed">
+              Origem: PC-Admin (10.0.0.11) &rarr; Destino: R-LAB (10.0.0.1)<br>
+              A&ccedil;&atilde;o do Switch: Comuta o quadro Ethernet diretamente via circuito ASIC de hardware, sem envolver a CPU nem olhar endere&ccedil;os IP.
+            </div>
           </div>
-          <div class="text-right">
-            <div class="text-2xl font-black text-emerald-400" id="progress-val">0%</div>
-            <div class="text-xs text-slate-500">Concluído</div>
+
+          <!-- Plano de Gerenciamento -->
+          <div class="bg-white p-4 rounded-xl border border-purple-200 shadow-2xs">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-bold text-xs text-purple-950 flex items-center gap-1.5">&#128272; Plano de Gerenciamento (Management Plane)</span>
+              <span class="px-2 py-0.5 rounded text-[10px] bg-purple-100 text-purple-800 font-mono font-semibold">Exige IP</span>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed mb-3">
+              Tr&aacute;fego cujo <strong>destino &eacute; o pr&oacute;prio switch</strong>: quando a equipe de redes precisa administrar o equipamento remotamente via SSH, SNMP ou Syslog.
+            </p>
+            <div class="p-2.5 rounded bg-purple-50 border border-purple-100 font-mono text-[11px] text-purple-900 leading-relaxed">
+              Origem: PC-Admin &rarr; Destino: SW-Admin (10.0.0.2)<br>
+              A&ccedil;&atilde;o do Switch: A CPU do switch precisa ter uma pilha TCP/IP ativa para escutar na porta 22 (SSH) e autenticar a sess&atilde;o.
+            </div>
           </div>
-        </div>
-
-        <!-- Progress Bar -->
-        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
-          <div id="progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 w-0 transition-all duration-300"></div>
-        </div>
-
-        <!-- Interactive Checkboxes -->
-        <div class="space-y-3 text-sm">
-          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
-            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
-            <span class="text-slate-700 text-xs sm:text-sm">
-              <strong>Chaves RSA Geradas:</strong> Executado <code>crypto key generate rsa</code> com 1024 bits e validado com <code>show ip ssh</code> no Cisco IOS.
-            </span>
-          </label>
-
-          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
-            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
-            <span class="text-slate-700 text-xs sm:text-sm">
-              <strong>Linhas VTY Endurecidas:</strong> Aplicado <code>transport input ssh</code> e <code>login local</code> nas linhas <code>0 4</code>, bloqueando Telnet com sucesso.
-            </span>
-          </label>
-
-          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
-            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
-            <span class="text-slate-700 text-xs sm:text-sm">
-              <strong>Sessão SSH Autenticada com Sucesso:</strong> Acesso administrativo efetuado a partir do PC-Admin via <code>ssh -l admin 10.0.0.1</code> com senha secreta.
-            </span>
-          </label>
-
-          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
-            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
-            <span class="text-slate-700 text-xs sm:text-sm">
-              <strong>Servidor DHCP no Roteador Operacional:</strong> Os computadores clientes recebem IPs dinâmicos dentro do pool <code>192.168.1.0/24</code>.
-            </span>
-          </label>
-
-          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
-            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
-            <span class="text-slate-700 text-xs sm:text-sm">
-              <strong>Submissão Efetuada no Canvas:</strong> Arquivo <code>acesso_ssh_cli_seunome.pkt</code> e relatório PDF com as capturas de tela submetidos na tarefa.
-            </span>
-          </label>
-        </div>
-
-        <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-200 text-xs text-slate-500">
-          <span>Laboratório de Redes de Computadores • 2026.2</span>
-          <a href="#simulador" class="text-cyan-400 hover:underline">Voltar ao Simulador ↑</a>
         </div>
       </div>
-    </section>
 
-    <!-- Bottom Navigation -->
-    <div class="flex items-center justify-between border-t border-slate-200 pt-6">
-      <a href="07-projeto-1-sockets-tcp.html" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition flex items-center gap-1.5">
-        ← Lab 07: Projeto 1 Sockets TCP
-      </a>
-      <a href="09-switches-idf-mdf-trunk.html" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg transition flex items-center gap-1.5">
-        Próximo: Lab 09 - Switches IDF & MDF com Trunk →
-      </a>
+      <!-- Card: SVI e Default Gateway -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- O que é SVI -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">1</span>
+            <h4 class="font-bold text-sm text-slate-800">O que &eacute; a SVI (Switch Virtual Interface)?</h4>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed mb-3">
+            Em um roteador, cada porta f&iacute;sica &eacute; uma interface de Camada 3 independente que aceita o comando <code>ip address</code>. J&aacute; em um switch L2, as portas f&iacute;sicas (<code>FastEthernet 0/1</code> a <code>0/24</code>) s&atilde;o puramente de Camada 2 &mdash; se voc&ecirc; tentar digitar <code>ip address</code> nelas, o IOS retornar&aacute; erro:
+          </p>
+          <div class="bg-slate-900 text-rose-400 p-2.5 rounded-lg font-mono text-[11px] mb-3">
+            SW-Admin(config-if)# ip address 10.0.0.2 255.255.255.0<br>
+            % Invalid input detected at '^' marker.
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Para resolver isso, o Cisco IOS cria uma interface l&oacute;gica interna conectada diretamente &agrave; CPU: a <strong>SVI (Switch Virtual Interface)</strong>, por padr&atilde;o a <code>interface vlan 1</code>. &Eacute; ela que recebe o IP de gerenciamento.
+          </p>
+        </div>
+
+        <!-- Por que o default-gateway -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm shrink-0">2</span>
+            <h4 class="font-bold text-sm text-slate-800">Por que o comando <code>ip default-gateway</code> &eacute; obrigat&oacute;rio?</h4>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed mb-3">
+            Um switch L2 <strong>n&atilde;o possui tabela de rotas</strong> (ele n&atilde;o roteia pacotes). Se a requisi&ccedil;&atilde;o SSH vier de uma m&aacute;quina na mesma sub-rede (<code>PC-Admin</code> em <code>10.0.0.11</code>), o switch responde diretamente.
+          </p>
+          <p class="text-xs text-slate-600 leading-relaxed mb-3">
+            <strong>Mas e se a conex&atilde;o vier do PC-A (192.168.1.x) ou de uma VPN?</strong> O pacote chega ao switch atrav&eacute;s do roteador R-LAB. Por&eacute;m, ao gerar a resposta de volta para <code>192.168.1.x</code>, o switch n&atilde;o sabe o que fazer com aquele IP externo.
+          </p>
+          <div class="p-2.5 rounded bg-amber-50 border border-amber-200 text-amber-950 text-xs leading-relaxed">
+            <strong>Sem Gateway:</strong> O switch descarta o pacote de retorno e a sess&atilde;o SSH sofre <em>timeout</em>.<br>
+            <strong>Com Gateway (<code>ip default-gateway 10.0.0.1</code>):</strong> O switch envia os pacotes de volta para a interface do R-LAB, completando o handshake TCP com sucesso!
+          </div>
+        </div>
+      </div>
     </div>
 
+    <!-- 2. PASSO A PASSO GUIADO -->
+    <div class="space-y-6">
+
+      <!-- Passo 1: Acesso Console ao Switch -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm step-card">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold shrink-0">1</div>
+          <h4 class="font-bold text-sm text-slate-800">Passo 1: Acesso Inicial &agrave; CLI do Switch</h4>
+        </div>
+        <p class="text-xs text-slate-600 leading-relaxed mb-3">
+          No Cisco Packet Tracer, clique diretamente no dispositivo <strong>SW-Admin</strong> e selecione a aba <strong>CLI</strong> (ou ligue o cabo Console do PC-Admin &agrave; porta Console do switch e abra o aplicativo <em>Terminal</em>).
+        </p>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Pressione <kbd class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-[11px] text-slate-700">ENTER</kbd> para receber o prompt inicial no modo User EXEC: <code>Switch&gt;</code>.
+        </p>
+      </div>
+
+      <!-- Passo 2: Hostname e Modo Privilegiado -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm step-card">
+        <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold shrink-0">2</div>
+            <h4 class="font-bold text-sm text-slate-800">Passo 2: Hostname e Senha do Modo Privilegiado</h4>
+          </div>
+          <button onclick="copyCode('code-sw-base')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition cursor-pointer">&#128203; Copiar</button>
+        </div>
+        <p class="text-xs text-slate-600 leading-relaxed mb-3">
+          Mudar o nome do switch &eacute; <strong>pr&eacute;-requisito obrigat&oacute;rio</strong> para gerar chaves RSA. Al&eacute;m disso, protegemos o modo privilegiado com uma senha segura (<code>class</code>):
+        </p>
+        <div class="bg-[#0d1117] rounded-xl p-4 font-mono text-xs overflow-x-auto">
+<pre id="code-sw-base"><code><span style="color:#64748b">Switch&gt;</span> <span style="color:#93c5fd">enable</span>
+<span style="color:#22d3ee">Switch#</span> <span style="color:#93c5fd">configure terminal</span>
+<span style="color:#6b7280;font-style:italic">! Define o nome do switch (essencial para a chave RSA)</span>
+<span style="color:#818cf8">Switch(config)#</span> <span style="color:#93c5fd">hostname SW-Admin</span>
+<span style="color:#6b7280;font-style:italic">! Protege o modo privilegiado com hash criptografico</span>
+<span style="color:#818cf8">SW-Admin(config)#</span> <span style="color:#93c5fd">enable secret class</span></code></pre>
+        </div>
+      </div>
+
+      <!-- Passo 3: Configuração da SVI (VLAN 1) e Default Gateway -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm step-card">
+        <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold shrink-0">3</div>
+            <h4 class="font-bold text-sm text-slate-800">Passo 3: Configura&ccedil;&atilde;o da SVI (Interface VLAN 1) e Default Gateway</h4>
+          </div>
+          <button onclick="copyCode('code-sw-svi')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition cursor-pointer">&#128203; Copiar</button>
+        </div>
+        <p class="text-xs text-slate-600 leading-relaxed mb-3">
+          Agora atribua o IP <code>10.0.0.2/24</code> &agrave; interface virtual <code>vlan 1</code>, ative-a com <code>no shutdown</code> e informe o IP do roteador R-LAB como gateway padr&atilde;o:
+        </p>
+        <div class="bg-[#0d1117] rounded-xl p-4 font-mono text-xs overflow-x-auto mb-4">
+<pre id="code-sw-svi"><code><span style="color:#6b7280;font-style:italic">! 1. Entra no modo de configuracao da interface virtual SVI</span>
+<span style="color:#818cf8">SW-Admin(config)#</span> <span style="color:#93c5fd">interface vlan 1</span>
+<span style="color:#6b7280;font-style:italic">! 2. Atribui o IP de gerenciamento na mesma rede do PC-Admin</span>
+<span style="color:#c084fc">SW-Admin(config-if)#</span> <span style="color:#93c5fd">ip address 10.0.0.2 255.255.255.0</span>
+<span style="color:#6b7280;font-style:italic">! 3. Ativa a interface administrativa (por padrao ela vem em shutdown)</span>
+<span style="color:#c084fc">SW-Admin(config-if)#</span> <span style="color:#93c5fd">no shutdown</span>
+<span style="color:#c084fc">SW-Admin(config-if)#</span> <span style="color:#93c5fd">exit</span>
+<span style="color:#6b7280;font-style:italic">! 4. Aponta o roteador R-LAB como gateway para alcancar outras redes</span>
+<span style="color:#818cf8">SW-Admin(config)#</span> <span style="color:#93c5fd">ip default-gateway 10.0.0.1</span></code></pre>
+        </div>
+
+        <!-- Tabela explicativa detalhada -->
+        <table class="w-full text-xs border border-slate-100 rounded-lg overflow-hidden">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-100">
+              <th class="text-left px-3 py-2 font-semibold text-slate-500">Comando</th>
+              <th class="text-left px-3 py-2 font-semibold text-slate-500">Significado / Efeito</th>
+              <th class="text-left px-3 py-2 font-semibold text-slate-500">Import&acirc;ncia</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            <tr>
+              <td class="px-3 py-2.5 font-mono text-purple-700 font-bold">interface vlan 1</td>
+              <td class="px-3 py-2.5 text-slate-600">Entra na SVI nativa do switch</td>
+              <td class="px-3 py-2.5 text-slate-500">Cria o ponto de presen&ccedil;a IP da CPU do switch</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2.5 font-mono text-purple-700 font-bold">no shutdown</td>
+              <td class="px-3 py-2.5 text-slate-600">Altera o estado para UP</td>
+              <td class="px-3 py-2.5 text-amber-700 font-semibold">Sem este comando a SVI permanece inativa</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2.5 font-mono text-purple-700 font-bold">ip default-gateway 10.0.0.1</td>
+              <td class="px-3 py-2.5 text-slate-600">Define o salto de sa&iacute;da para outras sub-redes</td>
+              <td class="px-3 py-2.5 text-rose-700 font-semibold">Permite que o switch responda a conex&otilde;es do PC-A e filiais</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Passo 4: Habilitação de SSH nas 16 Linhas VTY -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm step-card">
+        <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold shrink-0">4</div>
+            <h4 class="font-bold text-sm text-slate-800">Passo 4: Habilita&ccedil;&atilde;o de SSHv2 e Endurecimento das 16 Linhas VTY</h4>
+          </div>
+          <button onclick="copyCode('code-sw-ssh')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition cursor-pointer">&#128203; Copiar</button>
+        </div>
+        <p class="text-xs text-slate-600 leading-relaxed mb-3">
+          Agora geramos o par de chaves RSA de 1024 bits e configuramos as <strong>16 linhas VTY (0 a 15)</strong> para aceitar apenas SSH autenticado com a conta local:
+        </p>
+        <div class="bg-[#0d1117] rounded-xl p-4 font-mono text-xs overflow-x-auto mb-4">
+<pre id="code-sw-ssh"><code><span style="color:#6b7280;font-style:italic">! 1. Dominio IP corporativo (necessario para compor a chave RSA)</span>
+<span style="color:#818cf8">SW-Admin(config)#</span> <span style="color:#93c5fd">ip domain-name labredes.local</span>
+
+<span style="color:#6b7280;font-style:italic">! 2. Gera as chaves criptograficas RSA (digite 1024 no prompt)</span>
+<span style="color:#818cf8">SW-Admin(config)#</span> <span style="color:#93c5fd">crypto key generate rsa</span>
+<span style="color:#cbd5e1">How many bits in the modulus [512]:</span> <span style="color:#fcd34d">1024</span>
+<span style="color:#cbd5e1">% Generating 1024 bit RSA keys, keys will be non-exportable...[OK]</span>
+
+<span style="color:#6b7280;font-style:italic">! 3. Forca a versao 2 do protocolo SSH</span>
+<span style="color:#818cf8">SW-Admin(config)#</span> <span style="color:#93c5fd">ip ssh version 2</span>
+
+<span style="color:#6b7280;font-style:italic">! 4. Cria conta de administrador com privilegio maximo (15)</span>
+<span style="color:#818cf8">SW-Admin(config)#</span> <span style="color:#93c5fd">username admin privilege 15 secret cisco123</span>
+
+<span style="color:#6b7280;font-style:italic">! 5. Endurece TODAS as 16 linhas virtuais (0 a 15)</span>
+<span style="color:#818cf8">SW-Admin(config)#</span> <span style="color:#93c5fd">line vty 0 15</span>
+<span style="color:#f87171">SW-Admin(config-line)#</span> <span style="color:#93c5fd">transport input ssh</span>
+<span style="color:#f87171">SW-Admin(config-line)#</span> <span style="color:#93c5fd">login local</span>
+<span style="color:#f87171">SW-Admin(config-line)#</span> <span style="color:#93c5fd">exit</span>
+<span style="color:#818cf8">SW-Admin(config)#</span> <span style="color:#93c5fd">end</span>
+
+<span style="color:#6b7280;font-style:italic">! 6. Salva permanentemente as configuracoes na NVRAM</span>
+<span style="color:#22d3ee">SW-Admin#</span> <span style="color:#93c5fd">copy running-config startup-config</span>
+<span style="color:#cbd5e1">Destination filename [startup-config]?</span> <span style="color:#93c5fd">[ENTER]</span>
+<span style="color:#cbd5e1">Building configuration...[OK]</span></code></pre>
+        </div>
+        <div class="p-3 rounded-xl bg-purple-50 border border-purple-200 text-xs text-purple-900 flex items-start gap-2">
+          <span class="text-base">&#128161;</span>
+          <span><strong>Diferen&ccedil;a Roteador vs Switch:</strong> No roteador ISR 4331 utilizamos <code>line vty 0 4</code> (5 linhas virtuais). No switch Cisco 2960 utilizamos <code>line vty 0 15</code> (16 linhas virtuais). Se voc&ecirc; configurasse apenas <code>0 4</code> no switch, as linhas 5 a 15 continuariam sem seguran&ccedil;a!</span>
+        </div>
+      </div>
+
+      <!-- Passo 5: Homologação e Testes Práticos -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+        <h4 class="font-bold text-sm text-slate-800 mb-4 flex items-center gap-2">
+          <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">&#10003;</span>
+          Passo 5: Bateria de Homologa&ccedil;&atilde;o &mdash; Valida&ccedil;&atilde;o Pr&aacute;tica no Packet Tracer
+        </h4>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Teste 1 -->
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>Teste 1: Ping Local</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono">PC-Admin</span>
+              </div>
+              <p class="text-xs text-slate-500 mb-2">Abra o Command Prompt do PC-Admin e pingue o switch:</p>
+              <div class="bg-slate-900 rounded p-2 font-mono text-[11px] text-cyan-300">ping 10.0.0.2</div>
+            </div>
+            <p class="text-[11px] text-emerald-600 mt-3 font-semibold">&#10003; Deve responder com 0% de perda (ou 1 drop inicial por ARP).</p>
+          </div>
+
+          <!-- Teste 2 -->
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>Teste 2: SSH Local</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono">PC-Admin</span>
+              </div>
+              <p class="text-xs text-slate-500 mb-2">Abra a sess&atilde;o SSH direto para o switch:</p>
+              <div class="bg-slate-900 rounded p-2 font-mono text-[11px] text-cyan-300">ssh -l admin 10.0.0.2</div>
+            </div>
+            <p class="text-[11px] text-emerald-600 mt-3 font-semibold">&#10003; Senha <code>cisco123</code> &rarr; Entra no prompt <code>SW-Admin#</code>.</p>
+          </div>
+
+          <!-- Teste 3 -->
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>Teste 3: Valida&ccedil;&atilde;o do Gateway</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-mono">PC-A (Clientes)</span>
+              </div>
+              <p class="text-xs text-slate-500 mb-2">Do <strong>PC-A</strong> (rede 192.168.1.0/24), conecte via SSH no switch:</p>
+              <div class="bg-slate-900 rounded p-2 font-mono text-[11px] text-purple-300">ssh -l admin 10.0.0.2</div>
+            </div>
+            <p class="text-[11px] text-indigo-600 mt-3 font-semibold">&#10003; Conecta com sucesso! Prova real de que o <code>ip default-gateway</code> est&aacute; roteando a volta.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Passo 6: Diagnóstico e Auditoria no Switch -->
+      <div class="bg-slate-900 rounded-2xl p-5 border border-slate-700 text-slate-300">
+        <h4 class="font-bold text-sm text-cyan-400 mb-3 flex items-center gap-2">
+          <span>&#128269;</span> Passo 6: Comandos de Diagn&oacute;stico e Auditoria CLI no Switch
+        </h4>
+        <p class="text-xs text-slate-400 mb-4">
+          Conectado via SSH no switch, execute os comandos de verifica&ccedil;&atilde;o para auditar o status operacional:
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
+          <div class="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
+            <div class="text-cyan-300 font-bold mb-1">show ip int brief</div>
+            <div class="text-[11px] text-slate-400 mb-2">Verifica o status da interface virtual de ger&ecirc;ncia:</div>
+            <div class="text-[10px] text-emerald-400 bg-slate-950 p-2 rounded">Vlan1 &bull; 10.0.0.2 &bull; YES manual &bull; up / up</div>
+          </div>
+
+          <div class="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
+            <div class="text-cyan-300 font-bold mb-1">show ip ssh</div>
+            <div class="text-[11px] text-slate-400 mb-2">Confirma par&acirc;metros do daemon SSH:</div>
+            <div class="text-[10px] text-emerald-400 bg-slate-950 p-2 rounded">SSH Enabled - version 2.0<br>Authentication timeout: 120 secs</div>
+          </div>
+
+          <div class="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
+            <div class="text-cyan-300 font-bold mb-1">show users</div>
+            <div class="text-[11px] text-slate-400 mb-2">Exibe as sess&otilde;es ativas:</div>
+            <div class="text-[10px] text-emerald-400 bg-slate-950 p-2 rounded">* 0 vty 0 &bull; admin &bull; 10.0.0.11</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reflexão Profissional -->
+      <div class="reflect-box rounded-2xl p-5 text-white">
+        <div class="flex items-center gap-2 mb-3"><span class="text-xl">&#129300;</span><span class="font-bold text-sm text-indigo-200">Reflex&atilde;o de Arquitetura de Redes</span></div>
+        <p class="text-sm text-indigo-100 leading-relaxed mb-2">
+          Se voc&ecirc; remover o comando <code>ip default-gateway 10.0.0.1</code> do switch com o comando <code>no ip default-gateway</code>, o <strong>Teste 1 (PC-Admin)</strong> continuar&aacute; funcionando, mas o <strong>Teste 3 (PC-A)</strong> deixar&aacute; de funcionar imediatamente.
+        </p>
+        <p class="text-sm text-indigo-100 leading-relaxed font-semibold">
+          Voc&ecirc; consegue explicar o motivo exato analisando o endere&ccedil;o IP de origem e o endere&ccedil;o IP de destino nos dois testes?
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 7. CHECKLIST -->
+  <section id="checklist" class="mb-14 scroll-mt-24">
+    <div class="bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-xl">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">7</span>
+            <h3 class="text-2xl font-bold text-white">Checklist de Entrega</h3>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">Marque os itens conforme concluir. Progresso salvo localmente.</p>
+        </div>
+        <div class="text-right">
+          <div class="text-2xl font-black text-emerald-400" id="progress-val">0%</div>
+          <div class="text-xs text-slate-500">Conclu&iacute;do</div>
+        </div>
+      </div>
+      <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
+        <div id="progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 w-0 transition-all duration-300"></div>
+      </div>
+      <div class="space-y-3">
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700 hover:border-emerald-500/40 cursor-pointer transition"><input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 bg-slate-700"><span class="text-slate-300 text-xs sm:text-sm"><strong class="text-white">Topologia montada:</strong> R-LAB (ISR 4331), SW-Clientes (PC-A, PC-B), SW-Admin (PC-Admin) e cabo Console.</span></label>
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700 hover:border-emerald-500/40 cursor-pointer transition"><input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 bg-slate-700"><span class="text-slate-300 text-xs sm:text-sm"><strong class="text-white">IPs configurados no R-LAB:</strong> Gi0/0/0 (192.168.1.1/24) e Gi0/0/1 (10.0.0.1/24) &mdash; ambas <strong>up/up</strong> no <code>show ip interface brief</code>.</span></label>
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700 hover:border-emerald-500/40 cursor-pointer transition"><input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 bg-slate-700"><span class="text-slate-300 text-xs sm:text-sm"><strong class="text-white">DHCP operacional:</strong> PC-A e PC-B recebem IPs em 192.168.1.0/24. Confirmado com <code>show ip dhcp binding</code>.</span></label>
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700 hover:border-emerald-500/40 cursor-pointer transition"><input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 bg-slate-700"><span class="text-slate-300 text-xs sm:text-sm"><strong class="text-white">Chaves RSA no R-LAB:</strong> <code>show ip ssh</code> mostra <em>SSH Enabled - version 2.0</em> com RSA 1024 bits.</span></label>
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700 hover:border-emerald-500/40 cursor-pointer transition"><input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 bg-slate-700"><span class="text-slate-300 text-xs sm:text-sm"><strong class="text-white">VTY endurecido:</strong> <code>transport input ssh</code> e <code>login local</code> nas linhas 0 4. Tentativa Telnet recusada.</span></label>
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700 hover:border-emerald-500/40 cursor-pointer transition"><input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 bg-slate-700"><span class="text-slate-300 text-xs sm:text-sm"><strong class="text-white">SSH autenticado no R-LAB:</strong> PC-Admin executou <code>ssh -l admin 10.0.0.1</code> e entrou no modo <code>R-LAB#</code>.</span></label>
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700 hover:border-emerald-500/40 cursor-pointer transition"><input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 bg-slate-700"><span class="text-slate-300 text-xs sm:text-sm"><strong class="text-purple-300">&#128279; Switch SW-Admin:</strong> SVI Vlan 1 (<code>10.0.0.2/24</code>), <code>ip default-gateway 10.0.0.1</code> e SSHv2 habilitado nas 16 linhas VTY (0 a 15).</span></label>
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700 hover:border-emerald-500/40 cursor-pointer transition"><input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 bg-slate-700"><span class="text-slate-300 text-xs sm:text-sm"><strong class="text-purple-300">&#128279; Homologa&ccedil;&atilde;o Switch:</strong> Acesso SSH validado a partir do PC-Admin e do PC-A (<code>ssh -l admin 10.0.0.2</code>).</span></label>
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700 hover:border-emerald-500/40 cursor-pointer transition"><input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 bg-slate-700"><span class="text-white"><strong>Canvas:</strong> <code>acesso_ssh_cli_seunome.pkt</code> + prints do <code>show ip ssh</code> e da sess&atilde;o SSH enviados.</span></label>
+      </div>
+      <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-700 text-xs text-slate-500">
+        <span>Laborat&oacute;rio de Redes de Computadores &bull; 2026.2</span>
+        <a href="#modos" class="text-cyan-400 hover:underline">Voltar ao in&iacute;cio &uarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bottom Nav -->
+  <div class="flex items-center justify-between border-t border-slate-200 pt-6">
+    <a href="07-projeto-1-sockets-tcp.html" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition">&larr; Lab 07: Projeto 1 Sockets TCP</a>
+    <a href="09-switches-idf-mdf-trunk.html" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg transition">Pr&oacute;ximo: Lab 09 &rarr;</a>
   </div>
 
-  <!-- Interactive Simulator Engine -->
-  <script>
-    let cliMode = 'ssh';
+</div>
 
-    function switchCliMode(mode) {
-      cliMode = mode;
-      const bSsh = document.getElementById('btn-mode-ssh');
-      const bTelnet = document.getElementById('btn-mode-telnet');
-      const pTag = document.getElementById('proto-tag');
-      const screen = document.getElementById('cli-screen');
-      const sniffer = document.getElementById('sniffer-box');
+<script>
+  /* Toast */
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    document.getElementById('toast-msg').innerText = msg;
+    t.classList.remove('opacity-0','translate-y-20');
+    setTimeout(() => t.classList.add('opacity-0','translate-y-20'), 2500);
+  }
+  function copyCode(id) {
+    navigator.clipboard.writeText(document.getElementById(id).innerText)
+      .then(() => showToast('Comandos copiados!'))
+      .catch(() => showToast('Erro ao copiar'));
+  }
 
-      if (mode === 'ssh') {
-        bSsh.className = 'px-3 py-1 rounded font-medium bg-cyan-600 text-white transition';
-        bTelnet.className = 'px-3 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition';
-        pTag.innerText = 'SSHv2 • Porta 22';
-        pTag.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40';
-
-        screen.innerHTML = `
-          <div class="text-slate-400">Microsoft Windows [Version 10.0.19045]<br>(c) Microsoft Corporation. Todos os direitos reservados.</div>
-          <div class="text-cyan-400">C:\\Users\\Admin> ssh -l admin 10.0.0.1</div>
-          <div class="text-slate-300">OpenSSH_8.2p1, OpenSSL 1.1.1f  31 Mar 2020<br>admin@10.0.0.1's password: <span class="text-slate-500">********</span></div>
-          <div class="text-emerald-400">R-LAB#</div>
-        `;
-
-        sniffer.className = 'p-3 rounded-xl bg-slate-950 border border-emerald-500/40 font-mono text-[11px] space-y-2';
-        sniffer.innerHTML = `
-          <div class="text-emerald-400 font-bold">🔒 DADOS CRIPTOGRAFADOS (SSH):</div>
-          <div class="text-slate-400 break-all text-[10px] bg-slate-900 p-2 rounded border border-slate-850">
-            7b 4a 9c 1e f3 08 42 aa 91 2b cc 87 19 ff 33 0a e4 71 8d 2c a9 54 b1 70 88 3e ...
-          </div>
-          <p class="text-[10px] text-emerald-300">
-            ✓ Proteção Total: Credenciais, comandos e respostas são ilegíveis para espionagem.
-          </p>
-        `;
-      } else {
-        bTelnet.className = 'px-3 py-1 rounded font-medium bg-rose-600 text-white transition';
-        bSsh.className = 'px-3 py-1 rounded font-medium text-slate-600 hover:text-slate-900 transition';
-        pTag.innerText = 'Telnet • Porta 23 (Recusado)';
-        pTag.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-500/40';
-
-        screen.innerHTML = `
-          <div class="text-slate-400">Microsoft Windows [Version 10.0.19045]<br>(c) Microsoft Corporation. Todos os direitos reservados.</div>
-          <div class="text-rose-400">C:\\Users\\Admin> telnet 10.0.0.1</div>
-          <div class="text-slate-700">Connecting To 10.0.0.1...Could not open connection to the host, on port 23: Connect failed.</div>
-          <div class="text-amber-300 mt-2">[BLOQUEADO] O comando 'transport input ssh' recusou conexões Telnet na porta 23 TCP com sucesso!</div>
-        `;
-
-        sniffer.className = 'p-3 rounded-xl bg-slate-950 border border-rose-500/40 font-mono text-[11px] space-y-2';
-        sniffer.innerHTML = `
-          <div class="text-rose-400 font-bold">⚠️ VULNERABILIDADE TELNET DETECTADA:</div>
-          <div class="text-rose-300 break-all text-[10px] bg-rose-950/40 p-2 rounded border border-rose-500/30">
-            USER: admin<br>PASS: cisco123<br>CMD: enable secret cisco123
-          </div>
-          <p class="text-[10px] text-rose-300">
-            ❌ Perigo: Telnet envia todas as senhas em texto puro! Por isso foi bloqueado pelo hardening.
-          </p>
-        `;
-      }
-    }
-
-    function execCliCmd(cmd) {
-      if (cliMode !== 'ssh') {
-        showToast('Ative a sessão SSH para executar comandos!');
-        return;
-      }
-      const s = document.getElementById('cli-screen');
-      s.innerHTML += `<div class="text-white font-bold mt-2">R-LAB# ${cmd}</div>`;
-
-      if (cmd === 'show ip ssh') {
-        s.innerHTML += `
-          <div class="text-slate-700">
-            SSH Enabled - version 2.0<br>
-            Authentication timeout: 120 secs; Authentication retries: 3<br>
-            RSA key size: 1024 bits
-          </div>
-        `;
-      } else if (cmd === 'show ip dhcp pool') {
-        s.innerHTML += `
-          <div class="text-slate-700">
-            Pool REDE-CLIENTES :<br>
-            &nbsp;Utilization mark (high/low) : 100 / 0<br>
-            &nbsp;Subnet size (Total/Exclude/Usable) : 254 / 10 / 244<br>
-            &nbsp;Lease : 1 days 0 hours 0 mins
-          </div>
-        `;
-      } else if (cmd === 'show ip interface brief') {
-        s.innerHTML += `
-          <div class="text-slate-700">
-            GigabitEthernet0/0/0&nbsp;&nbsp;&nbsp;&nbsp;192.168.1.1&nbsp;&nbsp;&nbsp;&nbsp;YES manual up&nbsp;&nbsp;&nbsp;&nbsp;up<br>
-            GigabitEthernet0/0/1&nbsp;&nbsp;&nbsp;&nbsp;10.0.0.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;YES manual up&nbsp;&nbsp;&nbsp;&nbsp;up
-          </div>
-        `;
-      }
-      s.scrollTop = s.scrollHeight;
-    }
-
-    function clearCliScreen() {
-      document.getElementById('cli-screen').innerHTML = `<div class="text-emerald-400">R-LAB#</div>`;
-    }
-
-    function copyCode(id) {
-      const code = document.getElementById(id).innerText;
-      navigator.clipboard.writeText(code);
-      showToast('Comandos copiados para a área de transferência!');
-    }
-
-    function showToast(msg) {
-      const t = document.getElementById('toast');
-      document.getElementById('toast-msg').innerText = msg;
-      t.classList.remove('opacity-0', 'translate-y-20');
-      setTimeout(() => t.classList.add('opacity-0', 'translate-y-20'), 2500);
-    }
-
-    function updateProgress() {
-      const checks = document.querySelectorAll('.lab-check');
-      let done = 0;
-      checks.forEach(c => { if (c.checked) done++; });
-      const pct = Math.round((done / checks.length) * 100);
-      document.getElementById('progress-val').innerText = pct + '%';
-      document.getElementById('progress-bar').style.width = pct + '%';
-      localStorage.setItem('lr_lab08_progress', pct);
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const saved = localStorage.getItem('lr_lab08_progress');
-      if (saved) {
-        const checks = document.querySelectorAll('.lab-check');
-        const count = Math.round((parseInt(saved) / 100) * checks.length);
-        for (let i = 0; i < count; i++) {
-          if (checks[i]) checks[i].checked = true;
-        }
+  /* Checklist */
+  function updateProgress() {
+    const checks = document.querySelectorAll('.lab-check');
+    let done = 0; checks.forEach(c => { if (c.checked) done++; });
+    const pct = Math.round((done / checks.length) * 100);
+    document.getElementById('progress-val').innerText = pct + '%';
+    document.getElementById('progress-bar').style.width = pct + '%';
+    localStorage.setItem('lr_lab08_v2', JSON.stringify([...checks].map(c => c.checked)));
+  }
+  window.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('lr_lab08_v2');
+    if (saved) {
+      try {
+        const st = JSON.parse(saved);
+        const ch = document.querySelectorAll('.lab-check');
+        st.forEach((s,i) => { if (ch[i]) ch[i].checked = s; });
         updateProgress();
+      } catch(e) {}
+    }
+  });
+
+  /* IOS Terminal Simulator */
+  let termMode = 'user', termHostname = 'Router';
+  let termHistory = [], termHistIdx = -1;
+  let termRsaDone = false, termDomainSet = false, termHosSet = false;
+  let termDhcpDone = false, termSshV2 = false, termVtySet = false, termLoginLocal = false;
+
+  const PROMPTS = {
+    user:   () => termHostname + '>',
+    priv:   () => termHostname + '#',
+    config: () => termHostname + '(config)#',
+    iface:  () => termHostname + '(config-if)#',
+    line:   () => termHostname + '(config-line)#',
+    dhcp:   () => termHostname + '(config-dhcp)#',
+  };
+  function getPrompt() { return PROMPTS[termMode](); }
+  function updatePromptLabel() { document.getElementById('term-prompt-label').innerText = getPrompt(); }
+  function focusTerm() { document.getElementById('term-input').focus(); }
+  function termPrint(html) {
+    const out = document.getElementById('term-output');
+    const d = document.createElement('div'); d.innerHTML = html; out.appendChild(d);
+    out.scrollTop = out.scrollHeight;
+  }
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function injectCmd(cmd) { document.getElementById('term-input').value = ''; processCmd(cmd); focusTerm(); }
+  function handleTermKey(e) {
+    const inp = document.getElementById('term-input');
+    if (e.key === 'Enter') {
+      const cmd = inp.value.trim(); inp.value = '';
+      if (cmd) { termHistory.unshift(cmd); termHistIdx = -1; }
+      processCmd(cmd);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault(); termHistIdx = Math.min(termHistIdx+1, termHistory.length-1);
+      inp.value = termHistory[termHistIdx] || '';
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault(); termHistIdx = Math.max(termHistIdx-1, -1);
+      inp.value = termHistIdx >= 0 ? termHistory[termHistIdx] : '';
+    }
+  }
+
+  function processCmd(raw) {
+    const cmd = raw.trim().toLowerCase();
+    if (!cmd) { termPrint(''); return; }
+    termPrint(`<span style="color:#a78bfa">${esc(getPrompt())}</span> <span style="color:#93c5fd">${esc(raw)}</span>`);
+    if (cmd === '?' || cmd === 'help') {
+      const h = {
+        user:   'enable, ping &lt;ip&gt;',
+        priv:   'configure terminal (conf t), show ip ssh, show ip interface brief (sh ip int bri), show ip dhcp binding, show ip dhcp pool, show users, show running-config, write memory',
+        config: 'hostname, ip domain-name, username, crypto key generate rsa, ip ssh version 2, ip dhcp excluded-address, ip dhcp pool, interface (int), line vty, enable secret, end, exit',
+        iface:  'ip address &lt;ip&gt; &lt;mask&gt;, no shutdown, exit, end, do &lt;cmd&gt;',
+        line:   'transport input ssh, login local, exit, end',
+        dhcp:   'network, default-router, dns-server, lease, exit',
+      };
+      termPrint(`<span style="color:#94a3b8">${h[termMode]||'N/A'}</span>`);
+      return;
+    }
+    if (cmd === 'clear' || cmd === 'cls') { document.getElementById('term-output').innerHTML = ''; return; }
+    ({ user: handleUser, priv: handlePriv, config: handleConfig, iface: handleIface, line: handleLine, dhcp: handleDhcp })[termMode]?.(cmd, raw);
+    updatePromptLabel();
+  }
+
+  function handleUser(cmd) {
+    if (cmd === 'enable' || cmd === 'en') termMode = 'priv';
+    else if (cmd.startsWith('ping')) termPrint('<span style="color:#94a3b8">Sending 5 echoes...<br>!!!!!</span>');
+    else termPrint(`<span style="color:#f87171">% Unknown command: ${esc(cmd)}</span>`);
+  }
+
+  function handlePriv(cmd) {
+    if (cmd === 'configure terminal' || cmd === 'conf t' || cmd === 'configure t') { termMode = 'config'; }
+    else if (cmd === 'end') { /* already priv */ }
+    else if (cmd === 'show ip ssh' || cmd === 'sh ip ssh') {
+      termPrint(termRsaDone
+        ? `<span style="color:#cbd5e1">SSH Enabled - version ${termSshV2?'2.0':'1.0'}<br>Authentication timeout: 120 secs; Authentication retries: 3<br>RSA key size: 1024 bits</span>`
+        : `<span style="color:#cbd5e1">SSH Disabled - no rsa key generated</span>`);
+    } else if (cmd === 'show ip interface brief' || cmd === 'sh ip int bri') {
+      termPrint(`<span style="color:#cbd5e1">Interface              IP-Address      OK? Method Status   Protocol<br>GigabitEthernet0/0/0  192.168.1.1     YES manual up       up<br>GigabitEthernet0/0/1  10.0.0.1        YES manual up       up</span>`);
+    } else if (cmd === 'show ip dhcp binding' || cmd === 'sh ip dhcp bind') {
+      termPrint(termDhcpDone
+        ? `<span style="color:#cbd5e1">IP address       Hardware Addr         Type<br>192.168.1.11     00D0.97A8.1234        Automatic<br>192.168.1.12     00E0.A3B2.5678        Automatic</span>`
+        : `<span style="color:#94a3b8">% No bindings found. DHCP pool not yet configured.</span>`);
+    } else if (cmd === 'show ip dhcp pool' || cmd === 'sh ip dhcp pool') {
+      termPrint(termDhcpDone
+        ? `<span style="color:#cbd5e1">Pool POOL_CLIENTES :<br>&nbsp;Subnet size (Total/Exclude/Usable): 254 / 10 / 244<br>&nbsp;Lease: 1 days 0 hours 0 mins</span>`
+        : `<span style="color:#94a3b8">% No DHCP pools found.</span>`);
+    } else if (cmd === 'show users' || cmd === 'sh users') {
+      termPrint(`<span style="color:#cbd5e1">&nbsp;&nbsp;&nbsp;&nbsp;Line&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;User&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Idle&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Location<br>*&nbsp;&nbsp;2 vty 0&nbsp;&nbsp;&nbsp;admin&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00:00:02&nbsp;&nbsp;&nbsp;10.0.0.11</span>`);
+    } else if (cmd === 'show running-config' || cmd === 'sh run') {
+      termPrint(`<span style="color:#cbd5e1">hostname ${esc(termHostname)}<br>${termDomainSet?'ip domain-name labredes.local':'! ip domain-name NOT SET'}<br>interface GigabitEthernet0/0/0<br>&nbsp;ip address 192.168.1.1 255.255.255.0<br>&nbsp;no shutdown</span>`);
+    } else if (cmd === 'write memory' || cmd === 'wr' || cmd.startsWith('copy run')) {
+      termPrint(`<span style="color:#34d399">Building configuration...<br>[OK] Configuration saved to NVRAM.</span>`);
+    } else if (cmd.startsWith('ping')) {
+      termPrint(`<span style="color:#94a3b8">Sending 5 echoes... !!!!!</span>`);
+    } else {
+      termPrint(`<span style="color:#f87171">% Invalid input: '${esc(cmd)}'</span>`);
+    }
+  }
+
+  function handleConfig(cmd) {
+    if (cmd.startsWith('hostname ')) { termHostname = cmd.split(' ')[1] || termHostname; termHosSet = true; }
+    else if (cmd.startsWith('ip domain-name ')) { termDomainSet = true; termPrint(`<span style="color:#34d399">% Domain name configured.</span>`); }
+    else if (cmd.startsWith('username ')) { termPrint(`<span style="color:#34d399">% User account created.</span>`); }
+    else if (cmd === 'crypto key generate rsa' || cmd === 'crypto key gen rsa') {
+      if (!termHosSet || termHostname === 'Router') {
+        termPrint(`<span style="color:#f87171">% Please define a hostname other than "Router" first.</span>`);
+      } else if (!termDomainSet) {
+        termPrint(`<span style="color:#f87171">% Please define a domain-name first.</span>`);
+      } else {
+        termPrint(`<span style="color:#cbd5e1">Keys: ${esc(termHostname)}.labredes.local<br>Bits [512]: <span style="color:#fcd34d">1024</span></span>`);
+        setTimeout(() => { termPrint(`<span style="color:#34d399">% Generating 1024 bit RSA keys...<br>[OK]</span>`); termRsaDone = true; }, 800);
       }
+    } else if (cmd === 'ip ssh version 2') {
+      if (!termRsaDone) termPrint(`<span style="color:#f87171">% SSH v2 requires RSA keys to be generated first.</span>`);
+      else { termSshV2 = true; termPrint(`<span style="color:#34d399">% SSH version 2 enabled.</span>`); }
+    } else if (cmd.startsWith('ip dhcp excluded')) { termPrint(`<span style="color:#34d399">% Excluded address range configured.</span>`); }
+    else if (cmd.startsWith('ip dhcp pool ')) { termMode = 'dhcp'; }
+    else if (cmd.startsWith('interface ') || cmd.startsWith('int ')) { termMode = 'iface'; }
+    else if (cmd === 'line vty 0 4') { termMode = 'line'; termVtySet = false; termLoginLocal = false; }
+    else if (cmd.startsWith('enable secret ')) { termPrint(`<span style="color:#34d399">% Enable secret configured.</span>`); }
+    else if (cmd === 'end') { termMode = 'priv'; }
+    else if (cmd === 'exit') { termMode = 'priv'; }
+    else { termPrint(`<span style="color:#f87171">% Invalid input: '${esc(cmd)}'</span>`); }
+  }
+
+  function handleIface(cmd) {
+    if (cmd.startsWith('ip address ')) termPrint(`<span style="color:#34d399">% IP address configured.</span>`);
+    else if (cmd === 'no shutdown' || cmd === 'no shut') termPrint(`<span style="color:#34d399">%LINK-5-CHANGED: Interface changed state to up<br>%LINEPROTO-5-UPDOWN: Line protocol changed state to up</span>`);
+    else if (cmd === 'exit') termMode = 'config';
+    else if (cmd === 'end') termMode = 'priv';
+    else if (cmd.startsWith('do ')) { handlePriv(cmd.slice(3)); updatePromptLabel(); return; }
+    else termPrint(`<span style="color:#f87171">% Invalid input: '${esc(cmd)}'</span>`);
+  }
+
+  function handleLine(cmd) {
+    if (cmd === 'transport input ssh') { termVtySet = true; termPrint(`<span style="color:#34d399">% VTY lines now accept SSH only.</span>`); }
+    else if (cmd === 'transport input all' || cmd === 'transport input telnet') { termPrint(`<span style="color:#f87171">% Warning: Telnet is insecure. Use "transport input ssh".</span>`); }
+    else if (cmd === 'login local') { termLoginLocal = true; termPrint(`<span style="color:#34d399">% VTY will authenticate using local database.</span>`); }
+    else if (cmd === 'exit') {
+      if (termVtySet && termLoginLocal) termPrint(`<span style="color:#34d399">% VTY fully hardened: SSH only + local auth. &#10003;</span>`);
+      termMode = 'config';
+    } else if (cmd === 'end') { termMode = 'priv'; }
+    else termPrint(`<span style="color:#f87171">% Invalid input: '${esc(cmd)}'</span>`);
+  }
+
+  function handleDhcp(cmd) {
+    if (cmd.startsWith('network ')) termPrint(`<span style="color:#34d399">% DHCP network range configured.</span>`);
+    else if (cmd.startsWith('default-router ')) termPrint(`<span style="color:#34d399">% Default gateway configured for DHCP clients.</span>`);
+    else if (cmd.startsWith('dns-server ')) { termDhcpDone = true; termPrint(`<span style="color:#34d399">% DNS server configured.</span>`); }
+    else if (cmd.startsWith('lease ')) termPrint(`<span style="color:#34d399">% Lease time configured.</span>`);
+    else if (cmd === 'exit') termMode = 'config';
+    else if (cmd === 'end') termMode = 'priv';
+    else termPrint(`<span style="color:#f87171">% Invalid input: '${esc(cmd)}'</span>`);
+  }
+
+  function resetTerm() {
+    termMode = 'user'; termHostname = 'Router';
+    termHistory = []; termHistIdx = -1;
+    termRsaDone = false; termDomainSet = false; termHosSet = false;
+    termDhcpDone = false; termSshV2 = false; termVtySet = false; termLoginLocal = false;
+    document.getElementById('term-output').innerHTML = `<div style="color:#64748b">Terminal reiniciado. Modo: User EXEC (Router&gt;)</div>`;
+    updatePromptLabel(); focusTerm();
+  }
+
+  updatePromptLabel();
+
+  /* ── Seções Colapsáveis ─────────────────────────── */
+  function initCollapsible() {
+    // Armazena quais seções estão ABERTAS (padrão = todas fechadas)
+    const STORE = 'lr_lab08_open_v2';
+    localStorage.removeItem('lr_lab08_collapsed_v1'); // limpa chave antiga
+    let openIds = [];
+    try { openIds = JSON.parse(localStorage.getItem(STORE) || '[]'); } catch(e) {}
+
+    document.querySelectorAll('section[id]').forEach(sec => {
+      if (sec.children.length < 2) return;
+
+      const header = sec.firstElementChild;
+      header.classList.add('sec-header');
+
+      // Badge "recolhido"
+      const badge = document.createElement('span');
+      badge.className = 'sec-badge items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-500 ml-2';
+      badge.innerText = 'recolhido — clique para expandir';
+      header.appendChild(badge);
+
+      // Chevron
+      const chevron = document.createElement('span');
+      chevron.className = 'sec-chevron';
+      chevron.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+      header.appendChild(chevron);
+
+      // Envolve conteúdo restante em .sec-body > inner
+      const body  = document.createElement('div');
+      body.className = 'sec-body';
+      const inner = document.createElement('div');
+      body.appendChild(inner);
+      while (sec.children.length > 1) inner.appendChild(sec.children[1]);
+      sec.appendChild(body);
+
+      // Padrão: fechado — abre apenas se estava explicitamente aberto
+      if (!openIds.includes(sec.id)) {
+        body.style.height = '0';
+        sec.classList.add('sec-collapsed');
+      }
+
+      // Clique no cabeçalho
+      header.addEventListener('click', () => {
+        const isCollapsed = sec.classList.contains('sec-collapsed');
+        if (isCollapsed) {
+          sec.classList.remove('sec-collapsed');
+          body.style.height = inner.scrollHeight + 'px';
+          body.addEventListener('transitionend', () => { body.style.height = ''; }, { once: true });
+        } else {
+          body.style.height = inner.scrollHeight + 'px';
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            body.style.height = '0';
+            sec.classList.add('sec-collapsed');
+          }));
+        }
+        // Persiste IDs abertos
+        const ids = [...document.querySelectorAll('section[id]')]
+          .filter(s => !s.classList.contains('sec-collapsed'))
+          .map(s => s.id);
+        localStorage.setItem(STORE, JSON.stringify(ids));
+      });
     });
-  </script>
+  }
+
+  initCollapsible();
+</script>
 </body>
 </html>
+
