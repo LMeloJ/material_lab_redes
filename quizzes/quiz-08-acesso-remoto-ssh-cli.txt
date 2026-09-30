@@ -1,0 +1,72 @@
+Quiz title: Lab 08: Acesso Remoto SSH & CLI Cisco - Quiz de Avaliação
+Quiz description: Quiz avaliativo baseado exclusivamente no Roteiro 08 (Modos do Cisco IOS, Topologia, Endereçamento IP, Servidor DHCP, Chaves RSA, SSHv2 e Gerenciamento Seguro de Switch L2).
+
+1. No Cisco IOS, um administrador está configurando a interface GigabitEthernet0/0/0 no modo de configuração de interface (`R-LAB(config-if)#`). Qual comando ele deve digitar para retornar diretamente ao modo Privileged EXEC (`R-LAB#`) em um único passo?
+a) exit
+*b) end
+c) disable
+d) quit
+... O comando `exit` volta apenas um nível na hierarquia (para `config`), enquanto o comando `end` (ou o atalho `Ctrl+Z`) retorna diretamente ao modo Privileged EXEC (`R-LAB#`).
+
+2. Durante o Experimento 1 do laboratório, o primeiro acesso ao roteador Cisco ISR 4331 recém-instalado deve ser realizado obrigatoriamente através da porta Console (`line con 0`) e não via SSH. Qual é a justificativa técnica apresentada no roteiro?
+*a) O roteador sai de fábrica sem endereços IP configurados, e a conexão por Console é out-of-band, não dependendo de rede ou interfaces ativas.
+b) A porta Console possui criptografia nativa superior ao SSHv2 de 1024 bits.
+c) O protocolo SSH só pode ser habilitado por comandos disponíveis no modo User EXEC da porta auxiliar (AUX).
+d) A porta Console aceita até 5 sessões simultâneas de gerenciamento, permitindo acesso concorrente.
+... O equipamento novo ou resetado de fábrica não possui endereçamento IP atribuído a nenhuma interface física. Sem IP, não há camada de rede nem transporte TCP para suportar o SSH. A porta Console oferece conexão out-of-band independente do status da rede.
+
+3. Ao tentar executar o comando `crypto key generate rsa`, o Cisco IOS exibe a mensagem de erro `"% Please define a domain-name first"`. Qual comando deve ser configurado no modo de configuração global para sanar essa pendência?
+a) ip domain-lookup labredes.local
+b) ip host R-LAB labredes.local
+*c) ip domain-name labredes.local
+d) domain-name rsa 1024
+... O comando `ip domain-name <nome_do_dominio>` é obrigatório porque o IOS precisa do domínio para compor o FQDN junto com o hostname antes de gerar o par de chaves RSA.
+
+4. Por que a definição prévia de um hostname personalizado (ex: `hostname R-LAB`) e de um nome de domínio é obrigatória antes da geração das chaves RSA no Cisco IOS?
+a) Porque o IOS exige esses valores para criar o pool DHCP de clientes.
+*b) Porque o IOS utiliza a junção do hostname e do domínio para compor o FQDN e batizar o par de chaves RSA (ex: R-LAB.labredes.local).
+c) Porque sem um hostname a interface GigabitEthernet0/0/0 não aceita o comando "no shutdown".
+d) Porque o protocolo TCP porta 22 bloqueia pacotes cujo cabeçalho não contenha o hostname do roteador.
+... O par de chaves assimétricas RSA é nomeado internamente pelo Cisco IOS usando o formato `<hostname>.<domain-name>`. Sem ambos definidos, a geração da chave falha.
+
+5. No Experimento 2, antes de criar o pool DHCP para os clientes, foi inserido o comando `ip dhcp excluded-address 192.168.1.1 192.168.1.10`. Qual é a finalidade desta configuração?
+a) Bloquear o acesso dos primeiros 10 clientes à internet e ao servidor DNS.
+b) Desativar as interfaces GigabitEthernet associadas a essas portas.
+*c) Reservar essa faixa estática, impedindo que o roteador distribua para os clientes IPs já usados por gateways ou servidores.
+d) Forçar os clientes da rede a se autenticarem via SSH antes de receberem o endereço IP.
+... O comando `ip dhcp excluded-address` exclui uma faixa de endereços da concessão automática do pool DHCP, preservando esses endereços para equipamentos fixos (como a interface `192.168.1.1` do gateway) e evitando duplicidade de IP.
+
+6. Qual é a principal diferença estrutural e operacional entre a linha de Console (`line con 0`) e as linhas de Terminal Virtual (`line vty 0 4`) abordada no roteiro?
+*a) A Console é uma porta física RJ-45 para acesso out-of-band com 1 conexão simultânea; as VTYs são portas lógicas em memória para acesso remoto via rede e suportam múltiplas sessões.
+b) A Console utiliza a porta 22 TCP e exige IP configurado; as VTYs utilizam apenas sinalização serial assíncrona.
+c) A Console suporta 16 sessões simultâneas com criptografia RSA; as VTYs suportam apenas 1 conexão serial por cabo azul.
+d) O comando "login local" só funciona na porta Console, sendo proibido nas linhas VTY.
+... A linha Console (`con 0`) é uma porta física serial no chassi para gerência local out-of-band (1 conexão). As linhas VTY (`Virtual TeleTYpewriter`) são interfaces lógicas de rede que exigem pilha TCP/IP ativa e permitem conexões remotas simultâneas (5 sessões de 0 a 4 no roteador ISR 4331).
+
+7. No endurecimento das linhas VTY (`line vty 0 4`), quais comandos garantem, respectivamente, o bloqueio do protocolo Telnet (texto claro) em favor exclusivo do SSH, e a obrigatoriedade do uso do banco de credenciais configurado no próprio dispositivo (`username ... secret ...`)?
+a) service password-encryption e enable secret class
+b) ip ssh version 2 e crypto key generate rsa
+*c) transport input ssh e login local
+d) default-router 10.0.0.1 e login synchronous
+... O comando `transport input ssh` restringe a entrada das VTYs unicamente ao SSH (descartando tentativas de Telnet inseguras na porta 23), e o `login local` instrui o sistema operacional a validar os logins na base local criada com `username <user> secret <senha>`.
+
+8. No Cisco Packet Tracer, ao tentar conectar via SSH a partir do Command Prompt do PC-Admin (10.0.0.11) para o roteador R-LAB (10.0.0.1), qual é a sintaxe correta de comando especificada no roteiro?
+a) ssh admin@10.0.0.1
+*b) ssh -l admin 10.0.0.1
+c) connect ssh 10.0.0.1 -u admin
+d) telnet 10.0.0.1 -ssh -user admin
+... No prompt de comando do Cisco Packet Tracer, a flag suportada para declarar o usuário de login é `-l` minúsculo seguido do nome do usuário e do IP de destino (`ssh -l admin 10.0.0.1`). A sintaxe `admin@ip` não é reconhecida pelo cliente do simulador.
+
+9. No Experimento 5 (Switch L2), se o switch opera na Camada 2 (Enlace) comutando quadros Ethernet por hardware (ASIC) sem precisar de IP para o tráfego dos clientes, por que configuramos um IP na interface virtual `vlan 1` (SVI)?
+a) Para que o switch possa rotear pacotes entre as portas FastEthernet e a rede externa.
+*b) Para o Plano de Gerenciamento (Management Plane), permitindo que a CPU do switch tenha uma pilha TCP/IP para escutar na porta 22 (SSH).
+c) Porque sem IP na SVI as portas físicas FastEthernet entram em estado de shutdown automático.
+d) Para habilitar a tabela CAM e permitir o aprendizado de endereços MAC.
+... O Plano de Dados (Data Plane) comuta quadros na Camada 2 via hardware ASIC sem precisar de IP. Porém, o Plano de Gerenciamento (Management Plane) exige um endereço IP associado à CPU do switch (através da SVI VLAN 1) para viabilizar sessões SSH/Telnet, SNMP e Syslog.
+
+10. No teste de validação do Switch SW-Admin, um administrador conectou com sucesso via SSH a partir do PC-Admin (10.0.0.11). Porém, ao testar a partir do PC-A (192.168.1.11), a conexão falharia com timeout caso o comando `ip default-gateway 10.0.0.1` não estivesse configurado no switch. Qual é a causa técnica dessa falha?
+a) O switch L2 bloqueia nativamente qualquer pacote originado de interfaces GigabitEthernet.
+b) Sem o gateway padrão, a chave RSA do switch reduz seu tamanho de 1024 bits para 512 bits.
+*c) O switch L2 não possui tabela de roteamento e, sem o gateway padrão, não sabe para onde encaminhar os pacotes TCP de resposta de volta à rede externa 192.168.1.0/24.
+d) O PC-A só consegue acessar switches se o comando "line vty 0 4" for utilizado em vez de "line vty 0 15".
+... Como um switch de camada 2 não executa roteamento, ele só sabe entregar pacotes diretamente para dispositivos dentro da sua própria sub-rede local (10.0.0.0/24). Para responder a requisições de outras sub-redes (como o PC-A em 192.168.1.0/24), o switch precisa obrigatoriamente do `ip default-gateway` apontando para o roteador R-LAB (10.0.0.1).
