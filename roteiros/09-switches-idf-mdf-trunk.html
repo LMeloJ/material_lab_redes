@@ -25,7 +25,70 @@
   </script>
   <style>
     .pulse-dot { animation: pulseAnim 2s infinite; }
-    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.15); } }
+    @keyframes pulseAnim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(1.15); } }
+    
+    .frame-segment {
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .frame-segment:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.1);
+    }
+
+    pre, pre code {
+      color: #cbd5e1;
+      background: transparent;
+    }
+    .bg-\[\#0d1117\] pre, .bg-\[\#0d1117\] code, .bg-\[\#0d1117\] span {
+      color: inherit;
+    }
+
+    /* Animação do pacote viajante no simulador */
+    @keyframes travelDown {
+      0% { top: 10%; opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { top: 90%; opacity: 0; }
+    }
+    @keyframes travelUp {
+      0% { top: 90%; opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { top: 10%; opacity: 0; }
+    }
+    .packet-moving-down {
+      animation: travelDown 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    .packet-moving-up {
+      animation: travelUp 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    /* Seções colapsáveis */
+    .sec-header {
+      cursor: pointer;
+      user-select: none;
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      margin: -0.5rem -0.75rem;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+    .sec-header:hover {
+      background: rgba(238, 242, 255, 0.7);
+    }
+    .sec-chevron {
+      margin-left: auto;
+      flex-shrink: 0;
+      color: #818cf8;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .sec-collapsed .sec-chevron {
+      transform: rotate(-90deg);
+    }
+    .sec-body {
+      overflow: hidden;
+      transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased selection:bg-cyan-500 selection:text-white">
@@ -45,9 +108,9 @@
         </a>
         <div>
           <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
-            Lab 09: <span class="text-cyan-400">Switches IDF & MDF com Trunk</span>
+            Lab 09: <span class="text-cyan-600">Switches IDF & MDF com Interface Trunk</span>
           </h1>
-          <p class="text-xs text-slate-500">Cabeamento estruturado, closets físicos, limite de 100m e backbone 802.1Q</p>
+          <p class="text-xs text-slate-500">Closets físicos, norma TIA/EIA-568, entroncamento 802.1Q e Router-on-a-Stick</p>
         </div>
       </div>
 
@@ -58,8 +121,8 @@
         <button onclick="window.open(window.location.href, '_blank')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-sm hidden sm:inline-flex items-center gap-1">
           ↗️ Tela Cheia
         </button>
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-          <span class="w-2 h-2 rounded-full bg-cyan-400 pulse-dot"></span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-600 border border-cyan-500/20">
+          <span class="w-2 h-2 rounded-full bg-cyan-500 pulse-dot"></span>
           30/09/2026
         </span>
       </div>
@@ -68,457 +131,1270 @@
 
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-    <!-- Canvas Submission Alert -->
+        <!-- AI Disclaimer -->
+    <div class="mb-5 p-3.5 sm:p-4 rounded-xl bg-indigo-50/70 border border-indigo-200 text-xs sm:text-sm text-indigo-950 flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-2.5">
+        <span class="text-base sm:text-lg">🤖</span>
+        <span><strong>Nota de Autoria:</strong> Este roteiro experimental e seu material didático foram gerados por Inteligência Artificial (<strong>Gemini 3.8 Flash</strong>) e adaptados para o ambiente do laboratório.</span>
+      </div>
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 border border-indigo-300">
+        ✨ IA • Gemini 3.8 Flash
+      </span>
+    </div>
+
+<!-- Canvas Submission Alert -->
     <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50/40 border-2 border-amber-300 shadow-xs flex items-start gap-4">
       <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center text-xl shrink-0 font-bold">
         📤
       </div>
       <div class="flex-1">
         <h4 class="text-base font-bold text-amber-950 flex items-center gap-2">
-          Submissão Obrigatória no Canvas da Disciplina
+          Submissão no Canvas da Disciplina • Lab 09
         </h4>
         <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
-          Ao finalizar a prática e os testes no modo Físico do Packet Tracer, envie no <strong>Canvas</strong>:
+          Nesta aula você trabalhará com a <strong>Aba Física (Physical Workspace)</strong> do Packet Tracer, organizando racks e armários de telecomunicações. Ao finalizar, envie no <strong>Canvas</strong> apenas o arquivo da prática:
         </p>
-        <div class="mt-2 flex flex-wrap gap-2 text-xs font-mono">
-          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Arquivo .pkt: mdf_idf_trunk_seunome.pkt</span>
-          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Print da Visão Física dos armários MDF e IDF</span>
-          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Saída de 'show interfaces trunk' nos dois switches</span>
+        <div class="mt-2.5 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900 font-medium">✅ Envio Exclusivo: <code>mdf_idf_trunk_seunome.pkt</code></span>
+          <span class="px-2.5 py-1 rounded bg-emerald-100 border border-emerald-300 text-emerald-900 font-medium">ℹ️ Não é necessário enviar prints, relatórios ou figuras — apenas o arquivo .pkt</span>
         </div>
       </div>
     </div>
 
     <!-- Quick Jump Navigation -->
     <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-slate-200 text-sm no-scrollbar">
-      <a href="#analogia" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. Modelos Mentais</a>
-      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold shadow-xs transition font-medium flex items-center gap-1">
-        ⚡ Simulador Predial MDF & IDF
+      <a href="#teoria" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">1. MDF vs IDF</a>
+      <a href="#anatomia-trunk" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Tag 802.1Q</a>
+      <a href="#simulador" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-indigo-50 border border-indigo-200 text-indigo-700 hover:border-indigo-300 hover:text-indigo-900 font-semibold shadow-xs transition flex items-center gap-1">
+        ⚡ Simulador Predial Interativo
       </a>
-      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">2. Comandos Cisco IOS</a>
-      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Armadilhas Comuns</a>
-      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 hover:text-emerald-950 font-semibold transition font-medium">4. Checklist de Entrega</a>
+      <a href="#cenario-fisico" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">3. Modo Físico PT</a>
+      <a href="#roteiro" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-xs transition">4. Comandos IOS</a>
+      <a href="#armadilhas" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-amber-400 hover:text-amber-700 shadow-xs transition">5. Armadilhas & Diagnóstico</a>
+      <a href="#quiz" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 font-semibold hover:border-blue-300 transition">6. Quiz</a>
+      <a href="#checklist" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-emerald-50 border border-emerald-200 text-emerald-800 hover:border-emerald-300 font-semibold transition">7. Checklist</a>
     </div>
 
-    <!-- Intro Hero -->
-    <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+    <!-- Hero Banner -->
+    <section class="mb-12 bg-gradient-to-br from-indigo-50/80 via-white to-cyan-50/50 border border-indigo-100 rounded-2xl p-6 sm:p-8 shadow-sm">
       <div class="max-w-3xl">
-        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-          Laboratório 09 • Arquitetura Predial & Cabeamento
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-600 border border-cyan-500/30">
+          Laboratório 09 • Arquitetura Predial & Cabeamento Estruturado
         </span>
         <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-4 tracking-tight">
-          Estrutura Hierárquica: Closets MDF, IDF e Tronco Gigabit
+          Hierarquia de Redes Prediais: MDF, IDF e Troncos 802.1Q
         </h2>
-        <p class="text-slate-700 text-base leading-relaxed mb-6">
-          Em qualquer instalação corporativa ou campus universitário, os cabos não vão diretamente de cada computador até a sala de servidores. A norma <strong>TIA/EIA-568</strong> limita cabos de par trançado a 100 metros. Para contornar isso, usamos <strong>IDFs (Intermediate Distribution Facilities)</strong> em cada andar conectados por uma linha tronco ao <strong>MDF (Main Distribution Facility)</strong>.
+        <p class="text-slate-700 text-base leading-relaxed mb-4">
+          Em uma empresa ou campus universitário de múltiplos andares, passar centenas de cabos de rede de cada computador até uma única sala central seria caótico, inviável e violaria o limite elétrico de <strong>100 metros</strong> da norma <strong>TIA/EIA-568</strong>.
         </p>
-        <div class="flex flex-wrap gap-4 text-xs font-mono">
-          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
-            <span class="text-slate-400">Norma Física:</span> <span class="text-cyan-400 font-bold">TIA/EIA-568 (Máx 100m)</span>
+        <p class="text-slate-700 text-base leading-relaxed mb-6">
+          A solução da engenharia de redes é a arquitetura hierárquica: armários secundários de andar chamados <strong>IDFs</strong> concentram os cabos locais e conversam com a sala de servidores central (o <strong>MDF</strong>) através de um link único de alta velocidade configurado como <strong>Trunk</strong>, capaz de multiplexar pacotes de várias VLANs com tags IEEE 802.1Q.
+        </p>
+        <div class="flex flex-wrap gap-3 text-xs font-mono">
+          <div class="bg-slate-800 px-3 py-2 rounded-lg border border-slate-700 text-slate-100">
+            <span class="text-slate-400">Norma Física:</span> <span class="text-cyan-400 font-bold">TIA/EIA-568 (Máx 100m Cobre)</span>
           </div>
-          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
-            <span class="text-slate-400">Backbone Vertical:</span> <span class="text-indigo-400 font-bold">Gigabit Trunk 802.1Q</span>
+          <div class="bg-slate-800 px-3 py-2 rounded-lg border border-slate-700 text-slate-100">
+            <span class="text-slate-400">Backbone Vertical:</span> <span class="text-indigo-400 font-bold">Trunk Gigabit 802.1Q</span>
           </div>
-          <div class="bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
-            <span class="text-slate-400">Ambiente:</span> <span class="text-emerald-400 font-bold">Packet Tracer Physical View</span>
+          <div class="bg-slate-800 px-3 py-2 rounded-lg border border-slate-700 text-slate-100">
+            <span class="text-slate-400">Roteamento:</span> <span class="text-purple-400 font-bold">Router-on-a-Stick (ISR 4331)</span>
+          </div>
+          <div class="bg-slate-800 px-3 py-2 rounded-lg border border-slate-700 text-slate-100">
+            <span class="text-slate-400">Modo no PT:</span> <span class="text-emerald-400 font-bold">Physical Workspace (Shift+P)</span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- SECTION 1: MODELOS MENTAIS -->
-    <section id="analogia" class="mb-14 scroll-mt-24">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">1</div>
-        <h3 class="text-2xl font-bold text-slate-900">Modelos Mentais: MDF vs IDF no Mundo Real</h3>
+    <!-- SECTION 1: FUNDAMENTAÇÃO TEÓRICA & COMPARADOR DINÂMICO -->
+    <section id="teoria" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-600 flex items-center justify-center font-bold text-sm">1</div>
+        <h3 class="text-2xl font-bold text-slate-900">Fundamentação: MDF vs. IDF no Mundo Real</h3>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
-          <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center mb-3 text-xl">🏢</div>
-          <h4 class="font-bold text-slate-900 text-sm">O Saguão Central (MDF)</h4>
-          <span class="text-xs text-blue-400 font-medium mb-1 block">"Data Center Principal"</span>
-          <p class="text-xs text-slate-500">Onde chegam os links de operadoras externas (Internet), residem os roteadores de borda, switches centrais (Core) e os servidores de missão crítica.</p>
+
+      <!-- Core comparison cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-xs p-5 hover:border-cyan-500/50 transition">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center mb-3 text-xl font-bold">🏢</div>
+          <h4 class="font-bold text-slate-900 text-sm">MDF (Main Distribution Facility)</h4>
+          <span class="text-xs text-blue-600 font-medium mb-1.5 block">"A Sala de Servidores Central"</span>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            É o coração da infraestrutura predial. Abriga o ponto de entrada de telecomunicações (links de operadoras/ISP), roteadores de borda, switches de distribuição/core e os servidores centrais de produção.
+          </p>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
-          <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-3 text-xl">🚪</div>
-          <h4 class="font-bold text-slate-900 text-sm">O Ponto de Apoio (IDF)</h4>
-          <span class="text-xs text-indigo-400 font-medium mb-1 block">"Rack do Andar"</span>
-          <p class="text-xs text-slate-500">Um rack menor localizado em cada andar. Ele atende os usuários locais e manda tudo para o MDF por um único cabo de backbone de alta velocidade.</p>
+        <div class="bg-white border border-slate-200 rounded-xl shadow-xs p-5 hover:border-indigo-500/50 transition">
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center mb-3 text-xl font-bold">🚪</div>
+          <h4 class="font-bold text-slate-900 text-sm">IDF (Intermediate Distribution Facility)</h4>
+          <span class="text-xs text-indigo-600 font-medium mb-1.5 block">"O Armário de Andar / Setor"</span>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Armário ou rack secundário situado em cada andar ou bloco. Concentra os cabos horizontais das mesas dos usuários (PCs, impressoras, APs Wi-Fi) e encaminha tudo ao MDF por links de uplink.
+          </p>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
-          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 text-xl">📏</div>
+        <div class="bg-white border border-slate-200 rounded-xl shadow-xs p-5 hover:border-amber-500/50 transition">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center mb-3 text-xl font-bold">📏</div>
           <h4 class="font-bold text-slate-900 text-sm">A Barreira dos 100 Metros</h4>
-          <span class="text-xs text-amber-400 font-medium mb-1 block">"Limite Elétrico do Cobre"</span>
-          <p class="text-xs text-slate-500">Passar cabos do 10º andar até o subsolo excederia 100m, degradando os pacotes. O switch IDF funciona como regenerador de sinal dentro do limite normativo.</p>
+          <span class="text-xs text-amber-600 font-medium mb-1.5 block">"Norma TIA/EIA-568"</span>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            O cabeamento de par trançado de cobre tem limite de 90m de lance permanente + 10m de patch cords (100m total). O IDF funciona como ponto de regeneração e comutação dentro desse limite.
+          </p>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-cyan-500/40 transition">
-          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 text-xl">🔌</div>
-          <h4 class="font-bold text-slate-900 text-sm">O Patch Panel</h4>
-          <span class="text-xs text-emerald-400 font-medium mb-1 block">"A Tomada de Proteção"</span>
-          <p class="text-xs text-slate-500">Em vez de plugar o cabo da parede direto no switch, fixa-se no Patch Panel. Assim, alterações de mesa não quebram as portas caras do switch ativo.</p>
+        <div class="bg-white border border-slate-200 rounded-xl shadow-xs p-5 hover:border-emerald-500/50 transition">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-3 text-xl font-bold">🔌</div>
+          <h4 class="font-bold text-slate-900 text-sm">Cabeamento Backbone vs Horizontal</h4>
+          <span class="text-xs text-emerald-600 font-medium mb-1.5 block">"Vertical vs Distribuição de Mesa"</span>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            <strong>Horizontal:</strong> do switch IDF até a tomada RJ-45 da mesa. <strong>Backbone (Vertical):</strong> liga os IDFs de cada andar ao MDF, transportando tráfego agregado em alta velocidade.
+          </p>
+        </div>
+      </div>
+
+      <!-- Comparativo detalhado em Tabela -->
+      <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs mb-8">
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <span>⚖️</span> Tabela Comparativa de Atribuições: MDF vs. IDF
+          </h4>
+          <span class="text-xs text-slate-500 font-mono">Normas ANSI/TIA-568 e TIA-569</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+              <tr>
+                <th class="p-3.5">Critério</th>
+                <th class="p-3.5 text-cyan-700">MDF (Distribuição Principal)</th>
+                <th class="p-3.5 text-indigo-700">IDF (Distribuição Intermediária)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-slate-700">
+              <tr class="hover:bg-slate-50">
+                <td class="p-3.5 font-bold text-slate-900">Localização Típica</td>
+                <td class="p-3.5">Térreo ou subsolo, sala de datacenter segura e climatizada.</td>
+                <td class="p-3.5">Closet técnico ou rack de parede em cada andar/bloco operacional.</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="p-3.5 font-bold text-slate-900">Equipamentos Instalados</td>
+                <td class="p-3.5">Roteador de Borda (ex: ISR 4331), Core Switch (L3), Servidores (DNS, Web, BD), Storage.</td>
+                <td class="p-3.5">Switches de Acesso de alta densidade (ex: Cisco 2960 24/48 portas), Patch Panels de andar.</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="p-3.5 font-bold text-slate-900">Conectividade Externa (WAN)</td>
+                <td class="p-3.5">Recebe fibra ótica das operadoras (ISP) e links dedicados.</td>
+                <td class="p-3.5">Não recebe conexões externas diretamente; conecta-se exclusivamente ao MDF.</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="p-3.5 font-bold text-slate-900">Papel do Switch</td>
+                <td class="p-3.5"><strong>Distribuição / Core:</strong> Agrega links de múltiplos IDFs e roteia pacotes inter-VLAN.</td>
+                <td class="p-3.5"><strong>Acesso:</strong> Conecta diretamente PCs, notebooks, telefones IP e câmeras.</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="p-3.5 font-bold text-slate-900">Alimentação & Redundância</td>
+                <td class="p-3.5">No-breaks de grande porte (UPS trifásicos), gerador a diesel e ar de precisão.</td>
+                <td class="p-3.5">No-break local menor para manter switches de andar ligados temporariamente.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Mini-Jogo Interativo: Classificador "MDF ou IDF?" -->
+      <div class="bg-gradient-to-br from-indigo-50/70 via-white to-purple-50/60 border border-indigo-200 rounded-2xl p-6 shadow-xs">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div>
+            <h4 class="text-base font-bold text-indigo-950 flex items-center gap-2">
+              <span>🎮</span> Atividade de Fixação: Classifique o Ativo no Closet Correto
+            </h4>
+            <p class="text-xs text-slate-600 mt-1">
+              Clique em cada item para decidir se ele pertence ao <strong>MDF (Central)</strong> ou ao <strong>IDF (Andar/Acesso)</strong>:
+            </p>
+          </div>
+          <div class="flex items-center gap-2 text-xs font-mono">
+            <span class="px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 font-bold" id="game-score">Acertos: 0 / 6</span>
+            <button onclick="resetClassifierGame()" class="px-2.5 py-1 rounded-md bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 transition text-[11px]">
+              Reiniciar
+            </button>
+          </div>
+        </div>
+
+        <div id="classifier-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <!-- Cards gerados via JavaScript -->
+        </div>
+
+        <div id="classifier-feedback" class="mt-4 p-3.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 hidden">
+          <!-- Feedback imediato -->
         </div>
       </div>
     </section>
 
-    <!-- SECTION 2: SIMULADOR INTERATIVO -->
+    <!-- SECTION 2: ANATOMIA DA INTERFACE TRUNK & PROTOCOLO 802.1Q -->
+    <section id="anatomia-trunk" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-600 flex items-center justify-center font-bold text-sm">2</div>
+        <h3 class="text-2xl font-bold text-slate-900">Anatomia de uma Interface Trunk & Tag IEEE 802.1Q</h3>
+      </div>
+
+      <!-- 1. A Metáfora Central: A Bagagem e a Etiqueta de Voo -->
+      <div class="mb-8 p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-indigo-50/90 via-white to-purple-50/70 border-2 border-indigo-200 shadow-xs">
+        <div class="flex items-center gap-2.5 mb-3">
+          <span class="text-2xl">🧳</span>
+          <h4 class="text-base font-bold text-indigo-950">
+            A Metáfora Mental: A Mala de Viagem e a Etiqueta de Voo
+          </h4>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-700 leading-relaxed mb-5">
+          Para nunca mais esquecer a diferença entre <strong>Porta Access</strong>, <strong>Porta Trunk</strong> e a <strong>Tag 802.1Q</strong>, imagine o funcionamento de um aeroporto internacional:
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
+          <div class="p-3.5 rounded-xl bg-white border border-indigo-100 shadow-xs flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-2 text-slate-900 font-bold">
+                <span class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs">1</span>
+                No Passageiro (PC)
+              </div>
+              <p class="text-slate-600 leading-relaxed text-[11.5px]">
+                Você sai de casa com sua mala limpa, <strong>sem etiqueta</strong>. Os computadores dos usuários geram quadros Ethernet padrão e não conhecem VLANs.
+              </p>
+            </div>
+            <span class="mt-2.5 inline-block text-[10.5px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">
+              Quadro Puro (Untagged)
+            </span>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-white border border-indigo-100 shadow-xs flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-2 text-indigo-950 font-bold">
+                <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">2</span>
+                No Guichê (Porta Access)
+              </div>
+              <p class="text-slate-600 leading-relaxed text-[11.5px]">
+                O atendente (SW-IDF) pega a mala e cola na alça uma <strong>etiqueta com o código do voo</strong>. O switch carimba a <strong>Tag 802.1Q (VLAN ID 10)</strong>.
+              </p>
+            </div>
+            <span class="mt-2.5 inline-block text-[10.5px] font-mono px-2 py-0.5 rounded bg-cyan-100 text-cyan-800 font-semibold">
+              Injeção da Tag (+4 Bytes)
+            </span>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-white border border-indigo-100 shadow-xs flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-2 text-purple-950 font-bold">
+                <span class="w-6 h-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs">3</span>
+                Na Esteira Central (Trunk)
+              </div>
+              <p class="text-slate-600 leading-relaxed text-[11.5px]">
+                A esteira comum transporta malas de dezenas de voos diferentes misturadas. Ninguém se perde porque <strong>cada mala tem sua etiqueta visível</strong>.
+              </p>
+            </div>
+            <span class="mt-2.5 inline-block text-[10.5px] font-mono px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-semibold">
+              Trunk Multiplexado 802.1Q
+            </span>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-white border border-indigo-100 shadow-xs flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-2 text-emerald-950 font-bold">
+                <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">4</span>
+                No Desembarque (Destino)
+              </div>
+              <p class="text-slate-600 leading-relaxed text-[11.5px]">
+                Antes de entregar a mala no portão final (Porta Access do Servidor), a equipe <strong>destaca a etiqueta fora</strong> e entrega a mala limpa ao passageiro.
+              </p>
+            </div>
+            <span class="mt-2.5 inline-block text-[10.5px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">
+              Remoção da Tag (Strip Tag)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Stepper Interativo: Ciclo de Vida da Tag em 4 Fases -->
+      <div class="bg-white border-2 border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm mb-8">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div>
+            <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span>🔄</span> O Ciclo de Vida do Pacote: Acompanhe a Transformação
+            </h4>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Clique nos 4 estágios abaixo para ver o que acontece com a estrutura física do quadro em cada ponto da rede:
+            </p>
+          </div>
+          <span class="text-xs font-mono font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200" id="stepper-stage-indicator">
+            Estágio 1 de 4: PC Origem
+          </span>
+        </div>
+
+        <!-- Stepper Buttons -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
+          <button id="step-btn-1" onclick="setLifecycleStep(1)" class="p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50/70 text-indigo-900 font-bold text-xs flex items-center gap-2 transition text-left shadow-xs">
+            <span class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs shrink-0 font-mono">1</span>
+            <div>
+              <div class="leading-tight">1. PC Origem</div>
+              <span class="text-[10px] font-normal text-indigo-700">Untagged (Puro)</span>
+            </div>
+          </button>
+
+          <button id="step-btn-2" onclick="setLifecycleStep(2)" class="p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-2 transition text-left">
+            <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs shrink-0 font-mono">2</span>
+            <div>
+              <div class="leading-tight">2. No SW-IDF</div>
+              <span class="text-[10px] font-normal text-slate-500">Injeção da Tag</span>
+            </div>
+          </button>
+
+          <button id="step-btn-3" onclick="setLifecycleStep(3)" class="p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-2 transition text-left">
+            <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs shrink-0 font-mono">3</span>
+            <div>
+              <div class="leading-tight">3. No Trunk G0/1</div>
+              <span class="text-[10px] font-normal text-slate-500">Multiplexado</span>
+            </div>
+          </button>
+
+          <button id="step-btn-4" onclick="setLifecycleStep(4)" class="p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-2 transition text-left">
+            <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs shrink-0 font-mono">4</span>
+            <div>
+              <div class="leading-tight">4. No Servidor</div>
+              <span class="text-[10px] font-normal text-slate-500">Tag Removida</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Dynamic Frame Display for Selected Step -->
+        <div id="lifecycle-visual-container" class="p-5 rounded-2xl bg-slate-900 text-white border border-slate-800 transition duration-300">
+          <!-- Conteúdo gerado e atualizado via JavaScript -->
+        </div>
+      </div>
+
+      <!-- 3. Comparador Lado a Lado: Access vs. Trunk -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
+        <h4 class="text-base font-bold text-slate-900 flex items-center gap-2 mb-1">
+          <span>📐</span> Comparação Estrutural: Modo Access vs. Modo Trunk (Baby Giant Frame)
+        </h4>
+        <p class="text-xs text-slate-500 mb-5">
+          Veja a diferença exata na quantidade de bytes e onde a Tag 802.1Q é inserida:
+        </p>
+
+        <div class="space-y-4">
+          <!-- Quadro Normal (Access) -->
+          <div>
+            <div class="flex items-center justify-between text-xs mb-1.5 font-mono">
+              <span class="font-bold text-slate-800 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                Quadro Ethernet Padrão (Porta em Modo ACCESS):
+              </span>
+              <span class="text-slate-500">Tamanho Máx Padrão: <strong>1.518 Bytes</strong></span>
+            </div>
+            <div class="flex rounded-xl overflow-hidden border border-slate-300 font-mono text-[11px] text-center font-bold">
+              <div class="p-2.5 bg-blue-100 text-blue-900 w-28 border-r border-slate-300">MAC Dest (6B)</div>
+              <div class="p-2.5 bg-blue-100 text-blue-900 w-28 border-r border-slate-300">MAC Orig (6B)</div>
+              <div class="p-2.5 bg-purple-100 text-purple-900 w-28 border-r border-slate-300">Type (2B)</div>
+              <div class="p-2.5 bg-slate-100 text-slate-700 flex-1 border-r border-slate-300">Payload IP (46 a 1.500 Bytes)</div>
+              <div class="p-2.5 bg-emerald-100 text-emerald-900 w-24">FCS (4B)</div>
+            </div>
+          </div>
+
+          <!-- Indicador de Inserção -->
+          <div class="flex items-center justify-center py-0.5">
+            <span class="text-[11px] font-mono text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 font-bold flex items-center gap-1">
+              ⬇ Inserção exata da Tag 802.1Q entre o MAC de Origem e o EtherType (+4 Bytes) ⬇
+            </span>
+          </div>
+
+          <!-- Quadro Tagged (Trunk) -->
+          <div>
+            <div class="flex items-center justify-between text-xs mb-1.5 font-mono">
+              <span class="font-bold text-amber-800 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                Quadro com Tag 802.1Q (Porta em Modo TRUNK):
+              </span>
+              <span class="text-amber-700 font-bold">Tamanho Expandido: <strong>1.522 Bytes</strong> (+4B)</span>
+            </div>
+            <div class="flex rounded-xl overflow-hidden border-2 border-amber-400 font-mono text-[11px] text-center font-bold shadow-xs">
+              <div class="p-2.5 bg-blue-100 text-blue-900 w-28 border-r border-slate-300">MAC Dest (6B)</div>
+              <div class="p-2.5 bg-blue-100 text-blue-900 w-28 border-r border-slate-300">MAC Orig (6B)</div>
+              
+              <!-- Tag Slot Emphasized -->
+              <div class="p-2.5 bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-300 text-amber-950 font-black flex-1 max-w-[200px] border-r border-slate-300 ring-2 ring-amber-500 ring-inset shadow-xs animate-pulse">
+                🏷️ TAG 802.1Q (4B)
+              </div>
+
+              <div class="p-2.5 bg-purple-100 text-purple-900 w-28 border-r border-slate-300">Type (2B)</div>
+              <div class="p-2.5 bg-slate-100 text-slate-700 flex-1 border-r border-slate-300">Payload IP (46 a 1.500 Bytes)</div>
+              <div class="p-2.5 bg-emerald-100 text-emerald-900 w-24">FCS (4B)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-950 flex items-start gap-2.5">
+          <span class="text-base font-bold">💡</span>
+          <div>
+            <strong>Curiosidade de Engenharia:</strong> Antigos switches da década de 90 descartavam frames taggeados porque seu limite de MTU rígido era de 1.518 bytes. Ao receberem 1.522 bytes, consideravam o frame inválido (chamado de <em>"Giant Frame"</em>). Para resolver isso, a norma <strong>IEEE 802.3ac</strong> elevou oficialmente o limite máximo para 1.522 bytes, apelidado carinhosamente de <strong>"Baby Giant Frame"</strong>!
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Microscópio da Tag 802.1Q com Seletor Interativo de VLAN -->
+      <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 rounded-2xl p-6 text-white border-2 border-indigo-500/40 shadow-xl">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🔬</span>
+              <h4 class="text-base font-bold text-white">
+                Microscópio da Tag 802.1Q: Dissecando os 4 Bytes (32 bits)
+              </h4>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">
+              Escolha uma das VLANs do laboratório para inspecionar os bits e valores reais gerados pelo switch:
+            </p>
+          </div>
+
+          <!-- VLAN Selector Buttons -->
+          <div class="flex items-center gap-2">
+            <button onclick="selectVlanInspector(10)" id="btn-vlan-10" class="px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-cyan-600 text-white shadow-xs transition hover:brightness-110">
+              VLAN 10 (ADMIN)
+            </button>
+            <button onclick="selectVlanInspector(20)" id="btn-vlan-20" class="px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-slate-800 text-purple-300 border border-purple-500/30 hover:bg-slate-700 transition">
+              VLAN 20 (CLIENTES)
+            </button>
+            <button onclick="selectVlanInspector(30)" id="btn-vlan-30" class="px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-slate-800 text-emerald-300 border border-emerald-500/30 hover:bg-slate-700 transition">
+              VLAN 30 (SERVIDORES)
+            </button>
+          </div>
+        </div>
+
+        <!-- 4-Part Subfield Visual Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5 font-mono text-xs">
+          
+          <!-- TPID -->
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-cyan-500/40 relative overflow-hidden">
+            <div class="text-[10px] text-cyan-400 font-bold uppercase tracking-wider mb-1">1. TPID (16 BITS = 2 BYTES)</div>
+            <div class="text-xl font-black text-cyan-300 tracking-tight">0x8100</div>
+            <div class="text-[11px] text-slate-400 mt-1.5 leading-snug">
+              Tag Protocol Identifier. Código hexadecimal universal que avisa: <em>"Atenção: este quadro possui tag 802.1Q!"</em>
+            </div>
+          </div>
+
+          <!-- PCP -->
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-indigo-500/40 relative overflow-hidden">
+            <div class="text-[10px] text-indigo-400 font-bold uppercase tracking-wider mb-1">2. PCP (3 BITS = 0 a 7)</div>
+            <div class="text-xl font-black text-indigo-300 tracking-tight" id="inspector-pcp-val">0 (Padrão)</div>
+            <div class="text-[11px] text-slate-400 mt-1.5 leading-snug">
+              Priority Code Point (QoS). Permite dar prioridade máxima a pacotes sensíveis a atraso (ex: Voz/VoIP = nível 5).
+            </div>
+          </div>
+
+          <!-- DEI -->
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-amber-500/40 relative overflow-hidden">
+            <div class="text-[10px] text-amber-400 font-bold uppercase tracking-wider mb-1">3. DEI (1 BIT = 0 ou 1)</div>
+            <div class="text-xl font-black text-amber-300 tracking-tight">0 (Não descarta)</div>
+            <div class="text-[11px] text-slate-400 mt-1.5 leading-snug">
+              Drop Eligible Indicator. Se for 1, indica que o quadro pode ser descartado em caso de congestionamento severo.
+            </div>
+          </div>
+
+          <!-- VLAN ID -->
+          <div id="inspector-vid-card" class="p-4 rounded-xl bg-cyan-950/60 border-2 border-cyan-400 relative overflow-hidden transition duration-300">
+            <div class="text-[10px] text-cyan-300 font-bold uppercase tracking-wider mb-1">4. VLAN ID (12 BITS)</div>
+            <div class="text-xl font-black text-white tracking-tight" id="inspector-vid-val">ID: 10 (ADMIN)</div>
+            <div class="text-[11px] text-cyan-200 mt-1 font-mono" id="inspector-vid-bin">Binário: 0000 0000 1010</div>
+            <div class="text-[10px] text-slate-400 mt-1.5 leading-snug">
+              Com 12 bits, podemos ter <strong>4.096 combinações</strong> (VLANs válidas de 1 a 4.094).
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Summary Explainer Box -->
+        <div id="inspector-summary-box" class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300 flex items-center justify-between flex-wrap gap-2">
+          <span>🏷️ Tag configurada para <strong>VLAN 10 (ADMIN)</strong>. Ao sair pela porta G0/1 do SW-IDF, o quadro levará o ID 10 no cabeçalho.</span>
+          <span class="text-cyan-400 font-bold">Tamanho da Tag: Exatos 32 bits</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: SIMULADOR PREDIAL INTERATIVO COMPLETO -->
     <section id="simulador" class="mb-14 scroll-mt-24">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-sm">⚡</div>
-          <h3 class="text-2xl font-bold text-slate-900">Simulador Predial: Backbone Vertical Inter-Closets</h3>
+          <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-600 flex items-center justify-center font-bold text-sm">⚡</div>
+          <h3 class="text-2xl font-bold text-slate-900">Simulador Predial: O Caminho do Pacote (IDF ↔ Backbone ↔ MDF)</h3>
         </div>
         <span class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200 font-medium font-mono">
-          Backbone Gigabit 802.1Q
+          Topologia com Router-on-a-Stick &amp; DHCP
         </span>
       </div>
 
-      <div class="bg-white border-2 border-slate-200/90 rounded-2xl overflow-hidden shadow-lg">
-        <!-- Control Bar -->
+      <div class="bg-white border-2 border-slate-200 rounded-2xl overflow-hidden shadow-lg">
+        
+        <!-- Simulation Control Bar -->
         <div class="bg-slate-50 p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
-          <div class="flex items-center gap-3">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Estado do Backbone:</span>
-            <button id="btn-trunk-state" onclick="toggleTrunkState()" class="px-3 py-1 rounded-md text-xs font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40">
-              ✓ Backbone em Modo TRUNK (Permite VLAN 10 e 20)
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Estado da Porta G0/1:</span>
+            <button id="sim-btn-trunk-state" onclick="cycleTrunkMode()" class="px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 hover:brightness-110 transition flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span id="trunk-state-text">Modo: TRUNK 802.1Q (Permite VLAN 10, 20, 30)</span>
             </button>
           </div>
 
-          <div class="flex items-center gap-2">
-            <button onclick="testPingMdf()" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow flex items-center gap-1.5">
-              <span>▶</span> Testar Ping: Usuário IDF → Servidor MDF
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="startSimulation('ping-intervlan')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-xs flex items-center gap-1.5">
+              <span>▶</span> Ping Inter-VLAN (PC-ADMIN → PC-CLIENTE)
+            </button>
+            <button onclick="startSimulation('web-server')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-xs flex items-center gap-1.5">
+              <span>🌐</span> Acessar Portal Web (192.168.30.10)
+            </button>
+            <button onclick="resetSimulation()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">
+              Reset
             </button>
           </div>
         </div>
 
-        <!-- 2-Floor Building Cross Section -->
-        <div class="p-6 bg-slate-50 border-b border-slate-200">
-          <div class="max-w-4xl mx-auto space-y-6">
-            
-            <!-- Floor 2: IDF Closet -->
-            <div id="floor-idf" class="p-5 rounded-xl bg-slate-900 border-2 border-indigo-500/40 transition relative">
-              <div class="flex items-center justify-between mb-3">
-                <span class="px-2.5 py-0.5 rounded text-xs font-bold bg-indigo-950 text-indigo-300 border border-indigo-500/40">
-                  1º ANDAR • SALA IDF (Closet Secundário)
-                </span>
-                <span class="text-xs text-slate-500 font-mono">Distância até as bancadas: &lt; 40 metros (OK)</span>
+        <!-- Interactive 2-Floor Cross Section Diagram -->
+        <div class="p-6 bg-slate-900 border-b border-slate-800 text-white">
+          <div class="max-w-5xl mx-auto space-y-6">
+
+            <!-- ANDAR 1: SALA IDF -->
+            <div id="sim-idf-room" class="p-5 rounded-2xl bg-slate-950/80 border-2 border-indigo-500/40 relative transition duration-300">
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-1 rounded text-xs font-bold bg-indigo-950 text-indigo-300 border border-indigo-500/40">
+                    SALA IDF (Armário de Telecomunicações do Andar)
+                  </span>
+                  <span class="text-xs text-slate-400 font-mono hidden sm:inline">Cabeamento Horizontal &lt; 40m</span>
+                </div>
+                <span class="text-[11px] text-emerald-400 font-mono">10 PCs Operacionais em Mesas de Trabalho</span>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-3">
-                  <div class="text-2xl">🔀</div>
-                  <div>
-                    <div class="font-bold text-xs text-white">SW-IDF (Cisco 2960)</div>
-                    <div class="text-[10px] text-indigo-300 font-mono">Portas Fa0/1-10: Access VLAN 10 (Operacional)</div>
-                    <div class="text-[10px] text-cyan-400 font-mono">Porta Gig0/1: <span id="idf-port-mode">Trunk 802.1Q</span></div>
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+                
+                <!-- PC Bancada 1 (VLAN 10 ADMIN) -->
+                <div id="node-pc-admin" class="lg:col-span-4 p-3.5 rounded-xl bg-slate-900 border border-slate-700 transition duration-300">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                      <span>🖥️</span> PC-A1 (Bancada Admin)
+                    </span>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">VLAN 10</span>
+                  </div>
+                  <div class="text-[11px] font-mono text-slate-300 space-y-0.5">
+                    <div>IP: <span class="text-emerald-400 font-bold">192.168.10.11</span> (DHCP)</div>
+                    <div>Porta SW: <span class="text-slate-400">Fa0/1 (Access VLAN 10)</span></div>
+                    <div>GW: <span class="text-slate-400">192.168.10.1</span></div>
                   </div>
                 </div>
 
-                <div id="user-pc-box" class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-3 transition">
-                  <div class="text-2xl">🖥️</div>
-                  <div>
-                    <div class="font-bold text-xs text-white">PC-Usuário (VLAN 10)</div>
-                    <div class="text-[11px] text-emerald-400 font-mono">192.168.10.50 (DHCP)</div>
-                    <div class="text-[10px] text-slate-400 font-mono">Gateway: 192.168.10.1</div>
+                <!-- Switch SW-IDF (Cisco 2960) -->
+                <div id="node-sw-idf" class="lg:col-span-4 p-4 rounded-xl bg-indigo-950/60 border-2 border-indigo-400/60 text-center transition duration-300 shadow-md">
+                  <div class="text-2xl mb-1">🔀</div>
+                  <div class="font-bold text-xs text-white">SW-IDF (Cisco 2960)</div>
+                  <div class="text-[11px] text-indigo-300 font-mono mt-1">Switch de Acesso (Setor Administrativo)</div>
+                  <div class="mt-2 text-[10px] font-mono space-y-1 text-slate-300">
+                    <div class="bg-slate-900/80 px-2 py-1 rounded">Fa0/1-5: Access VLAN 10 | Fa0/6-10: Access VLAN 20</div>
+                    <div class="bg-cyan-950/80 text-cyan-300 px-2 py-1 rounded border border-cyan-500/40">
+                      Uplink G0/1: <span id="idf-uplink-status">TRUNK 802.1Q</span>
+                    </div>
                   </div>
+                </div>
+
+                <!-- PC Bancada 2 (VLAN 20 CLIENTES) -->
+                <div id="node-pc-clientes" class="lg:col-span-4 p-3.5 rounded-xl bg-slate-900 border border-slate-700 transition duration-300">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                      <span>🖥️</span> PC-C1 (Bancada Clientes)
+                    </span>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40">VLAN 20</span>
+                  </div>
+                  <div class="text-[11px] font-mono text-slate-300 space-y-0.5">
+                    <div>IP: <span class="text-emerald-400 font-bold">192.168.20.11</span> (DHCP)</div>
+                    <div>Porta SW: <span class="text-slate-400">Fa0/6 (Access VLAN 20)</span></div>
+                    <div>GW: <span class="text-slate-400">192.168.20.1</span></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- SHAFT VERTICAL / BACKBONE INTER-CLOSETS -->
+            <div class="flex justify-center items-center py-1">
+              <div class="w-full max-w-md bg-slate-950 border border-slate-700 rounded-xl p-3 flex items-center justify-between gap-3 relative overflow-hidden">
+                <div class="w-2.5 h-10 bg-slate-800 rounded flex items-center justify-center relative overflow-hidden">
+                  <div id="sim-backbone-indicator" class="w-full h-full bg-cyan-500"></div>
+                </div>
+                <div class="flex-1 text-center">
+                  <span id="backbone-desc-text" class="text-xs font-mono font-bold text-cyan-400">
+                    Backbone Vertical: Cabo Direto Gigabit G0/1 (Trunk 802.1Q Multiplexado)
+                  </span>
+                  <div class="text-[10px] text-slate-400 font-mono">Conexão entre Closets (Distância: ~35 metros no shaft)</div>
+                </div>
+                <div class="w-2.5 h-10 bg-slate-800 rounded flex items-center justify-center relative overflow-hidden">
+                  <div id="sim-backbone-indicator-2" class="w-full h-full bg-cyan-500"></div>
                 </div>
               </div>
             </div>
 
-            <!-- Vertical Backbone Shaft Indicator -->
-            <div class="flex justify-center items-center gap-3 py-1">
-              <div class="w-1 h-12 bg-slate-800 relative">
-                <div id="backbone-wire" class="w-full h-full bg-cyan-500"></div>
-              </div>
-              <span id="backbone-label" class="text-xs font-mono text-cyan-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
-                Backbone Vertical: Cabo Gigabit 802.1Q (G0/1 inter-switches)
-              </span>
-            </div>
-
-            <!-- Floor 1: MDF Closet -->
-            <div id="floor-mdf" class="p-5 rounded-xl bg-slate-900 border-2 border-cyan-500/40 transition relative">
-              <div class="flex items-center justify-between mb-3">
-                <span class="px-2.5 py-0.5 rounded text-xs font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-                  TÉRREO • SALA MDF (Data Center Central)
-                </span>
-                <span class="text-xs text-slate-500 font-mono">Entrada de Fibra Externa / Core</span>
+            <!-- TÉRREO: SALA MDF -->
+            <div id="sim-mdf-room" class="p-5 rounded-2xl bg-slate-950/80 border-2 border-cyan-500/40 relative transition duration-300">
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-1 rounded text-xs font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
+                    SALA MDF (Data Center Central / Sala de Servidores)
+                  </span>
+                  <span class="text-xs text-slate-400 font-mono hidden sm:inline">Ponto Central de Distribuição &amp; Roteamento</span>
+                </div>
+                <span class="text-[11px] text-purple-400 font-mono">Servidor Intranet &amp; Gateway L3</span>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-3">
-                  <div class="text-2xl">🔀</div>
-                  <div>
-                    <div class="font-bold text-xs text-white">SW-MDF (Cisco 2960)</div>
-                    <div class="text-[10px] text-cyan-400 font-mono">G0/1: Trunk (do IDF)</div>
-                    <div class="text-[10px] text-indigo-300 font-mono">G0/2: Trunk (ao R-MDF)</div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                
+                <!-- Switch SW-MDF -->
+                <div id="node-sw-mdf" class="p-4 rounded-xl bg-cyan-950/60 border-2 border-cyan-400/60 text-center transition duration-300 shadow-md">
+                  <div class="text-2xl mb-1">🔀</div>
+                  <div class="font-bold text-xs text-white">SW-MDF (Cisco 2960)</div>
+                  <div class="text-[11px] text-cyan-300 font-mono mt-1">Switch de Distribuição Central</div>
+                  <div class="mt-2 text-[10px] font-mono space-y-1 text-slate-300">
+                    <div class="bg-slate-900/80 px-2 py-0.5 rounded">G0/1: Trunk (Recebe do IDF)</div>
+                    <div class="bg-slate-900/80 px-2 py-0.5 rounded">G0/2: Trunk (Envia ao R-MDF)</div>
+                    <div class="bg-purple-950/80 text-purple-300 px-2 py-0.5 rounded border border-purple-500/40">
+                      Fa0/1: Access VLAN 30 (Servidor)
+                    </div>
                   </div>
                 </div>
 
-                <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-3">
-                  <div class="text-2xl">🧭</div>
-                  <div>
-                    <div class="font-bold text-xs text-white">R-MDF (Cisco ISR 4331)</div>
-                    <div class="text-[10px] text-purple-300 font-mono">g0/0/0.10: 192.168.10.1</div>
-                    <div class="text-[10px] text-purple-300 font-mono">g0/0/0.20: 192.168.20.1</div>
+                <!-- Roteador R-MDF -->
+                <div id="node-r-mdf" class="p-4 rounded-xl bg-purple-950/60 border-2 border-purple-400/60 text-center transition duration-300 shadow-md">
+                  <div class="text-2xl mb-1">🧭</div>
+                  <div class="font-bold text-xs text-white">R-MDF (Cisco ISR 4331)</div>
+                  <div class="text-[11px] text-purple-300 font-mono mt-1">Router-on-a-Stick &amp; Servidor DHCP</div>
+                  <div class="mt-2 text-[10px] font-mono space-y-1 text-slate-300">
+                    <div class="bg-slate-900/80 px-2 py-0.5 rounded">G0/0/0.10: 192.168.10.1 (dot1Q 10)</div>
+                    <div class="bg-slate-900/80 px-2 py-0.5 rounded">G0/0/0.20: 192.168.20.1 (dot1Q 20)</div>
+                    <div class="bg-slate-900/80 px-2 py-0.5 rounded">G0/0/0.30: 192.168.30.1 (dot1Q 30)</div>
                   </div>
                 </div>
 
-                <div id="srv-box" class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-3 transition">
-                  <div class="text-2xl">🗄️</div>
-                  <div>
-                    <div class="font-bold text-xs text-white">SRV-INTRA (VLAN 20)</div>
-                    <div class="text-[11px] text-emerald-400 font-mono">192.168.20.10</div>
-                    <div class="text-[10px] text-slate-400 font-mono">Portal Intranet</div>
+                <!-- Servidor SRV-INTRA -->
+                <div id="node-srv-intra" class="p-4 rounded-xl bg-slate-900 border border-slate-700 transition duration-300">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                      <span>🗄️</span> SRV-INTRA (Servidor)
+                    </span>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40">VLAN 30</span>
+                  </div>
+                  <div class="text-[11px] font-mono text-slate-300 space-y-0.5">
+                    <div>IP: <span class="text-cyan-400 font-bold">192.168.30.10</span></div>
+                    <div>Gateway: <span class="text-slate-400">192.168.30.1</span></div>
+                    <div>Serviço: <span class="text-emerald-400 font-bold">HTTP (Portal Intranet)</span></div>
                   </div>
                 </div>
+
               </div>
             </div>
 
           </div>
 
-          <!-- Ping Journey Output -->
-          <div id="journey-output" class="mt-6 p-4 rounded-xl bg-white border border-slate-200 shadow-xs font-mono text-xs text-slate-800 flex items-center justify-between">
-            <span>Clique em "Testar Ping" para acompanhar o pacote subindo e descendo pelo backbone predial.</span>
-            <span class="text-slate-500">Pronto</span>
+          <!-- Simulation Live Step & Output Logger -->
+          <div class="mt-6 max-w-5xl mx-auto">
+            <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-200">
+              <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-800">
+                <span class="text-cyan-400 font-bold flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-cyan-400 pulse-dot"></span>
+                  Console de Rastreamento de Pacotes (Packet Trace):
+                </span>
+                <span id="sim-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">
+                  Aguardando Execução
+                </span>
+              </div>
+              <div id="sim-output-log" class="text-slate-300 space-y-1.5 min-h-[50px]">
+                Selecione um teste acima (ex: "Ping Inter-VLAN" ou "Acessar Portal Web") para visualizar o fluxo dos pacotes e a manipulação de tags 802.1Q no trunk.
+              </div>
+            </div>
+
+            <!-- Web Browser Simulation Modal / Box -->
+            <div id="sim-browser-view" class="mt-4 p-4 rounded-xl bg-white text-slate-900 border-2 border-indigo-400 shadow-xl hidden">
+              <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-red-400 inline-block"></span>
+                  <span class="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span>
+                  <span class="w-3 h-3 rounded-full bg-green-400 inline-block"></span>
+                  <span class="ml-2 font-mono text-xs text-slate-600 bg-slate-100 px-3 py-1 rounded border border-slate-200">
+                    http://192.168.30.10/index.html
+                  </span>
+                </div>
+                <button onclick="document.getElementById('sim-browser-view').classList.add('hidden')" class="text-xs text-slate-400 hover:text-slate-700 font-bold">
+                  ✕ Fechar
+                </button>
+              </div>
+              <div class="p-6 text-center bg-slate-50 rounded-lg border border-slate-200">
+                <h1 class="text-xl sm:text-2xl font-black text-indigo-900 tracking-tight">
+                  BEM-VINDO AO PORTAL INTERNO DA EMPRESA
+                </h1>
+                <p class="text-xs text-slate-500 mt-2 font-mono">
+                  Servidor HTTP Apache ativo em SRV-INTRA (IP 192.168.30.10 • VLAN 30 SERVIDORES)
+                </p>
+                <div class="mt-4 inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800">
+                  ✓ Conexão HTTP estabelecida através do Backbone Gigabit e Router-on-a-Stick!
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 4: MODO FÍSICO NO PACKET TRACER (PHYSICAL WORKSPACE) -->
+    <section id="cenario-fisico" class="mb-14 scroll-mt-24">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-600 flex items-center justify-center font-bold text-sm">3</div>
+        <h3 class="text-2xl font-bold text-slate-900">Passo a Passo: Construção no Modo Físico do Packet Tracer</h3>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xs mb-8">
+        <p class="text-sm text-slate-700 leading-relaxed mb-6">
+          A maioria dos laboratórios de redes utiliza a visão lógica (diagrama de nós). Neste laboratório, trabalharemos na <strong>Visão Física (Physical Workspace)</strong> para vivenciar o cabeamento estruturado real, organizando armários, racks e observando as distâncias reais dos cabos.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="w-8 h-8 rounded-lg bg-cyan-100 text-cyan-700 font-bold flex items-center justify-center mb-3 text-sm">1</div>
+            <h4 class="font-bold text-slate-900 text-sm mb-1">Acessar Modo Físico</h4>
+            <p class="text-xs text-slate-600">
+              Clique na aba <strong>Physical</strong> no canto superior esquerdo ou utilize o atalho de teclado <code class="bg-white px-1.5 py-0.5 rounded border border-slate-300">Shift + P</code>.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center mb-3 text-sm">2</div>
+            <h4 class="font-bold text-slate-900 text-sm mb-1">Navegar até o Prédio</h4>
+            <p class="text-xs text-slate-600">
+              Entre em <strong>Home City</strong> e clique duas vezes em <strong>Corporate Office</strong> para visualizar a planta baixa do escritório corporativo.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 font-bold flex items-center justify-center mb-3 text-sm">3</div>
+            <h4 class="font-bold text-slate-900 text-sm mb-1">Criar o Segundo Closet</h4>
+            <p class="text-xs text-slate-600">
+              Na barra de ferramentas amarela superior, clique no ícone <strong>"Create New Closet"</strong>. Nomeie as salas como <strong>"Sala MDF"</strong> e <strong>"Sala IDF"</strong>.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center mb-3 text-sm">4</div>
+            <h4 class="font-bold text-slate-900 text-sm mb-1">Montar os Racks</h4>
+            <p class="text-xs text-slate-600">
+              Entre em cada closet e monte os ativos nos racks: no MDF monte o Cisco 4331, Switch 2960 e Servidor; no IDF monte o Switch 2960 de acesso.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- Mapeamento Físico de Portas e Equipamentos -->
+        <div class="p-5 rounded-xl bg-slate-900 text-white font-mono text-xs">
+          <div class="text-cyan-400 font-bold text-sm mb-3">// Mapeamento Completo de Conexões e Cabos:</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-slate-300">
+            <div class="space-y-2">
+              <div class="text-indigo-300 font-bold border-b border-slate-800 pb-1">SALA MDF (Data Center Central):</div>
+              <div>• <strong>R-MDF (Cisco 4331):</strong> Roteador de Borda &amp; Gateway L3</div>
+              <div>• <strong>SW-MDF (Cisco 2960):</strong> Switch de Distribuição</div>
+              <div>• <strong>SRV-INTRA:</strong> Servidor de Intranet corporativa</div>
+              <div class="text-amber-300">• Cabo Direto: SW-MDF (Porta Fa0/1) → SRV-INTRA (FastEthernet0)</div>
+              <div class="text-cyan-300">• Cabo Direto Gigabit: SW-MDF (Porta G0/2) → R-MDF (Porta G0/0/0)</div>
+            </div>
+            <div class="space-y-2">
+              <div class="text-indigo-300 font-bold border-b border-slate-800 pb-1">SALA IDF (Setor Administrativo) &amp; Bancadas:</div>
+              <div>• <strong>SW-IDF (Cisco 2960):</strong> Switch de Acesso dos Usuários</div>
+              <div>• <strong>10 PCs:</strong> Distribuídos em mesas de trabalho no escritório</div>
+              <div class="text-cyan-300">• Backbone Inter-Closets: SW-IDF (G0/1) → SW-MDF (G0/1) [Cabo Gigabit]</div>
+              <div class="text-emerald-300">• Bancada 1 (Admin): SW-IDF Fa0/1 a Fa0/5 → PCs 1 a 5 (VLAN 10)</div>
+              <div class="text-purple-300">• Bancada 2 (Clientes): SW-IDF Fa0/6 a Fa0/10 → PCs 6 a 10 (VLAN 20)</div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- SECTION 3: GUIA DE COMANDOS -->
+    <!-- SECTION 5: GUIA DE CONFIGURAÇÃO CISCO IOS -->
     <section id="roteiro" class="mb-14 scroll-mt-24">
       <div class="flex items-center gap-3 mb-6">
-        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">2</div>
-        <h3 class="text-2xl font-bold text-slate-900">Guia de Configuração Cisco IOS</h3>
+        <div class="w-8 h-8 rounded-lg bg-cyan-600/20 text-cyan-600 flex items-center justify-center font-bold text-sm">4</div>
+        <h3 class="text-2xl font-bold text-slate-900">Guia de Configuração Cisco IOS (Passo a Passo)</h3>
       </div>
 
-      <!-- Switches Scripts -->
-      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
-        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
-            <span>🔀</span> 1. Configuração dos Switches SW-IDF e SW-MDF
-          </h4>
-          <div class="flex gap-2">
-            <button onclick="copyCode('code-sw-idf')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition">
-              📋 Copiar SW-IDF
-            </button>
-            <button onclick="copyCode('code-sw-mdf')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition">
-              📋 Copiar SW-MDF
-            </button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 font-mono text-xs">
-          <!-- SW-IDF -->
-          <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
-            <div class="text-cyan-400 font-bold mb-2">// SW-IDF (Andar dos Usuários)</div>
-<pre id="code-sw-idf"><code>enable
-configure terminal
-hostname SW-IDF
-
-vlan 10
- name OPERACIONAL
-vlan 20
- name SERVIDORES
-exit
-
-! Porta do Backbone Vertical (Trunk)
-interface gigabitEthernet 0/1
- switchport mode trunk
- description TRUNK-PARA-MDF
-exit
-
-! Portas das Bancadas de Trabalho
-interface range fastEthernet 0/1-10
- switchport mode access
- switchport access vlan 10
-exit</code></pre>
-          </div>
-
-          <!-- SW-MDF -->
-          <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
-            <div class="text-indigo-400 font-bold mb-2">// SW-MDF (Data Center Central)</div>
-<pre id="code-sw-mdf"><code>enable
-configure terminal
-hostname SW-MDF
-
-vlan 10
- name OPERACIONAL
-vlan 20
- name SERVIDORES
-exit
-
-! Recebe o Backbone do IDF
-interface gigabitEthernet 0/1
- switchport mode trunk
- description TRUNK-DO-IDF
-exit
-
-! Tronco conectado ao Roteador R-MDF
-interface gigabitEthernet 0/2
- switchport mode trunk
- description TRUNK-ROUTER-ON-A-STICK
-exit
-
-! Porta de Acesso do Servidor Intranet
-interface fastEthernet 0/1
- switchport mode access
- switchport access vlan 20
-exit</code></pre>
-          </div>
-        </div>
-      </div>
-
-      <!-- Router Script -->
-      <div class="mb-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm shadow-xl">
-        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
-            <span>🧭</span> 2. Configuração do Roteador Central R-MDF
-          </h4>
-          <button onclick="copyCode('code-r-mdf')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition flex items-center gap-1">
-            📋 Copiar Roteador R-MDF
+      <!-- Tabs de Configuração por Dispositivo -->
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
+        
+        <!-- Tab Bar -->
+        <div class="flex border-b border-slate-200 bg-slate-50 overflow-x-auto text-xs font-semibold">
+          <button id="tab-btn-sw-idf" onclick="switchConfigTab('tab-sw-idf')" class="px-5 py-3 border-b-2 border-indigo-600 text-indigo-700 bg-white flex items-center gap-2 whitespace-nowrap">
+            <span>🔀</span> 1. SW-IDF (Switch de Acesso)
+          </button>
+          <button id="tab-btn-sw-mdf" onclick="switchConfigTab('tab-sw-mdf')" class="px-5 py-3 border-b-2 border-transparent text-slate-600 hover:text-slate-900 flex items-center gap-2 whitespace-nowrap">
+            <span>🔀</span> 2. SW-MDF (Switch de Distribuição)
+          </button>
+          <button id="tab-btn-r-mdf" onclick="switchConfigTab('tab-r-mdf')" class="px-5 py-3 border-b-2 border-transparent text-slate-600 hover:text-slate-900 flex items-center gap-2 whitespace-nowrap">
+            <span>🧭</span> 3. R-MDF (Router-on-a-Stick &amp; DHCP)
+          </button>
+          <button id="tab-btn-srv-pcs" onclick="switchConfigTab('tab-srv-pcs')" class="px-5 py-3 border-b-2 border-transparent text-slate-600 hover:text-slate-900 flex items-center gap-2 whitespace-nowrap">
+            <span>🖥️</span> 4. SRV-INTRA &amp; Clientes
           </button>
         </div>
-        <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+
+        <!-- TAB 1: SW-IDF -->
+        <div id="tab-sw-idf" class="p-6">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+              <h4 class="text-base font-bold text-slate-900">Switch de Acesso: SW-IDF (Cisco 2960)</h4>
+              <p class="text-xs text-slate-500">Segmenta os usuários do andar em VLANs e envia o tráfego agregado via porta Trunk G0/1</p>
+            </div>
+            <button onclick="copyCode('code-sw-idf')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1.5 shadow-xs">
+              📋 Copiar Configuração SW-IDF
+            </button>
+          </div>
+
+          <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+<pre id="code-sw-idf"><code>enable          ! Entra no modo de execução privilegiado (privilege EXEC)
+conf t          ! Abre o modo de configuração global (terminal)
+hostname SW-IDF ! Define um nome único para identificação do dispositivo
+
+# Criação das VLANs
+vlan 10         ! Cria o ID da VLAN na base de dados do switch
+ name ADMIN     ! Atribui um nome para facilitar a gestão da rede
+vlan 20
+ name CLIENTES
+vlan 30
+ name SERVIDORES
+exit
+
+# Conectando os PCs de Administração (Bancada 1)
+interface range fa0/1 - 5        ! Seleciona um grupo de interfaces simultaneamente
+ description ACESSO-VLAN10-ADMIN ! Adiciona uma etiqueta para documentação interna
+ switchport mode access          ! Define a porta como modo de acesso (apenas 1 VLAN)
+ switchport access vlan 10       ! Associa a porta à VLAN 10
+ spanning-tree portfast          ! Faz a porta ignorar o delay de 30s do STP para DHCP
+ no shutdown                     ! Garante que a interface está ligada
+
+# Conectando os PCs de Clientes (Bancada 2)
+interface range fa0/6 - 10
+ description ACESSO-VLAN20-CLIENTES
+ switchport mode access
+ switchport access vlan 20
+ spanning-tree portfast
+ no shutdown
+
+# Configurando o Link que vai para o MDF (Uplink Trunk)
+interface g0/1
+ description UPLINK-TRUNK-MDF
+ switchport mode trunk           ! Define a porta como tronco (transporta múltiplas VLANs)
+exit</code></pre>
+          </div>
+          
+          <div class="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-950 flex items-start gap-2">
+            <span class="text-base font-bold">💡</span>
+            <div>
+              <strong>Por que usamos spanning-tree portfast?</strong> Em portas onde conectamos computadores de usuários com DHCP, o Spanning Tree Protocol (STP) por padrão aguarda até 30 segundos (estados Listening e Learning) antes de liberar o tráfego. O <code>portfast</code> coloca a porta imediatamente em Forwarding, evitando que o PC sofra timeout ao solicitar IP via DHCP.
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: SW-MDF -->
+        <div id="tab-sw-mdf" class="p-6 hidden">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+              <h4 class="text-base font-bold text-slate-900">Switch de Distribuição: SW-MDF (Cisco 2960)</h4>
+              <p class="text-xs text-slate-500">Recebe o tronco do IDF, conecta o servidor na VLAN 30 e repassa o tronco ao Roteador L3</p>
+            </div>
+            <button onclick="copyCode('code-sw-mdf')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition flex items-center gap-1.5 shadow-xs">
+              📋 Copiar Configuração SW-MDF
+            </button>
+          </div>
+
+          <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
+<pre id="code-sw-mdf"><code>enable
+conf t
+hostname SW-MDF
+
+# Criação das mesmas VLANs (essencial para o reconhecimento das tags no Trunk)
+vlan 10
+ name ADMIN
+vlan 20
+ name CLIENTES
+vlan 30
+ name SERVIDORES
+exit
+
+# Porta do Servidor de Intranet
+interface fa0/1
+ description ACESSO-VLAN30-SERVIDOR
+ switchport mode access
+ switchport access vlan 30
+ no shutdown
+
+# Configurando as portas de Tronco (G0/1 para o IDF e G0/2 para o Roteador)
+interface range g0/1 - 2
+ switchport mode trunk
+ description TRUNK-INTER-SWITCH-E-ROUTER
+exit</code></pre>
+          </div>
+
+          <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-950 flex items-start gap-2">
+            <span class="text-base font-bold">⚠️</span>
+            <div>
+              <strong>Atenção Crucial:</strong> Mesmo que as portas G0/1 e G0/2 estejam configuradas como Trunk, o switch só transportará frames pertencentes às VLANs que constarem na sua base de dados local! Por isso, o comando <code>vlan 10</code>, <code>vlan 20</code> e <code>vlan 30</code> precisa ser executado também no SW-MDF.
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: R-MDF -->
+        <div id="tab-r-mdf" class="p-6 hidden">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+              <h4 class="text-base font-bold text-slate-900">Roteador Central: R-MDF (Cisco ISR 4331)</h4>
+              <p class="text-xs text-slate-500">Router-on-a-Stick em G0/0/0, subinterfaces 802.1Q e Servidor DHCP automático</p>
+            </div>
+            <button onclick="copyCode('code-r-mdf')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition flex items-center gap-1.5 shadow-xs">
+              📋 Copiar Configuração R-MDF
+            </button>
+          </div>
+
+          <div class="bg-[#0d1117] rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-x-auto text-slate-100">
 <pre id="code-r-mdf"><code>enable
-configure terminal
+conf t
 hostname R-MDF
 
-interface GigabitEthernet0/0/0
- no shutdown
-exit
+# Subinterface VLAN 10 (Administração)
+interface g0/0/0.10         ! Cria uma interface lógica (subinterface) vinculada à física
+ encapsulation dot1Q 10     ! Define o protocolo 802.1Q e a qual VLAN esta porta responde
+ ip address 192.168.10.1 255.255.255.0 ! Define o endereço IP (Gateway da rede)
 
-! Gateway e Encapsulamento VLAN 10 (IDF)
-interface GigabitEthernet0/0/0.10
- encapsulation dot1Q 10
- ip address 192.168.10.1 255.255.255.0
-exit
-
-! Gateway e Encapsulamento VLAN 20 (MDF)
-interface GigabitEthernet0/0/0.20
+# Subinterface VLAN 20 (Clientes)
+interface g0/0/0.20
  encapsulation dot1Q 20
  ip address 192.168.20.1 255.255.255.0
-exit
 
-! Pool DHCP para os computadores do IDF
-ip dhcp pool POOL-IDF-USUARIOS
- network 192.168.10.0 255.255.255.0
- default-router 192.168.10.1
+# Subinterface VLAN 30 (Servidores)
+interface g0/0/0.30
+ encapsulation dot1Q 30
+ ip address 192.168.30.1 255.255.255.0
+
+# Ativando a porta física "mãe"
+interface g0/0/0            ! Seleciona a interface física "mãe"
+ no shutdown                ! Liga a interface física para ativar as subinterfaces
+ exit
+
+# --- SERVIDOR DHCP NO ROTEADOR ---
+# Exclui os primeiros IPs para não causar conflitos com Gateways ou Servidores
+ip dhcp excluded-address 192.168.10.1 192.168.10.10
+ip dhcp excluded-address 192.168.20.1 192.168.20.10
+
+# Pool de Endereçamento para Administração (VLAN 10)
+ip dhcp pool POOL_ADMIN      ! Cria o escopo de endereçamento para o grupo Admin
+ network 192.168.10.0 255.255.255.0 ! Define a faixa de rede disponível
+ default-router 192.168.10.1 ! Informa aos clientes qual o IP do Gateway
+ dns-server 192.168.30.10    ! Informa aos clientes qual o IP do Servidor DNS/Intranet
+
+# Pool de Endereçamento para Clientes (VLAN 20)
+ip dhcp pool POOL_CLIENTES
+ network 192.168.20.0 255.255.255.0
+ default-router 192.168.20.1
+ dns-server 192.168.30.10
 exit</code></pre>
+          </div>
+
+          <div class="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-950 flex items-start gap-2">
+            <span class="text-base font-bold">📌</span>
+            <div>
+              <strong>Ordem dos Comandos na Subinterface:</strong> Você <em>deve</em> executar <code>encapsulation dot1Q [vlan-id]</code> <strong>antes</strong> de definir o <code>ip address</code>. O Cisco IOS rejeitará o comando de IP em uma subinterface se o protocolo de encapsulamento da VLAN ainda não tiver sido especificado!
+            </div>
+          </div>
         </div>
+
+        <!-- TAB 4: SRV-INTRA & PCS -->
+        <div id="tab-srv-pcs" class="p-6 hidden">
+          <div class="mb-6">
+            <h4 class="text-base font-bold text-slate-900 mb-1">Configuração do Servidor e Estações de Trabalho</h4>
+            <p class="text-xs text-slate-500">Procedimento dentro da interface gráfica do Cisco Packet Tracer</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="text-xl">🗄️</span>
+                <h5 class="font-bold text-xs text-slate-900 uppercase">1. Servidor de Intranet (SRV-INTRA na Sala MDF)</h5>
+              </div>
+              <ol class="list-decimal pl-5 text-xs text-slate-700 space-y-2">
+                <li>Clique no servidor <strong>SRV-INTRA</strong> no rack do MDF.</li>
+                <li>Vá na aba <strong>Desktop → IP Configuration</strong> e preencha:
+                  <div class="p-2.5 bg-slate-900 text-slate-200 font-mono text-[11px] rounded mt-1">
+                    IP: 192.168.30.10<br>
+                    Máscara: 255.255.255.0<br>
+                    Gateway: 192.168.30.1<br>
+                    DNS Server: 192.168.30.10
+                  </div>
+                </li>
+                <li>Acesse a aba <strong>Services → HTTP</strong>.</li>
+                <li>Localize o arquivo <code>index.html</code> e clique em <strong>Edit</strong>.</li>
+                <li>Altere o conteúdo para:
+                  <code class="block p-2 bg-indigo-950 text-indigo-300 font-mono text-[11px] rounded mt-1">
+                    &lt;h1&gt;BEM-VINDO AO PORTAL INTERNO DA EMPRESA&lt;/h1&gt;
+                  </code>
+                </li>
+                <li>Clique em <strong>Save</strong> e confirme a substituição.</li>
+              </ol>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="text-xl">🖥️</span>
+                <h5 class="font-bold text-xs text-slate-900 uppercase">2. Estações de Trabalho (10 PCs na Sala IDF)</h5>
+              </div>
+              <ol class="list-decimal pl-5 text-xs text-slate-700 space-y-2">
+                <li>Em cada um dos 10 PCs distribuídos nas mesas:
+                  <div class="text-slate-600 mt-0.5">Clique no PC → <strong>Desktop → IP Configuration</strong>.</div>
+                </li>
+                <li>Alterne de <em>Static</em> para <strong>DHCP</strong>.</li>
+                <li>Aguarde a mensagem <em>"DHCP request successful"</em>:
+                  <div class="mt-1 space-y-1">
+                    <span class="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono text-[11px]">
+                      PCs 1 a 5 (Portas Fa0/1-5): Recebem 192.168.10.11 ~ 15
+                    </span>
+                    <span class="inline-block px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-mono text-[11px]">
+                      PCs 6 a 10 (Portas Fa0/6-10): Recebem 192.168.20.11 ~ 15
+                    </span>
+                  </div>
+                </li>
+                <li>Abra o <strong>Command Prompt</strong> em um PC da Bancada 1 (ex: PC 1) e teste ping no PC 6 da Bancada 2:
+                  <code class="block p-2 bg-slate-900 text-emerald-400 font-mono text-[11px] rounded mt-1">
+                    ping 192.168.20.11
+                  </code>
+                </li>
+                <li>Abra o <strong>Web Browser</strong> de qualquer PC e acesse a URL:
+                  <code class="block p-2 bg-slate-900 text-cyan-400 font-mono text-[11px] rounded mt-1">
+                    http://192.168.30.10
+                  </code>
+                </li>
+              </ol>
+            </div>
+
+          </div>
+        </div>
+
       </div>
     </section>
 
-    <!-- SECTION 4: ARMADILHAS COMUNS -->
+
+
+    <!-- SECTION 5: ARMADILHAS COMUNS & LABORATÓRIO DE DIAGNÓSTICO -->
     <section id="armadilhas" class="mb-14 scroll-mt-24">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center font-bold text-sm">3</div>
-        <h3 class="text-2xl font-bold text-slate-900">Armadilhas Comuns em IDF, MDF e Trunks</h3>
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 rounded-lg bg-amber-600/20 text-amber-600 flex items-center justify-center font-bold text-sm">5</div>
+        <h3 class="text-2xl font-bold text-slate-900">Armadilhas Comuns &amp; Laboratório de Diagnóstico</h3>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
-          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
-            <span>⚠️</span> 1. Trunk em Apenas um Lado
+      <!-- Falhas interativas -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        
+        <div class="bg-white border border-slate-200 rounded-xl p-5 hover:border-amber-400 transition shadow-xs">
+          <div class="text-amber-600 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 1. Trunk em Apenas um Switch
           </div>
-          <p class="text-xs text-slate-500 leading-relaxed mb-3">
-            Se você configurar <code>switchport mode trunk</code> no SW-IDF e esquecer do SW-MDF, o link não fechará o protocolo 802.1Q corretamente e o tráfego inter-closets será descartado.
+          <p class="text-xs text-slate-600 leading-relaxed mb-3">
+            Se você configurou <code>switchport mode trunk</code> na porta G0/1 do SW-IDF mas esqueceu da porta G0/1 do SW-MDF, o link não fechará o entroncamento 802.1Q e todo tráfego taggeado será silenciosamente descartado.
           </p>
           <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
-            Sempre valide com 'show interfaces trunk' nos DOIS switches!
+            <strong>Diagnóstico:</strong> Execute <code>show interfaces trunk</code> em ambos os switches e certifique-se de que a porta aparece com status <em>"trunking"</em>.
           </div>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
-          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
-            <span>⚠️</span> 2. Esquecer de Criar as VLANs
+        <div class="bg-white border border-slate-200 rounded-xl p-5 hover:border-amber-400 transition shadow-xs">
+          <div class="text-amber-600 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 2. Esquecer de Criar a VLAN no SW-MDF
           </div>
-          <p class="text-xs text-slate-500 leading-relaxed mb-3">
-            Mesmo que uma porta seja Trunk, o switch só transporta frames de VLANs que existem no seu banco de dados local. Você precisa criar <code>vlan 10</code> e <code>vlan 20</code> em ambos os equipamentos.
+          <p class="text-xs text-slate-600 leading-relaxed mb-3">
+            Mesmo com o Trunk ativo, o switch não encaminha frames de VLANs ausentes de sua base de dados. Se a <code>vlan 20</code> existir apenas no IDF, os clientes não conseguem alcançar o roteador nem a Intranet.
           </p>
           <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
-            Execute 'show vlan brief' para conferir a base de dados.
+            <strong>Diagnóstico:</strong> Rode <code>show vlan brief</code> no SW-MDF e valide se as VLANs 10, 20 e 30 estão criadas e com status <em>active</em>.
           </div>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 hover:border-amber-500/40 transition">
-          <div class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
-            <span>⚠️</span> 3. Ultrapassar os 100 Metros
+        <div class="bg-white border border-slate-200 rounded-xl p-5 hover:border-amber-400 transition shadow-xs">
+          <div class="text-amber-600 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 3. Porta Física do Roteador em Shutdown
           </div>
-          <p class="text-xs text-slate-500 leading-relaxed mb-3">
-            No modo Físico do Packet Tracer, cabos de par trançado com mais de 100m apresentam perda grave de pacotes e alta taxa de colisão/timeout.
+          <p class="text-xs text-slate-600 leading-relaxed mb-3">
+            No Router-on-a-Stick, subinterfaces como <code>G0/0/0.10</code> dependem do estado operacional da interface física mãe (<code>G0/0/0</code>). Se a porta mãe estiver administrativamente desligada, nenhuma subinterface funcionará!
           </p>
           <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
-            Utilize fibra óptica para backbones inter-prédios longos.
+            <strong>Diagnóstico:</strong> Entre em <code>interface g0/0/0</code> e aplique <code>no shutdown</code>. Verifique com <code>show ip int brief</code>.
           </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl p-5 hover:border-amber-400 transition shadow-xs">
+          <div class="text-amber-600 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 4. IP antes do encapsulation dot1Q
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed mb-3">
+            Tentar configurar <code>ip address 192.168.10.1 255.255.255.0</code> diretamente em uma subinterface sem antes ter executado <code>encapsulation dot1Q 10</code> fará o IOS rejeitar o comando com erro de protocolo.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            <strong>Diagnóstico:</strong> Sempre aplique a linha <code>encapsulation dot1Q [VLAN_ID]</code> primeiro, e somente depois a linha de IP!
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl p-5 hover:border-amber-400 transition shadow-xs">
+          <div class="text-amber-600 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 5. Ultrapassar os 100 Metros no Modo Físico
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed mb-3">
+            No modo Físico do Packet Tracer, se você posicionar os closets ou bancadas de forma que o cabo de rede de cobre exceda 100 metros, haverá alta taxa de perda de pacotes e colisões por limite normativo de atenuação.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            <strong>Diagnóstico:</strong> Posicione o cursor do mouse sobre o cabo para inspecionar a metragem. Para lances maiores, usa-se fibra óptica.
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl p-5 hover:border-amber-400 transition shadow-xs">
+          <div class="text-amber-600 font-bold text-sm mb-2 flex items-center gap-2">
+            <span>⚠️</span> 6. Não Excluir os IPs de Gateway do DHCP
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed mb-3">
+            Se esquecer o comando <code>ip dhcp excluded-address</code>, o servidor DHCP poderá atribuir o endereço <code>192.168.10.1</code> para o primeiro computador que ligar, gerando conflito de IP duplicado com o Gateway.
+          </p>
+          <div class="p-2.5 rounded bg-slate-950 text-[11px] text-amber-300 font-mono">
+            <strong>Diagnóstico:</strong> Sempre reserve os primeiros IPs antes de criar o pool: <code>ip dhcp excluded-address 192.168.10.1 192.168.10.10</code>.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 6: QUIZ INTERATIVO DE FIXAÇÃO -->
+    <section id="quiz" class="mb-14 scroll-mt-24">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-600 flex items-center justify-center font-bold text-sm">6</div>
+          <h3 class="text-2xl font-bold text-slate-900">Quiz de Autoavaliação &amp; Fixação de Conceitos</h3>
+        </div>
+        <span class="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-200 font-mono font-medium">
+          5 Questões com Feedback Imediato
+        </span>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
+        <div id="quiz-container" class="space-y-6">
+          <!-- Quiz Questions rendering via JS -->
+        </div>
+
+        <div class="mt-8 pt-4 border-t border-slate-200 flex items-center justify-between flex-wrap gap-3">
+          <div id="quiz-final-score" class="text-sm font-bold text-slate-700">
+            Responda as questões acima para verificar seu domínio sobre MDF, IDF e Trunks.
+          </div>
+          <button onclick="resetQuiz()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+            Refazer Quiz
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- SECTION 5: CHECKLIST DE ENTREGA NO CANVAS -->
+    <!-- SECTION 7: CHECKLIST DE ENTREGA NO CANVAS -->
     <section id="checklist" class="mb-14 scroll-mt-24">
-      <div class="bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-xl">
+      <div class="bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-xl text-white">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
             <div class="flex items-center gap-2">
-              <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">4</span>
-              <h3 class="text-2xl font-bold text-slate-900">Checklist de Entrega no Canvas</h3>
+              <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">7</span>
+              <h3 class="text-2xl font-bold text-white">Checklist de Entrega no Canvas</h3>
             </div>
-            <p class="text-xs sm:text-sm text-slate-700 mt-1">
-              Marque os itens conforme concluir. O progresso é salvo localmente.
+            <p class="text-xs sm:text-sm text-slate-300 mt-1">
+              Marque os itens conforme concluir na sua bancada do Packet Tracer. O progresso é salvo automaticamente.
             </p>
           </div>
           <div class="text-right">
-            <div class="text-2xl font-black text-emerald-400" id="progress-val">0%</div>
-            <div class="text-xs text-slate-500">Concluído</div>
+            <div class="text-3xl font-black text-emerald-400" id="progress-val">0%</div>
+            <div class="text-xs text-slate-400">Progresso do Laboratório</div>
           </div>
         </div>
 
         <!-- Progress Bar -->
-        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
-          <div id="progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 w-0 transition-all duration-300"></div>
+        <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden mb-6">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-cyan-500 via-indigo-500 to-emerald-400 w-0 transition-all duration-300"></div>
         </div>
 
         <!-- Interactive Checkboxes -->
         <div class="space-y-3 text-sm">
-          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
-            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
-            <span class="text-slate-700 text-xs sm:text-sm">
-              <strong>Modo Físico Configurado:</strong> Armários <code>Sala MDF</code> e <code>Sala IDF</code> criados na visão física do Packet Tracer com os racks e cabeamentos organizados.
+          <label class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-700 bg-slate-900">
+            <span class="text-slate-200 text-xs sm:text-sm">
+              <strong>1. Closets Físicos Criados:</strong> Salas <code>Sala MDF</code> e <code>Sala IDF</code> criadas no modo físico do Packet Tracer (Shift+P) dentro de <em>Corporate Office</em> com os racks montados.
             </span>
           </label>
 
-          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
-            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
-            <span class="text-slate-700 text-xs sm:text-sm">
-              <strong>Link Tronco Inter-Switches Operacional:</strong> Porta <code>G0/1</code> configurada como <code>trunk</code> em ambos os switches e validada com <code>show interfaces trunk</code>.
+          <label class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-700 bg-slate-900">
+            <span class="text-slate-200 text-xs sm:text-sm">
+              <strong>2. Cabeamento Estruturado Inter-Closets:</strong> Cabo Gigabit de Backbone conectando SW-IDF (G0/1) ao SW-MDF (G0/1), respeitando a norma TIA/EIA-568 (&lt; 100 metros).
             </span>
           </label>
 
-          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
-            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
-            <span class="text-slate-700 text-xs sm:text-sm">
-              <strong>Roteamento L3 no R-MDF Ativo:</strong> Sub-interfaces <code>.10</code> e <code>.20</code> configuradas com 802.1Q e pool DHCP distribuindo IPs para os PCs do IDF.
+          <label class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-700 bg-slate-900">
+            <span class="text-slate-200 text-xs sm:text-sm">
+              <strong>3. Configuração do SW-IDF:</strong> VLANs 10, 20 e 30 criadas; portas Fa0/1-5 na VLAN 10; portas Fa0/6-10 na VLAN 20 com <code>spanning-tree portfast</code>; porta G0/1 configurada como <code>trunk</code>.
             </span>
           </label>
 
-          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
-            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
-            <span class="text-slate-700 text-xs sm:text-sm">
-              <strong>Ping de Ponta a Ponta Validado:</strong> Teste de ping bem-sucedido dos computadores do IDF alcançando o servidor <code>192.168.20.10</code> no MDF.
+          <label class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-700 bg-slate-900">
+            <span class="text-slate-200 text-xs sm:text-sm">
+              <strong>4. Configuração do SW-MDF:</strong> VLANs 10, 20 e 30 registradas; porta Fa0/1 em modo access na VLAN 30 (Servidor); portas G0/1 e G0/2 em modo <code>trunk</code>.
             </span>
           </label>
 
-          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-500/40 cursor-pointer transition">
-            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 bg-white shadow-xs">
-            <span class="text-slate-700 text-xs sm:text-sm">
-              <strong>Submissão Efetuada no Canvas:</strong> Arquivo <code>mdf_idf_trunk_seunome.pkt</code> e relatório técnico em PDF anexados na tarefa correspondente do Canvas.
+          <label class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-700 bg-slate-900">
+            <span class="text-slate-200 text-xs sm:text-sm">
+              <strong>5. Router-on-a-Stick no R-MDF:</strong> Subinterfaces G0/0/0.10, .20 e .30 com encapsulamento dot1Q e IPs de gateway; interface física mãe G0/0/0 ativada com <code>no shutdown</code>.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-700 bg-slate-900">
+            <span class="text-slate-200 text-xs sm:text-sm">
+              <strong>6. Servidor DHCP Configurado:</strong> Pools <code>POOL_ADMIN</code> e <code>POOL_CLIENTES</code> criados no roteador com exclusão dos primeiros IPs (1-10) e apontamento para DNS/Servidor 192.168.30.10.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-700 bg-slate-900">
+            <span class="text-slate-200 text-xs sm:text-sm">
+              <strong>7. Servidor Intranet Operacional:</strong> SRV-INTRA configurado estaticamente em 192.168.30.10 e página <code>index.html</code> personalizada com o título da intranet empresarial.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-700 bg-slate-900">
+            <span class="text-slate-200 text-xs sm:text-sm">
+              <strong>8. Ping Inter-VLAN e Acesso Web Validados:</strong> Ping do PC-A1 (VLAN 10) para o PC-C1 (VLAN 20) com 100% de sucesso, e abertura do portal web no navegador dos computadores.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition">
+            <input type="checkbox" onchange="updateProgress()" class="lab-check mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-700 bg-slate-900">
+            <span class="text-slate-200 text-xs sm:text-sm">
+              <strong>9. Envio Exclusivo do Arquivo .pkt no Canvas:</strong> Arquivo <code>mdf_idf_trunk_seunome.pkt</code> anexado na tarefa correspondente do Canvas (não é necessário enviar prints, figuras ou relatório).
             </span>
           </label>
         </div>
 
-        <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-200 text-xs text-slate-500">
-          <span>Laboratório de Redes de Computadores • 2026.2</span>
+        <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-800 text-xs text-slate-400">
+          <span>Laboratório de Redes de Computadores • 2026.2 • Gerado por IA (Gemini 3.8 Flash)</span>
           <a href="#simulador" class="text-cyan-400 hover:underline">Voltar ao Simulador ↑</a>
         </div>
       </div>
@@ -526,82 +1402,660 @@ exit</code></pre>
 
     <!-- Bottom Navigation -->
     <div class="flex items-center justify-between border-t border-slate-200 pt-6">
-      <a href="08-acesso-remoto-e-cli.html" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition flex items-center gap-1.5">
-        ← Lab 08: Acesso Remoto & CLI
+      <a href="08-acesso-remoto-e-cli.html" class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition flex items-center gap-1.5">
+        ← Lab 08: Acesso Remoto &amp; CLI
       </a>
-      <a href="10-voip.html" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-lg transition flex items-center gap-1.5">
+      <a href="10-voip.html" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition flex items-center gap-1.5">
         Próximo: Lab 10 - Telefonia IP (VoIP CME) →
       </a>
     </div>
 
   </div>
 
-  <!-- Interactive Simulator Engine -->
+  <!-- JAVASCRIPT: ENGINES INTERATIVAS -->
   <script>
-    let isTrunkEnabled = true;
+    /* ==============================================================
+       1. MINI-JOGO CLASSIFICADOR: MDF vs IDF
+       ============================================================== */
+    const classifierData = [
+      {
+        id: 1,
+        title: "Roteador de Borda com Link da Operadora (ISP)",
+        category: "MDF",
+        reason: "O ponto de demarcação com operadoras externas e roteadores de borda chegam sempre no MDF central."
+      },
+      {
+        id: 2,
+        title: "Switch de Acesso conectado às mesas do 3º Andar",
+        category: "IDF",
+        reason: "O IDF atende diretamente os usuários do andar local para respeitar o limite de 100m da TIA/EIA-568."
+      },
+      {
+        id: 3,
+        title: "Servidor Central de Banco de Dados e Intranet",
+        category: "MDF",
+        reason: "Servidores corporativos ficam na sala principal (MDF), beneficiando-se de nobreaks e refrigeração de precisão."
+      },
+      {
+        id: 4,
+        title: "Patch Panel de Consolidação dos Cabos das Mesas",
+        category: "IDF",
+        reason: "Cada andar tem seu patch panel dentro do rack IDF para organizar os lances horizontais das bancadas."
+      },
+      {
+        id: 5,
+        title: "No-break Trifásico Central com Gerador a Diesel",
+        category: "MDF",
+        reason: "A infraestrutura pesada de energia ininterrupta protege o data center central e a sala de telecomunicações principal."
+      },
+      {
+        id: 6,
+        title: "Uplink Gigabit saindo para o Shaft Vertical",
+        category: "IDF",
+        reason: "O switch IDF utiliza portas Gigabit em modo Trunk para subir/descer o tráfego agregado em direção ao MDF."
+      }
+    ];
 
-    function toggleTrunkState() {
-      isTrunkEnabled = !isTrunkEnabled;
-      const btn = document.getElementById('btn-trunk-state');
-      const idfMode = document.getElementById('idf-port-mode');
-      const wire = document.getElementById('backbone-wire');
-      const label = document.getElementById('backbone-label');
+    let classifierScore = 0;
+    const answeredCards = new Set();
 
-      if (isTrunkEnabled) {
-        btn.innerText = '✓ Backbone em Modo TRUNK (Permite VLAN 10 e 20)';
-        btn.className = 'px-3 py-1 rounded-md text-xs font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40';
-        idfMode.innerText = 'Trunk 802.1Q';
-        idfMode.className = 'text-[10px] text-cyan-400 font-mono';
-        wire.className = 'w-full h-full bg-cyan-500';
-        label.innerText = 'Backbone Vertical: Cabo Gigabit 802.1Q (G0/1 inter-switches)';
-        label.className = 'text-xs font-mono text-cyan-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-800';
+    function initClassifierGame() {
+      const grid = document.getElementById('classifier-cards-grid');
+      grid.innerHTML = '';
+      classifierScore = 0;
+      answeredCards.clear();
+      updateClassifierScore();
+
+      classifierData.forEach(item => {
+        const card = document.createElement('div');
+        card.id = `card-item-${item.id}`;
+        card.className = 'p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between transition';
+        card.innerHTML = `
+          <div>
+            <span class="text-xs font-mono text-slate-400">#${item.id}</span>
+            <div class="text-xs font-bold text-slate-900 mt-1 mb-3">${item.title}</div>
+          </div>
+          <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+            <button onclick="guessClassifier(${item.id}, 'MDF')" class="flex-1 py-1 px-2 rounded-lg text-xs font-bold bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 transition">
+              MDF (Central)
+            </button>
+            <button onclick="guessClassifier(${item.id}, 'IDF')" class="flex-1 py-1 px-2 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 transition">
+              IDF (Andar)
+            </button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function guessClassifier(id, choice) {
+      if (answeredCards.has(id)) return;
+      answeredCards.add(id);
+
+      const item = classifierData.find(d => d.id === id);
+      const card = document.getElementById(`card-item-${id}`);
+      const fb = document.getElementById('classifier-feedback');
+      fb.classList.remove('hidden');
+
+      if (choice === item.category) {
+        classifierScore++;
+        card.className = 'p-4 rounded-xl bg-emerald-50 border-2 border-emerald-300 shadow-xs flex flex-col justify-between';
+        card.querySelector('.border-t').innerHTML = `<span class="text-emerald-700 font-bold text-xs">✓ Correto! Pertence ao ${item.category}</span>`;
+        fb.innerHTML = `<span class="text-emerald-700 font-bold">✓ Parabéns!</span> ${item.title}: ${item.reason}`;
       } else {
-        btn.innerText = '❌ Backbone em Modo ACCESS (Sem suporte a múltiplas VLANs!)';
-        btn.className = 'px-3 py-1 rounded-md text-xs font-mono font-bold bg-rose-950 text-rose-300 border border-rose-500/40';
-        idfMode.innerText = 'Access (VLAN 1 Padrão)';
-        idfMode.className = 'text-[10px] text-rose-400 font-mono font-bold';
-        wire.className = 'w-full h-full bg-rose-500';
-        label.innerText = 'ERRO: Porta em modo Access descarta tags da VLAN 10 e 20!';
-        label.className = 'text-xs font-mono text-rose-400 bg-slate-900 px-3 py-1 rounded-full border border-rose-500/40';
+        card.className = 'p-4 rounded-xl bg-rose-50 border-2 border-rose-300 shadow-xs flex flex-col justify-between';
+        card.querySelector('.border-t').innerHTML = `<span class="text-rose-700 font-bold text-xs">✗ Incorreto! Pertence ao ${item.category}</span>`;
+        fb.innerHTML = `<span class="text-rose-700 font-bold">✗ Opa!</span> ${item.title} na verdade pertence ao <strong>${item.category}</strong>: ${item.reason}`;
+      }
+
+      updateClassifierScore();
+    }
+
+    function updateClassifierScore() {
+      document.getElementById('game-score').innerText = `Acertos: ${classifierScore} / ${classifierData.length}`;
+    }
+
+    function resetClassifierGame() {
+      document.getElementById('classifier-feedback').classList.add('hidden');
+      initClassifierGame();
+    }
+
+    /* ==============================================================
+       2. CICLO DE VIDA DA TAG & MICROSCÓPIO 802.1Q
+       ============================================================== */
+    const lifecycleStepsData = {
+      1: {
+        title: "Estágio 1: Saída do PC Origem (Porta de Acesso)",
+        badge: "Quadro Puro (Untagged)",
+        badgeClass: "bg-slate-800 text-slate-300 border-slate-700",
+        size: "64 a 1.518 Bytes",
+        where: "Placa de Rede (NIC) do PC ➜ Porta FastEthernet 0/1 do SW-IDF",
+        diagram: `
+          <div class="flex rounded-xl overflow-hidden border-2 border-slate-700 font-mono text-xs text-center font-bold">
+            <div class="p-3 bg-blue-900/60 text-blue-200 border-r border-slate-800 w-32">MAC Destino<br><span class="text-[10px] text-blue-300 font-normal">6 Bytes</span></div>
+            <div class="p-3 bg-blue-900/60 text-blue-200 border-r border-slate-800 w-32">MAC Origem<br><span class="text-[10px] text-blue-300 font-normal">6 Bytes</span></div>
+            <div class="p-3 bg-purple-900/60 text-purple-200 border-r border-slate-800 w-28">EtherType<br><span class="text-[10px] text-purple-300 font-normal">0x0800 (IPv4)</span></div>
+            <div class="p-3 bg-slate-800 text-slate-200 flex-1 border-r border-slate-800">Payload IP (Dados / ICMP / HTTP)<br><span class="text-[10px] text-slate-400 font-normal">46 a 1.500 Bytes</span></div>
+            <div class="p-3 bg-emerald-900/60 text-emerald-200 w-24">FCS (CRC)<br><span class="text-[10px] text-emerald-300 font-normal">4 Bytes</span></div>
+          </div>
+        `,
+        explanation: `
+          O computador do usuário (ex: PC-A1 na bancada de Admin) monta um quadro Ethernet padrão limpo. A placa de rede comum não injeta nenhuma etiqueta de VLAN. O quadro chega à porta <code>Fa0/1</code> do switch exatamente neste formato puro (Untagged).
+        `
+      },
+      2: {
+        title: "Estágio 2: No Switch de Acesso SW-IDF (Momento da Injeção)",
+        badge: "Tag Injetada (+4 Bytes)",
+        badgeClass: "bg-amber-950 text-amber-300 border-amber-500/50",
+        size: "68 a 1.522 Bytes (Baby Giant Frame)",
+        where: "Chip ASIC do Switch SW-IDF ➜ Preparação para Uplink Trunk G0/1",
+        diagram: `
+          <div class="flex rounded-xl overflow-hidden border-2 border-amber-500/60 font-mono text-xs text-center font-bold shadow-lg">
+            <div class="p-3 bg-blue-900/60 text-blue-200 border-r border-slate-800 w-28">MAC Dest<br><span class="text-[10px] text-blue-300 font-normal">6B</span></div>
+            <div class="p-3 bg-blue-900/60 text-blue-200 border-r border-slate-800 w-28">MAC Orig<br><span class="text-[10px] text-blue-300 font-normal">6B</span></div>
+            <div class="p-3 bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 flex-1 border-r border-amber-600 ring-2 ring-amber-300 ring-inset animate-pulse font-black">
+              🏷️ TAG 802.1Q (4B)<br><span class="text-[10px] font-bold text-slate-900">[TPID 0x8100 | VLAN 10]</span>
+            </div>
+            <div class="p-3 bg-purple-900/60 text-purple-200 border-r border-slate-800 w-24">EtherType<br><span class="text-[10px] text-purple-300 font-normal">2B</span></div>
+            <div class="p-3 bg-slate-800 text-slate-200 flex-[2] border-r border-slate-800">Payload IP<br><span class="text-[10px] text-slate-400 font-normal">46-1500B</span></div>
+            <div class="p-3 bg-emerald-900/60 text-emerald-200 w-24">FCS (Novo)<br><span class="text-[10px] text-emerald-300 font-normal">4B</span></div>
+          </div>
+        `,
+        explanation: `
+          Como o destino do pacote exige sair pela porta <code>G0/1</code> configurada em modo <strong>Trunk</strong>, o switch SW-IDF "abre" o quadro entre o MAC de Origem e o EtherType e <strong>injeta 4 bytes adicionais contendo a Tag IEEE 802.1Q com o VLAN ID 10</strong>. O switch recalcula o FCS (CRC) para manter a integridade matemática.
+        `
+      },
+      3: {
+        title: "Estágio 3: No Backbone Vertical (Trunk Gigabit)",
+        badge: "Multiplexado no Cabo Físico",
+        badgeClass: "bg-purple-950 text-purple-300 border-purple-500/50",
+        size: "68 a 1.522 Bytes",
+        where: "Shaft Vertical de Cabeamento: Porta G0/1 (IDF) ➜ Porta G0/1 (MDF)",
+        diagram: `
+          <div class="flex rounded-xl overflow-hidden border-2 border-purple-500/60 font-mono text-xs text-center font-bold shadow-lg">
+            <div class="p-3 bg-blue-900/60 text-blue-200 border-r border-slate-800 w-28">MAC Dest<br><span class="text-[10px] text-blue-300 font-normal">6B</span></div>
+            <div class="p-3 bg-blue-900/60 text-blue-200 border-r border-slate-800 w-28">MAC Orig<br><span class="text-[10px] text-blue-300 font-normal">6B</span></div>
+            <div class="p-3 bg-purple-600 text-white flex-1 border-r border-purple-400 font-black">
+              🏷️ TAG 802.1Q (4B)<br><span class="text-[10px] font-bold text-purple-200">VLAN ID: 10 (ADMIN)</span>
+            </div>
+            <div class="p-3 bg-purple-900/60 text-purple-200 border-r border-slate-800 w-24">EtherType<br><span class="text-[10px] text-purple-300 font-normal">2B</span></div>
+            <div class="p-3 bg-slate-800 text-slate-200 flex-[2] border-r border-slate-800">Payload IP<br><span class="text-[10px] text-slate-400 font-normal">46-1500B</span></div>
+            <div class="p-3 bg-emerald-900/60 text-emerald-200 w-24">FCS<br><span class="text-[10px] text-emerald-300 font-normal">4B</span></div>
+          </div>
+        `,
+        explanation: `
+          O quadro desce pelo cabo vertical de backbone. O link físico transporta pacotes das VLANs 10, 20 e 30 misturados sem nenhuma interferência mútua, porque o switch SW-MDF que recebe o quadro lê a etiqueta e sabe exatamente a qual rede virtual ele pertence.
+        `
+      },
+      4: {
+        title: "Estágio 4: No Switch de Distribuição SW-MDF e Destino",
+        badge: "Tag Removida (Strip Tag)",
+        badgeClass: "bg-emerald-950 text-emerald-300 border-emerald-500/50",
+        size: "Retorna a 64 a 1.518 Bytes",
+        where: "Switch SW-MDF (Porta Access Fa0/1) ➜ Servidor SRV-INTRA",
+        diagram: `
+          <div class="flex rounded-xl overflow-hidden border-2 border-emerald-500/60 font-mono text-xs text-center font-bold">
+            <div class="p-3 bg-blue-900/60 text-blue-200 border-r border-slate-800 w-32">MAC Destino<br><span class="text-[10px] text-blue-300 font-normal">6 Bytes</span></div>
+            <div class="p-3 bg-blue-900/60 text-blue-200 border-r border-slate-800 w-32">MAC Origem<br><span class="text-[10px] text-blue-300 font-normal">6 Bytes</span></div>
+            <div class="p-3 bg-purple-900/60 text-purple-200 border-r border-slate-800 w-28">EtherType<br><span class="text-[10px] text-purple-300 font-normal">0x0800 (IPv4)</span></div>
+            <div class="p-3 bg-slate-800 text-slate-200 flex-1 border-r border-slate-800">Payload IP (Entregue Limpo)<br><span class="text-[10px] text-slate-400 font-normal">46 a 1.500 Bytes</span></div>
+            <div class="p-3 bg-emerald-900/60 text-emerald-200 w-24">FCS (Novo)<br><span class="text-[10px] text-emerald-300 font-normal">4 Bytes</span></div>
+          </div>
+        `,
+        explanation: `
+          Quando o quadro precisa ser entregue em uma porta configurada em modo <strong>Access</strong> (ou encaminhado para a subinterface correspondente do roteador), o switch <strong>remove a Tag 802.1Q (Strip Tag)</strong> e recalcula o CRC. O servidor ou PC receptor recebe um quadro Ethernet tradicional e nem sequer nota que o pacote atravessou um tronco de VLANs.
+        `
+      }
+    };
+
+    function setLifecycleStep(step) {
+      const data = lifecycleStepsData[step];
+      if (!data) return;
+
+      // Update button styles
+      for (let i = 1; i <= 4; i++) {
+        const btn = document.getElementById(`step-btn-${i}`);
+        if (!btn) continue;
+        if (i === step) {
+          btn.className = 'p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50/70 text-indigo-900 font-bold text-xs flex items-center gap-2 transition text-left shadow-xs';
+          btn.querySelector('span').className = 'w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs shrink-0 font-mono';
+        } else {
+          btn.className = 'p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-2 transition text-left';
+          btn.querySelector('span').className = 'w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs shrink-0 font-mono';
+        }
+      }
+
+      // Update indicator text
+      document.getElementById('stepper-stage-indicator').innerText = `Estágio ${step} de 4: ${data.badge}`;
+
+      // Update visual container
+      const container = document.getElementById('lifecycle-visual-container');
+      container.innerHTML = `
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 flex-wrap gap-2">
+          <div>
+            <span class="text-xs font-mono text-slate-400">${data.where}</span>
+            <h5 class="text-sm font-bold text-white mt-0.5">${data.title}</h5>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded text-[11px] font-mono font-bold border ${data.badgeClass}">${data.badge}</span>
+            <span class="px-2.5 py-1 rounded text-[11px] font-mono bg-slate-800 text-slate-300 border border-slate-700">Tamanho: ${data.size}</span>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto py-2">
+          <div class="min-w-[640px]">
+            ${data.diagram}
+          </div>
+        </div>
+
+        <div class="mt-4 p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 text-xs font-mono text-slate-300 leading-relaxed">
+          ${data.explanation}
+        </div>
+      `;
+    }
+
+    const vlanData = {
+      10: {
+        name: "ADMIN",
+        bin: "0000 0000 1010",
+        colorClass: "border-cyan-400 bg-cyan-950/60 text-cyan-300",
+        btnClass: "bg-cyan-600 text-white",
+        desc: "Tag configurada para <strong>VLAN 10 (ADMIN)</strong>. Tráfego das portas Fa0/1-5 do SW-IDF."
+      },
+      20: {
+        name: "CLIENTES",
+        bin: "0000 0001 0100",
+        colorClass: "border-purple-400 bg-purple-950/60 text-purple-300",
+        btnClass: "bg-purple-600 text-white",
+        desc: "Tag configurada para <strong>VLAN 20 (CLIENTES)</strong>. Tráfego das portas Fa0/6-10 do SW-IDF."
+      },
+      30: {
+        name: "SERVIDORES",
+        bin: "0000 0001 1110",
+        colorClass: "border-emerald-400 bg-emerald-950/60 text-emerald-300",
+        btnClass: "bg-emerald-600 text-white",
+        desc: "Tag configurada para <strong>VLAN 30 (SERVIDORES)</strong>. Tráfego da porta Fa0/1 do SW-MDF e SRV-INTRA."
+      }
+    };
+
+    function selectVlanInspector(id) {
+      const v = vlanData[id];
+      if (!v) return;
+
+      // Update button highlights
+      [10, 20, 30].forEach(vId => {
+        const b = document.getElementById(`btn-vlan-${vId}`);
+        if (!b) return;
+        if (vId === id) {
+          b.className = `px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold shadow-xs transition ${v.btnClass}`;
+        } else {
+          b.className = 'px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 transition';
+        }
+      });
+
+      // Update cards
+      document.getElementById('inspector-vid-val').innerText = `ID: ${id} (${v.name})`;
+      document.getElementById('inspector-vid-bin').innerText = `Binário: ${v.bin}`;
+      document.getElementById('inspector-vid-card').className = `p-4 rounded-xl border-2 relative overflow-hidden transition duration-300 ${v.colorClass}`;
+
+      document.getElementById('inspector-summary-box').innerHTML = `
+        <span>🏷️ ${v.desc}</span>
+        <span class="text-cyan-400 font-bold">Tamanho da Tag: Exatos 32 bits (4 Bytes)</span>
+      `;
+    }
+
+    /* ==============================================================
+       3. SIMULADOR PREDIAL: IDF ↔ SHAFT ↔ MDF
+       ============================================================== */
+    let trunkModes = ['trunk', 'access-error', 'vlan-blocked'];
+    let currentTrunkModeIdx = 0;
+
+    function cycleTrunkMode() {
+      currentTrunkModeIdx = (currentTrunkModeIdx + 1) % trunkModes.length;
+      updateTrunkModeUI();
+    }
+
+    function updateTrunkModeUI() {
+      const mode = trunkModes[currentTrunkModeIdx];
+      const btn = document.getElementById('sim-btn-trunk-state');
+      const text = document.getElementById('trunk-state-text');
+      const uplinkStatus = document.getElementById('idf-uplink-status');
+      const wire1 = document.getElementById('sim-backbone-indicator');
+      const wire2 = document.getElementById('sim-backbone-indicator-2');
+      const desc = document.getElementById('backbone-desc-text');
+
+      if (mode === 'trunk') {
+        btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 hover:brightness-110 transition flex items-center gap-2';
+        text.innerText = 'Modo: TRUNK 802.1Q (Permite VLAN 10, 20, 30)';
+        uplinkStatus.innerText = 'TRUNK 802.1Q (Operacional)';
+        uplinkStatus.className = 'text-cyan-300 font-bold';
+        wire1.className = 'w-full h-full bg-cyan-400';
+        wire2.className = 'w-full h-full bg-cyan-400';
+        desc.innerText = 'Backbone Vertical: Cabo Gigabit G0/1 (Trunk 802.1Q Multiplexado)';
+        desc.className = 'text-xs font-mono font-bold text-cyan-400';
+      } else if (mode === 'access-error') {
+        btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-rose-950 text-rose-300 border border-rose-500/40 hover:brightness-110 transition flex items-center gap-2';
+        text.innerText = 'ERRO: Porta em Modo ACCESS (Sem suporte a tags!)';
+        uplinkStatus.innerText = 'ACCESS VLAN 1 (Erro no Uplink!)';
+        uplinkStatus.className = 'text-rose-400 font-bold';
+        wire1.className = 'w-full h-full bg-rose-500';
+        wire2.className = 'w-full h-full bg-rose-500';
+        desc.innerText = 'FALHA NO BACKBONE: Porta em modo Access descarta tags 802.1Q!';
+        desc.className = 'text-xs font-mono font-bold text-rose-400';
+      } else {
+        btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/40 hover:brightness-110 transition flex items-center gap-2';
+        text.innerText = 'AVISO: Trunk com VLAN 20 Bloqueada';
+        uplinkStatus.innerText = 'TRUNK (Allowed: 10, 30 apenas)';
+        uplinkStatus.className = 'text-amber-400 font-bold';
+        wire1.className = 'w-full h-full bg-amber-400';
+        wire2.className = 'w-full h-full bg-amber-400';
+        desc.innerText = 'TRUNK RESTRITO: switchport trunk allowed vlan 10,30';
+        desc.className = 'text-xs font-mono font-bold text-amber-400';
       }
     }
 
-    function testPingMdf() {
-      const out = document.getElementById('journey-output');
-      out.innerHTML = `<span>Disparando ICMP Echo Request de PC-Usuário (IDF) para 192.168.20.10 (MDF)...</span>`;
-
-      // Step 1: User box
-      document.getElementById('user-pc-box').classList.add('ring-2', 'ring-cyan-400', 'bg-slate-850');
-
-      setTimeout(() => {
-        if (isTrunkEnabled) {
-          document.getElementById('user-pc-box').classList.remove('ring-2', 'ring-cyan-400');
-          document.getElementById('srv-box').classList.add('ring-2', 'ring-emerald-400', 'bg-emerald-950/60');
-          out.innerHTML = `
-            <span class="text-emerald-400 font-bold">✓ PING 100% BEM-SUCEDIDO!</span>
-            <span class="text-slate-700">Pacote cruzou o tronco G0/1 com tag 802.1Q, foi roteado em L3 no R-MDF e alcançou o servidor na sala MDF em 1ms!</span>
-          `;
-        } else {
-          document.getElementById('user-pc-box').classList.remove('ring-2', 'ring-cyan-400');
-          out.innerHTML = `
-            <span class="text-rose-400 font-bold">❌ PING FALHOU (Request timed out)!</span>
-            <span class="text-slate-700">A porta do switch está em modo Access e descartou o quadro com tag da VLAN 10 no backbone!</span>
-          `;
-        }
-      }, 1000);
+    function clearNodeHighlights() {
+      const ids = ['node-pc-admin', 'node-sw-idf', 'node-pc-clientes', 'node-sw-mdf', 'node-r-mdf', 'node-srv-intra'];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('ring-4', 'ring-cyan-400', 'ring-indigo-400', 'ring-purple-400', 'ring-emerald-400', 'ring-rose-500', 'bg-cyan-950', 'bg-rose-950');
+      });
     }
 
+    function startSimulation(type) {
+      resetSimulation();
+      const log = document.getElementById('sim-output-log');
+      const badge = document.getElementById('sim-status-badge');
+      const mode = trunkModes[currentTrunkModeIdx];
+
+      if (type === 'ping-intervlan') {
+        badge.innerText = 'Simulando: Ping Inter-VLAN';
+        badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40';
+
+        // Step 1: PC-A1
+        document.getElementById('node-pc-admin').classList.add('ring-4', 'ring-cyan-400');
+        log.innerHTML = `<div>[1] <strong>PC-A1 (VLAN 10 Admin):</strong> Dispara ICMP Echo Request para 192.168.20.11 (PC-C1). O quadro sai untagged pela porta Fa0/1.</div>`;
+
+        setTimeout(() => {
+          // Step 2: SW-IDF
+          document.getElementById('node-sw-idf').classList.add('ring-4', 'ring-indigo-400');
+          log.innerHTML += `<div>[2] <strong>SW-IDF:</strong> Recebe na Fa0/1, associa à VLAN 10. Para enviar pelo uplink G0/1, <strong>injeta tag 802.1Q (VLAN ID 10)</strong>.</div>`;
+
+          setTimeout(() => {
+            if (mode === 'access-error') {
+              // Error drop
+              document.getElementById('node-sw-idf').classList.add('ring-4', 'ring-rose-500');
+              log.innerHTML += `<div class="text-rose-400 font-bold">[FALHA] <strong>Link G0/1 em modo ACCESS:</strong> O switch descartou o quadro! Portas Access não transportam frames com tags de VLAN!</div>`;
+              badge.innerText = 'Falha: Drop no Trunk';
+              badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-500/40';
+              return;
+            }
+
+            // Step 3: SW-MDF
+            document.getElementById('node-sw-mdf').classList.add('ring-4', 'ring-cyan-400');
+            log.innerHTML += `<div>[3] <strong>SW-MDF:</strong> Recebe quadro no Trunk G0/1 com tag 802.1Q VLAN 10. Mantém a tag e encaminha pela porta G0/2 (Trunk) para o R-MDF.</div>`;
+
+            setTimeout(() => {
+              // Step 4: R-MDF
+              document.getElementById('node-r-mdf').classList.add('ring-4', 'ring-purple-400');
+              log.innerHTML += `<div>[4] <strong>R-MDF (ISR 4331):</strong> Subinterface <code>G0/0/0.10</code> recebe o pacote. O roteador desempacota o cabeçalho dot1Q, consulta a tabela de rotas L3 e comuta para a subinterface de destino <code>G0/0/0.20</code> (Gateway 192.168.20.1).</div>`;
+
+              setTimeout(() => {
+                if (mode === 'vlan-blocked') {
+                  document.getElementById('node-sw-mdf').classList.add('ring-4', 'ring-rose-500');
+                  log.innerHTML += `<div class="text-rose-400 font-bold">[FALHA] <strong>VLAN 20 bloqueada no trunk:</strong> O pacote de volta foi descartado porque a lista permitida exclui a VLAN 20!</div>`;
+                  badge.innerText = 'Falha: VLAN Proibida';
+                  badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-500/40';
+                  return;
+                }
+
+                // Step 5: Deliver back to PC-C1
+                document.getElementById('node-pc-clientes').classList.add('ring-4', 'ring-emerald-400');
+                log.innerHTML += `<div>[5] <strong>PC-C1 (VLAN 20 Clientes):</strong> SW-IDF recebe o quadro com tag 20 no Trunk, remove a tag e entrega limpo pela porta Fa0/6 (Access).</div>`;
+                log.innerHTML += `<div class="text-emerald-400 font-bold mt-2">✓ PING BEM-SUCEDIDO (Reply from 192.168.20.11: bytes=32 time&lt;1ms TTL=127)! Router-on-a-Stick validado!</div>`;
+                badge.innerText = 'Sucesso: 100%';
+                badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40';
+              }, 1000);
+
+            }, 1000);
+
+          }, 1000);
+
+        }, 1000);
+
+      } else if (type === 'web-server') {
+        badge.innerText = 'Simulando: Acesso HTTP ao Servidor';
+        badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-500/40';
+
+        document.getElementById('node-pc-clientes').classList.add('ring-4', 'ring-cyan-400');
+        log.innerHTML = `<div>[1] <strong>PC-C1 (Clientes):</strong> Inicia conexão TCP na porta 80 (HTTP) para <code>192.168.30.10</code>.</div>`;
+
+        setTimeout(() => {
+          document.getElementById('node-sw-idf').classList.add('ring-4', 'ring-indigo-400');
+          log.innerHTML += `<div>[2] <strong>SW-IDF:</strong> Carimba tag 802.1Q (VLAN 20) e despacha pelo Trunk G0/1.</div>`;
+
+          setTimeout(() => {
+            if (mode === 'access-error') {
+              document.getElementById('node-sw-idf').classList.add('ring-4', 'ring-rose-500');
+              log.innerHTML += `<div class="text-rose-400 font-bold">[ERRO HTTP] <strong>Trunk indisponível:</strong> Request Timed Out. O pacote não pôde cruzar o shaft vertical.</div>`;
+              badge.innerText = 'Falha: Timeout HTTP';
+              badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-500/40';
+              return;
+            }
+
+            document.getElementById('node-r-mdf').classList.add('ring-4', 'ring-purple-400');
+            log.innerHTML += `<div>[3] <strong>R-MDF:</strong> Roteia da subinterface <code>.20</code> para a subinterface <code>.30</code> (VLAN SERVIDORES).</div>`;
+
+            setTimeout(() => {
+              document.getElementById('node-srv-intra').classList.add('ring-4', 'ring-emerald-400');
+              log.innerHTML += `<div>[4] <strong>SW-MDF &amp; SRV-INTRA:</strong> SW-MDF recebe frame da VLAN 30, remove a tag e entrega pela porta Fa0/1 (Access). Servidor Web responde com código HTTP 200 OK.</div>`;
+              log.innerHTML += `<div class="text-emerald-400 font-bold mt-2">✓ SUCESSO: Página "BEM-VINDO AO PORTAL INTERNO DA EMPRESA" carregada!</div>`;
+              badge.innerText = 'HTTP 200 OK';
+              badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40';
+              
+              // Open browser preview
+              document.getElementById('sim-browser-view').classList.remove('hidden');
+            }, 1000);
+
+          }, 1000);
+
+        }, 1000);
+      }
+    }
+
+    function resetSimulation() {
+      clearNodeHighlights();
+      document.getElementById('sim-output-log').innerHTML = 'Simulação pronta. Selecione "Ping Inter-VLAN" ou "Acessar Portal Web" para iniciar.';
+      document.getElementById('sim-status-badge').innerText = 'Aguardando Execução';
+      document.getElementById('sim-status-badge').className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
+      document.getElementById('sim-browser-view').classList.add('hidden');
+    }
+
+    /* ==============================================================
+       4. TABS DO GUIA DE CONFIGURAÇÃO CISCO IOS
+       ============================================================== */
+    function switchConfigTab(tabId) {
+      const tabs = ['tab-sw-idf', 'tab-sw-mdf', 'tab-r-mdf', 'tab-srv-pcs'];
+      const btns = ['tab-btn-sw-idf', 'tab-btn-sw-mdf', 'tab-btn-r-mdf', 'tab-srv-pcs'];
+
+      tabs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+
+      document.querySelectorAll('[id^="tab-btn-"]').forEach(b => {
+        b.className = 'px-5 py-3 border-b-2 border-transparent text-slate-600 hover:text-slate-900 flex items-center gap-2 whitespace-nowrap';
+      });
+
+      const activeTab = document.getElementById(tabId);
+      if (activeTab) activeTab.classList.remove('hidden');
+
+      const activeBtn = document.getElementById(`tab-btn-${tabId.replace('tab-', '')}`);
+      if (activeBtn) {
+        activeBtn.className = 'px-5 py-3 border-b-2 border-indigo-600 text-indigo-700 bg-white font-bold flex items-center gap-2 whitespace-nowrap';
+      }
+    }
+
+    /* ==============================================================
+       5. QUIZ INTERATIVO COM 5 QUESTÕES
+       ============================================================== */
+    const quizQuestions = [
+      {
+        id: 1,
+        question: "1. Qual é o papel principal de um switch IDF em um projeto de cabeamento estruturado corporativo?",
+        options: [
+          "Hospedar os servidores centrais de banco de dados e firewalls de borda.",
+          "Concentrar o cabeamento horizontal dos computadores locais do andar e encaminhar o tráfego agregado ao MDF por um backbone de alta velocidade.",
+          "Converter quadros Ethernet em sinais de fibra ótica de longa distância sem comutação L2.",
+          "Substituir completamente a necessidade de roteadores de camada 3 na empresa."
+        ],
+        correct: 1,
+        feedback: "O IDF (Intermediate Distribution Facility) atende aos usuários locais de um andar ou setor, garantindo que o cabeamento não ultrapasse o limite de 100m da norma TIA/EIA-568."
+      },
+      {
+        id: 2,
+        question: "2. O que acontece com um quadro Ethernet quando ele é transmitido através de uma porta configurada como 'switchport mode trunk'?",
+        options: [
+          "O switch remove o endereço IP de destino para acelerar a entrega.",
+          "O switch descarta todos os quadros que não pertencerem à VLAN 1.",
+          "O switch injeta uma tag de 4 bytes conforme o padrão IEEE 802.1Q contendo o VLAN ID correspondente.",
+          "O frame é criptografado com chave RSA de 2048 bits."
+        ],
+        correct: 2,
+        feedback: "Em modo Trunk, o switch insere o cabeçalho 802.1Q de 4 bytes contendo o VLAN ID (12 bits), permitindo multiplexar múltiplas redes virtuais em um mesmo cabo físico."
+      },
+      {
+        id: 3,
+        question: "3. Por que aplicamos o comando 'spanning-tree portfast' nas portas de acesso conectadas aos PCs dos usuários?",
+        options: [
+          "Para aumentar a largura de banda da porta de 100 Mbps para 1 Gbps.",
+          "Para ignorar os estados de Listening e Learning (30s de atraso) do STP, permitindo que os clientes recebam IP via DHCP imediatamente.",
+          "Para permitir que a porta do usuário transporte múltiplas VLANs ao mesmo tempo.",
+          "Para desativar o firewall do Windows no computador cliente."
+        ],
+        correct: 1,
+        feedback: "O PortFast transita a porta imediatamente para Forwarding, impedindo que o timeout do cliente DHCP ocorra enquanto o STP aguarda 30 a 50 segundos."
+      },
+      {
+        id: 4,
+        question: "4. Qual a ordem obrigatória de comandos ao configurar uma subinterface no roteador (Router-on-a-Stick)?",
+        options: [
+          "Primeiro 'ip address', depois 'encapsulation dot1Q'.",
+          "Primeiro 'encapsulation dot1Q [VLAN_ID]', depois 'ip address [IP] [MÁSCARA]'.",
+          "A ordem é indiferente no Cisco IOS.",
+          "O encapsulamento dot1Q só pode ser configurado na interface física mãe."
+        ],
+        correct: 1,
+        feedback: "O Cisco IOS exige que o protocolo de encapsulamento dot1Q com o ID da VLAN seja definido antes de qualquer atribuição de endereço IP na subinterface."
+      },
+      {
+        id: 5,
+        question: "5. Se a VLAN 20 for criada no SW-IDF mas não for criada no SW-MDF, o que ocorrerá com os clientes da VLAN 20 tentando alcançar a Intranet?",
+        options: [
+          "O SW-MDF criará a VLAN 20 automaticamente de forma invisível.",
+          "A comunicação funcionará normalmente porque a porta é Trunk.",
+          "O SW-MDF descartará os frames da VLAN 20, pois switches só transportam tráfego de VLANs cadastradas em sua base local.",
+          "O roteador assumirá a porta do switch automaticamente via CDP."
+        ],
+        correct: 2,
+        feedback: "Um switch descarta o tráfego de qualquer VLAN que não esteja ativa no seu banco de dados local (visível no comando 'show vlan brief')."
+      }
+    ];
+
+    const userAnswers = {};
+
+    function renderQuiz() {
+      const container = document.getElementById('quiz-container');
+      container.innerHTML = '';
+
+      quizQuestions.forEach(q => {
+        const block = document.createElement('div');
+        block.id = `quiz-q-${q.id}`;
+        block.className = 'p-5 rounded-xl bg-slate-50 border border-slate-200 transition';
+
+        let optsHtml = '';
+        q.options.forEach((opt, idx) => {
+          optsHtml += `
+            <label onclick="answerQuiz(${q.id}, ${idx})" class="flex items-start gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 cursor-pointer transition text-xs text-slate-800">
+              <input type="radio" name="question-${q.id}" class="mt-0.5 text-indigo-600 focus:ring-indigo-500">
+              <span>${opt}</span>
+            </label>
+          `;
+        });
+
+        block.innerHTML = `
+          <h4 class="font-bold text-sm text-slate-900 mb-3">${q.question}</h4>
+          <div class="space-y-2">${optsHtml}</div>
+          <div id="quiz-fb-${q.id}" class="mt-3 p-3 rounded-lg text-xs hidden"></div>
+        `;
+        container.appendChild(block);
+      });
+    }
+
+    function answerQuiz(qId, selectedIdx) {
+      userAnswers[qId] = selectedIdx;
+      const q = quizQuestions.find(item => item.id === qId);
+      const fbBox = document.getElementById(`quiz-fb-${qId}`);
+      const block = document.getElementById(`quiz-q-${qId}`);
+      fbBox.classList.remove('hidden');
+
+      if (selectedIdx === q.correct) {
+        block.className = 'p-5 rounded-xl bg-emerald-50/50 border-2 border-emerald-300 transition';
+        fbBox.className = 'mt-3 p-3 rounded-lg text-xs bg-emerald-100 text-emerald-900 font-medium';
+        fbBox.innerHTML = `<strong>✓ Correto!</strong> ${q.feedback}`;
+      } else {
+        block.className = 'p-5 rounded-xl bg-rose-50/50 border-2 border-rose-300 transition';
+        fbBox.className = 'mt-3 p-3 rounded-lg text-xs bg-rose-100 text-rose-900 font-medium';
+        fbBox.innerHTML = `<strong>✗ Incorreto.</strong> ${q.feedback}`;
+      }
+
+      evaluateTotalQuiz();
+    }
+
+    function evaluateTotalQuiz() {
+      const answeredKeys = Object.keys(userAnswers);
+      let correctCount = 0;
+      quizQuestions.forEach(q => {
+        if (userAnswers[q.id] === q.correct) correctCount++;
+      });
+
+      const scoreEl = document.getElementById('quiz-final-score');
+      if (answeredKeys.length === quizQuestions.length) {
+        if (correctCount >= 4) {
+          scoreEl.innerHTML = `<span class="text-emerald-600 font-bold">Excelente! Você acertou ${correctCount} de ${quizQuestions.length} questões. Conceitos de MDF, IDF e Trunk dominados!</span>`;
+        } else {
+          scoreEl.innerHTML = `<span class="text-amber-600 font-bold">Você acertou ${correctCount} de ${quizQuestions.length} questões. Revise a fundamentação teórica e as armadilhas comuns.</span>`;
+        }
+      } else {
+        scoreEl.innerHTML = `Progresso: ${answeredKeys.length} de ${quizQuestions.length} respondidas. Acertos até agora: ${correctCount}.`;
+      }
+    }
+
+    function resetQuiz() {
+      for (const k in userAnswers) delete userAnswers[k];
+      renderQuiz();
+      document.getElementById('quiz-final-score').innerText = 'Responda as questões acima para verificar seu domínio sobre MDF, IDF e Trunks.';
+    }
+
+    /* ==============================================================
+       6. UTILITÁRIOS: COPIAR CÓDIGO, TOAST & PROGRESS CHECKLIST
+       ============================================================== */
     function copyCode(id) {
-      const code = document.getElementById(id).innerText;
-      navigator.clipboard.writeText(code);
-      showToast('Comandos copiados para a área de transferência!');
+      const el = document.getElementById(id);
+      if (!el) return;
+      const code = el.innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast('Bloco de comandos copiado para a área de transferência!');
+      });
     }
 
     function showToast(msg) {
       const t = document.getElementById('toast');
       document.getElementById('toast-msg').innerText = msg;
       t.classList.remove('opacity-0', 'translate-y-20');
-      setTimeout(() => t.classList.add('opacity-0', 'translate-y-20'), 2500);
+      setTimeout(() => {
+        t.classList.add('opacity-0', 'translate-y-20');
+      }, 2500);
     }
 
     function updateProgress() {
@@ -611,11 +2065,21 @@ exit</code></pre>
       const pct = Math.round((done / checks.length) * 100);
       document.getElementById('progress-val').innerText = pct + '%';
       document.getElementById('progress-bar').style.width = pct + '%';
-      localStorage.setItem('lr_lab09_progress', pct);
+      localStorage.setItem('lr_lab09_progress_v2', pct);
     }
 
+    /* ==============================================================
+       7. INICIALIZAÇÃO GERAL
+       ============================================================== */
     window.addEventListener('DOMContentLoaded', () => {
-      const saved = localStorage.getItem('lr_lab09_progress');
+      initClassifierGame();
+      renderQuiz();
+      updateTrunkModeUI();
+      setLifecycleStep(1);
+      selectVlanInspector(10);
+
+      // Restaurar checklist do localStorage
+      const saved = localStorage.getItem('lr_lab09_progress_v2');
       if (saved) {
         const checks = document.querySelectorAll('.lab-check');
         const count = Math.round((parseInt(saved) / 100) * checks.length);
